@@ -1,8 +1,3 @@
-/*! \file main.js
- *  \brief Text transfer over sound
- *  \author Georgi Gerganov
- */
-
 function transmitText(sText) {
     var r = new Uint8Array(256);
     for (var i = 0; i < sText.length; ++i) {

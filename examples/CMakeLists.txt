@@ -1,5 +1,11 @@
 find_package(Threads REQUIRED)
 
+# third-party
+
+add_subdirectory(third-party)
+
+# helper libraries
+
 add_library(ggwave-common ${GGWAVE_LIBRARY_TYPE}
     ggwave-common.cpp
     )
@@ -48,6 +54,8 @@ if (GGWAVE_SUPPORT_SDL2)
         )
 endif()
 
+# examples
+
 if (GGWAVE_SUPPORT_SDL2)
     if (EMSCRIPTEN)
         # emscripten sdl2 examples
@@ -57,5 +65,6 @@ if (GGWAVE_SUPPORT_SDL2)
         # non-emscripten sdl2 examples
 
         add_subdirectory(ggwave-cli)
+        add_subdirectory(ggwave-gui)
     endif()
 endif()

@@ -1,0 +1,6 @@
+[submodule "examples/third-party/imtui"]
+	path = examples/third-party/imtui
+	url = https://github.com/ggerganov/imtui
+[submodule "examples/third-party/imgui/imgui"]
+	path = examples/third-party/imgui/imgui
+	url = https://github.com/ocornut/imgui

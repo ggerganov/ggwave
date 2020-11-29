@@ -15,6 +15,8 @@
 
 #include <SDL.h>
 
+#include <cstdio>
+
 ImGuiContext* ImGui_Init(SDL_Window* window, SDL_GLContext gl_context) {
     // Decide GL+GLSL versions
 #if __APPLE__

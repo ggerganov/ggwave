@@ -4,6 +4,10 @@
 
 #include "ggwave-common.h"
 
+#include <imgui-extra/imgui_impl.h>
+
+#include <SDL_opengl.h>
+
 #include <chrono>
 
 #ifdef __EMSCRIPTEN__
@@ -308,6 +312,36 @@ bool GGWave_deinit() {
 #ifdef __EMSCRIPTEN__
     emscripten_cancel_main_loop();
 #endif
+
+    return true;
+}
+
+bool ImGui_beginFrame(SDL_Window * window) {
+    SDL_Event event;
+    while (SDL_PollEvent(&event))
+    {
+        ImGui_ProcessEvent(&event);
+        if (event.type == SDL_QUIT) return false;
+        if (event.type == SDL_WINDOWEVENT && event.window.event == SDL_WINDOWEVENT_CLOSE && event.window.windowID == SDL_GetWindowID(window)) return false;
+    }
+
+    ImGui_NewFrame(window);
+
+    return true;
+}
+
+bool ImGui_endFrame(SDL_Window * window) {
+    // Rendering
+    int display_w, display_h;
+    SDL_GetWindowSize(window, &display_w, &display_h);
+    glViewport(0, 0, display_w, display_h);
+    glClearColor(0.0f, 0.0f, 0.0f, 0.4f);
+    glClear(GL_COLOR_BUFFER_BIT);
+
+    ImGui::Render();
+    ImGui_RenderDrawData(ImGui::GetDrawData());
+
+    SDL_GL_SwapWindow(window);
 
     return true;
 }

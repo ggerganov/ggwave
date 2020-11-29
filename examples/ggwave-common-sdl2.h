@@ -16,3 +16,5 @@ bool GGWave_deinit();
 
 // ImGui helpers
 
+bool ImGui_beginFrame(SDL_Window * window);
+bool ImGui_endFrame(SDL_Window * window);

@@ -7,15 +7,12 @@
 #include <imgui-extra/imgui_impl.h>
 
 #include <SDL.h>
-#include <SDL_audio.h>
-#include <SDL_opengl.h>
 
 #include <cstdio>
 #include <string>
 
 #include <mutex>
 #include <thread>
-#include <iostream>
 
 static SDL_Window * g_window;
 static void * g_gl_context;
@@ -81,27 +78,6 @@ int main(int argc, char** argv) {
 
     ggWave->init(0, "");
 
-    std::mutex mutex;
-    std::thread inputThread([&]() {
-        std::string inputOld = "";
-        while (true) {
-            std::string input;
-            std::cout << "Enter text: ";
-            getline(std::cin, input);
-            if (input.empty()) {
-                std::cout << "Re-sending ... " << std::endl;
-                input = inputOld;
-            } else {
-                std::cout << "Sending ... " << std::endl;
-            }
-            {
-                std::lock_guard<std::mutex> lock(mutex);
-                ggWave->init(input.size(), input.data());
-            }
-            inputOld = input;
-        }
-    });
-
     if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_TIMER | SDL_INIT_GAMECONTROLLER) != 0) {
         fprintf(stderr, "Error: %s\n", SDL_GetError());
         return -1;
@@ -124,37 +100,19 @@ int main(int argc, char** argv) {
     ImGui::Render();
 
     while (true) {
-        {
-            std::lock_guard<std::mutex> lock(mutex);
-            GGWave_mainLoop();
+        GGWave_mainLoop();
+
+        if (ImGui_beginFrame(g_window) == false) {
+            break;
         }
 
-        SDL_Event event;
-        while (SDL_PollEvent(&event))
-        {
-            ImGui_ProcessEvent(&event);
-            if (event.type == SDL_QUIT) {}
-            if (event.type == SDL_WINDOWEVENT && event.window.event == SDL_WINDOWEVENT_CLOSE && event.window.windowID == SDL_GetWindowID(g_window)) {}
+        if (ImGui::Button("Send")) {
+            std::string input("hello");
+            ggWave->init(input.size(), input.data());
         }
 
-        ImGui_NewFrame(g_window);
-
-        ImGui::ShowDemoWindow();
-
-        // Rendering
-        int display_w, display_h;
-        SDL_GetWindowSize(g_window, &display_w, &display_h);
-        glViewport(0, 0, display_w, display_h);
-        glClearColor(0.0f, 0.0f, 0.0f, 0.4f);
-        glClear(GL_COLOR_BUFFER_BIT);
-
-        ImGui::Render();
-        ImGui_RenderDrawData(ImGui::GetDrawData());
-
-        SDL_GL_SwapWindow(g_window);
+        ImGui_endFrame(g_window);
     }
-
-    inputThread.join();
 
     GGWave_deinit();
 

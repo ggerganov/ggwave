@@ -12,7 +12,7 @@ else (APPLE)
     unset(ADDITIONAL_LIBRARIES)
 endif (APPLE)
 
-add_library(imgui SHARED
+add_library(imgui ${GGWAVE_LIBRARY_TYPE}
     imgui/imgui.cpp
     imgui/imgui_draw.cpp
     imgui/imgui_demo.cpp
@@ -32,36 +32,51 @@ target_link_libraries(imgui PRIVATE
     )
 
 if (GGWAVE_SUPPORT_SDL2)
-    find_package(OpenGL REQUIRED)
-    find_package(SDL2 REQUIRED)
-    string(STRIP "${SDL2_LIBRARIES}" SDL2_LIBRARIES)
+    if (NOT EMSCRIPTEN)
+        find_package(OpenGL REQUIRED)
 
-    add_library(imgui-sdl2 SHARED
-        imgui/examples/libs/gl3w/GL/gl3w.c
-        imgui-extra/imgui_impl.cpp
-        imgui-extra/imgui_impl_sdl.cpp
-        imgui-extra/imgui_impl_opengl3.cpp
-        )
+        add_library(imgui-sdl2 ${GGWAVE_LIBRARY_TYPE}
+            imgui/examples/libs/gl3w/GL/gl3w.c
+            imgui-extra/imgui_impl.cpp
+            imgui-extra/imgui_impl_sdl.cpp
+            imgui-extra/imgui_impl_opengl3.cpp
+            )
 
-    target_include_directories(imgui-sdl2 PUBLIC
-        imgui/examples/libs/gl3w
-        ${SDL2_INCLUDE_DIRS}
-        )
+        target_include_directories(imgui-sdl2 PUBLIC
+            imgui/examples/libs/gl3w
+            ${SDL2_INCLUDE_DIRS}
+            )
 
-    target_include_directories(imgui-sdl2 PRIVATE
-        imgui
-        imgui-extra
-        )
+        target_include_directories(imgui-sdl2 PRIVATE
+            imgui
+            imgui-extra
+            )
 
-    target_link_libraries(imgui-sdl2 PUBLIC
-        imgui
-        ${OPENGL_LIBRARIES}
-        ${SDL2_LIBRARIES}
-        )
+        target_link_libraries(imgui-sdl2 PUBLIC
+            imgui
+            ${OPENGL_LIBRARIES}
+            ${SDL2_LIBRARIES}
+            )
 
-    target_link_libraries(imgui-sdl2 PRIVATE
-        ${CMAKE_DL_LIBS}
-        ${CMAKE_THREAD_LIBS_INIT}
-        ${ADDITIONAL_LIBRARIES}
-        )
+        target_link_libraries(imgui-sdl2 PRIVATE
+            ${CMAKE_DL_LIBS}
+            ${CMAKE_THREAD_LIBS_INIT}
+            ${ADDITIONAL_LIBRARIES}
+            )
+    else()
+        add_library(imgui-sdl2 ${GGWAVE_LIBRARY_TYPE}
+            imgui-extra/imgui_impl.cpp
+            imgui-extra/imgui_impl_sdl.cpp
+            imgui-extra/imgui_impl_opengl3.cpp
+            )
+
+        target_include_directories(imgui-sdl2 PRIVATE
+            imgui
+            imgui-extra
+            )
+
+        target_link_libraries(imgui-sdl2 PUBLIC
+            imgui
+            )
+    endif()
 endif()

@@ -4,6 +4,7 @@
 #include "ggwave-common-sdl2.h"
 
 #include <imgui/imgui.h>
+#include <imgui/imgui_internal.h>
 #include <imgui-extra/imgui_impl.h>
 
 #include <SDL.h>
@@ -16,6 +17,20 @@
 
 static SDL_Window * g_window;
 static void * g_gl_context;
+
+void ScrollWhenDraggingOnVoid(const ImVec2& delta, ImGuiMouseButton mouse_button) {
+    ImGuiContext& g = *ImGui::GetCurrentContext();
+    ImGuiWindow* window = g.CurrentWindow;
+    bool hovered = false;
+    bool held = false;
+    ImGuiButtonFlags button_flags = (mouse_button == 0) ? ImGuiButtonFlags_MouseButtonLeft : (mouse_button == 1) ? ImGuiButtonFlags_MouseButtonRight : ImGuiButtonFlags_MouseButtonMiddle;
+    if (g.HoveredId == 0) // If nothing hovered so far in the frame (not same as IsAnyItemHovered()!)
+        ImGui::ButtonBehavior(window->Rect(), window->GetID("##scrolldraggingoverlay"), &hovered, &held, button_flags);
+    if (held && delta.x != 0.0f)
+        ImGui::SetScrollX(window, window->Scroll.x + delta.x);
+    if (held && delta.y != 0.0f)
+        ImGui::SetScrollY(window, window->Scroll.y + delta.y);
+}
 
 int main(int argc, char** argv) {
     printf("Usage: %s [-cN] [-pN] [-tN]\n", argv[0]);
@@ -92,7 +107,7 @@ int main(int argc, char** argv) {
 
     g_gl_context = SDL_GL_CreateContext(g_window);
     SDL_GL_MakeCurrent(g_window, g_gl_context);
-    SDL_GL_SetSwapInterval(0); // Enable vsync
+    SDL_GL_SetSwapInterval(1); // Enable vsync
 
     ImGui_Init(g_window, g_gl_context);
 
@@ -106,10 +121,82 @@ int main(int argc, char** argv) {
             break;
         }
 
-        if (ImGui::Button("Send")) {
-            std::string input("hello");
-            ggWave->init(input.size(), input.data());
+        static char inputBuf[256];
+        static bool isTextInput = false;
+        static double tStartInput = 0.0f;
+        static double tEndInput = -100.0f;
+
+        const double tShowKeyboard = 0.2f;
+
+        const auto& displaySize = ImGui::GetIO().DisplaySize;
+        auto& style = ImGui::GetStyle();
+
+        const float statusBarHeight = 44.0f + 2.0f*style.ItemSpacing.y;
+        const float menuButtonHeight = 40.0f + 2.0f*style.ItemSpacing.y;
+
+        ImGui::SetNextWindowPos({ 0, 0, });
+        ImGui::SetNextWindowSize(displaySize);
+        ImGui::Begin("Main", nullptr,
+                     ImGuiWindowFlags_NoMove |
+                     ImGuiWindowFlags_NoTitleBar |
+                     ImGuiWindowFlags_NoScrollbar |
+                     ImGuiWindowFlags_NoSavedSettings);
+
+        ImGui::InvisibleButton("StatusBar", { ImGui::GetContentRegionAvailWidth(), statusBarHeight });
+
+        if (ImGui::Button("Messages", { 0.5f*ImGui::GetContentRegionAvailWidth(), menuButtonHeight })) {
         }
+        ImGui::SameLine();
+
+        if (ImGui::Button("Commands", { 1.0f*ImGui::GetContentRegionAvailWidth(), menuButtonHeight })) {
+        }
+
+        const float messagesInputHeight = ImGui::GetTextLineHeightWithSpacing();
+        const float messagesHistoryHeigthMax = ImGui::GetContentRegionAvail().y - messagesInputHeight - 2.0f*style.FramePadding.y;
+        float messagesHistoryHeigth = messagesHistoryHeigthMax;
+
+        if (isTextInput) {
+          messagesHistoryHeigth -= 0.5f*messagesHistoryHeigthMax*std::min(tShowKeyboard, ImGui::GetTime() - tStartInput) / tShowKeyboard;
+        } else {
+          messagesHistoryHeigth -= 0.5f*messagesHistoryHeigthMax - 0.5f*messagesHistoryHeigthMax*std::min(tShowKeyboard, ImGui::GetTime() - tEndInput) / tShowKeyboard;
+        }
+
+        ImGui::BeginChild("Messages:history", { ImGui::GetContentRegionAvailWidth(), messagesHistoryHeigth }, true);
+
+        for (int i = 0; i < 100; ++i) {
+            ImGui::Text("SAA        sadfa line %d\n", i);
+        }
+
+
+        ImVec2 mouse_delta = ImGui::GetIO().MouseDelta;
+        ScrollWhenDraggingOnVoid(ImVec2(0.0f, -mouse_delta.y), ImGuiMouseButton_Left);
+        ImGui::EndChild();
+
+        ImGui::PushItemWidth(ImGui::GetContentRegionAvailWidth() - 2*ImGui::CalcTextSize("Send").x);
+        ImGui::InputText("##Messages:Input", inputBuf, 256, ImGuiInputTextFlags_EnterReturnsTrue);
+        ImGui::PopItemWidth();
+        if (ImGui::IsItemActive() && isTextInput == false) {
+            SDL_StartTextInput();
+            isTextInput = true;
+            tStartInput = ImGui::GetTime();
+        }
+        bool requestStopTextInput = false;
+        if (ImGui::IsItemDeactivated()) {
+            requestStopTextInput = true;
+        }
+        ImGui::SameLine();
+        if (ImGui::Button("Send")) {
+            std::string input(inputBuf);
+            ggWave->init(input.size(), input.data());
+            inputBuf[0] = 0;
+        }
+        if (!ImGui::IsItemHovered() && requestStopTextInput) {
+            SDL_StopTextInput();
+            isTextInput = false;
+            tEndInput = ImGui::GetTime();
+        }
+
+        ImGui::End();
 
         ImGui_endFrame(g_window);
     }

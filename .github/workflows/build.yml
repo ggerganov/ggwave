@@ -13,7 +13,7 @@ jobs:
             - name: Clone
               uses: actions/checkout@v1
               with:
-                  submodules: true
+                  submodules: recursive
 
             - name: Dependencies
               run: |
@@ -39,7 +39,7 @@ jobs:
             - name: Clone
               uses: actions/checkout@v1
               with:
-                  submodules: true
+                  submodules: recursive
 
             - name: Dependencies
               run: |
@@ -65,7 +65,7 @@ jobs:
             - name: Clone
               uses: actions/checkout@v1
               with:
-                  submodules: true
+                  submodules: recursive
 
             - name: Dependencies
               run: |
@@ -89,7 +89,7 @@ jobs:
             - name: Clone
               uses: actions/checkout@v1
               with:
-                  submodules: true
+                  submodules: recursive
 
             - name: Dependencies
               run: |

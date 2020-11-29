@@ -1,5 +1,9 @@
 # ggwave
 
+[![Actions Status](https://github.com/ggerganov/ggwave/workflows/CI/badge.svg)](https://github.com/ggerganov/ggwave/actions)
+[![ggwave v0.0.1 badge][changelog-badge]][changelog]
+[![MIT License Badge][license-badge]][license]
+
 Tiny data-over-sound library.
 
 
@@ -78,3 +82,8 @@ make
   - [ ] Improve library interface
   - [ ] Support for non-float32 input and non-int16 output
   - [ ] Mobile app examples
+
+[changelog]: ./CHANGELOG.md
+[changelog-badge]: https://img.shields.io/badge/changelog-ggwave%20v0.1-dummy
+[license]: ./LICENSE
+[version-badge]: https://img.shields.io/badge/version-0.0.1-blue.svg

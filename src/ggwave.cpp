@@ -4,6 +4,7 @@
 
 #include <chrono>
 #include <algorithm>
+#include <random>
 
 namespace {
 
@@ -186,7 +187,10 @@ bool GGWave::init(int textLength, const char * stext) {
     }
 
     // note : what is the purpose of this shuffle ? I forgot .. :(
-    std::random_shuffle(phaseOffsets.begin(), phaseOffsets.end());
+    std::random_device rd;
+    std::mt19937 g(rd());
+
+    std::shuffle(phaseOffsets.begin(), phaseOffsets.end(), g);
 
     for (int k = 0; k < (int) dataBits.size(); ++k) {
         double freq = freqStart_hz + freqDelta_hz*k;

@@ -309,9 +309,6 @@ bool GGWave_deinit() {
     SDL_CloseAudioDevice(g_devIdOut);
     SDL_CloseAudio();
     SDL_Quit();
-#ifdef __EMSCRIPTEN__
-    emscripten_cancel_main_loop();
-#endif
 
     return true;
 }

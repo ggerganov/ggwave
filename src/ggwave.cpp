@@ -124,6 +124,11 @@ GGWave::GGWave(
     init(0, "");
 }
 
+GGWave::~GGWave() {
+    if (rsData) delete rsData;
+    if (rsLength) delete rsLength;
+}
+
 bool GGWave::setParameters(
         int aParamFreqDelta,
         int aParamFreqStart,
@@ -556,6 +561,8 @@ void GGWave::receive(const CBDequeueAudio & CBDequeueAudio) {
                                 std::string s((char *) rxData.data(), decodedLength);
                                 printf("Received sound data successfully: '%s'\n", s.c_str());
                             }
+                            hasNewRxData = true;
+                            lastRxDataLength = decodedLength;
                             framesToRecord = 0;
                             isValid = true;
                         }

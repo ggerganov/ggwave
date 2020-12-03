@@ -28,6 +28,7 @@ public:
     using AmplitudeData16 = std::array<int16_t, kMaxRecordedFrames*kMaxSamplesPerFrame>;
     using SpectrumData    = std::array<float, kMaxSamplesPerFrame>;
     using RecordedData    = std::array<float, kMaxRecordedFrames*kMaxSamplesPerFrame>;
+    using TxRxData        = std::array<std::uint8_t, kMaxDataSize>;
 
     using CBQueueAudio = std::function<void(const void * data, uint32_t nBytes)>;
     using CBDequeueAudio = std::function<uint32_t(void * data, uint32_t nMaxBytes)>;
@@ -38,6 +39,7 @@ public:
             int aSamplesPerFrame,
             int aSampleSizeBytesIn,
             int aSampleSizeBytesOut);
+    ~GGWave();
 
     void setTxMode(TxMode aTxMode) { txMode = aTxMode; }
 
@@ -67,7 +69,17 @@ public:
     const float & getSampleRateIn()     const { return sampleRateIn; }
     const float & getAverageRxTime_ms() const { return averageRxTime_ms; }
 
-    const std::array<std::uint8_t, kMaxDataSize> & getRxData() const { return rxData; }
+    const TxRxData & getRxData() const { return rxData; }
+
+    int takeRxData(TxRxData & dst) {
+        if (lastRxDataLength == 0) return 0;
+
+        auto res = lastRxDataLength;
+        lastRxDataLength = 0;
+        dst = rxData;
+
+        return res;
+    }
 
 private:
     int nIterations;
@@ -82,10 +94,12 @@ private:
     // Rx
     bool receivingData;
     bool analyzingData;
+    bool hasNewRxData = false;
 
     int nCalls = 0;
     int recvDuration_frames;
     int totalBytesCaptured;
+    int lastRxDataLength = 0;
 
     float tSum_ms = 0.0f;
     float averageRxTime_ms = 0.0;
@@ -96,9 +110,9 @@ private:
     AmplitudeData sampleAmplitude;
     SpectrumData sampleSpectrum;
 
-    std::array<std::uint8_t, kMaxDataSize> rxData;
-    std::array<std::uint8_t, kMaxDataSize> txData;
-    std::array<std::uint8_t, kMaxDataSize> txDataEncoded;
+    TxRxData rxData;
+    TxRxData txData;
+    TxRxData txDataEncoded;
 
     int historyId = 0;
     AmplitudeData sampleAmplitudeAverage;

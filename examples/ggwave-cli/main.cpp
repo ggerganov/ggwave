@@ -36,40 +36,6 @@ int main(int argc, char** argv) {
     ggWave->setTxMode(GGWave::TxMode::VariableLength);
 
     printf("Selecting Tx protocol %d\n", txProtocol);
-    switch (txProtocol) {
-        case 0:
-            {
-                printf("Using 'Normal' Tx Protocol\n");
-                ggWave->setParameters(1, 40, 9, 3, 50);
-            }
-            break;
-        case 1:
-            {
-                printf("Using 'Fast' Tx Protocol\n");
-                ggWave->setParameters(1, 40, 6, 3, 50);
-            }
-            break;
-        case 2:
-            {
-                printf("Using 'Fastest' Tx Protocol\n");
-                ggWave->setParameters(1, 40, 3, 3, 50);
-            }
-            break;
-        case 3:
-            {
-                printf("Using 'Ultrasonic' Tx Protocol\n");
-                ggWave->setParameters(1, 320, 9, 3, 50);
-            }
-            break;
-        default:
-            {
-                printf("Using 'Fast' Tx Protocol\n");
-                ggWave->setParameters(1, 40, 6, 3, 50);
-            }
-    };
-    printf("\n");
-
-    ggWave->init(0, "");
 
     std::mutex mutex;
     std::thread inputThread([&]() {
@@ -86,7 +52,7 @@ int main(int argc, char** argv) {
             }
             {
                 std::lock_guard<std::mutex> lock(mutex);
-                ggWave->init(input.size(), input.data());
+                ggWave->init(input.size(), input.data(), ggWave->getTxProtocols()[txProtocol]);
             }
             inputOld = input;
         }

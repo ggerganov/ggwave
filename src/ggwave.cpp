@@ -121,7 +121,7 @@ GGWave::GGWave(
     sampleSizeBytesIn = aSampleSizeBytesIn;
     sampleSizeBytesOut = aSampleSizeBytesOut;
 
-    init(0, "");
+    setTxMode(TxMode::VariableLength);
 }
 
 GGWave::~GGWave() {
@@ -129,27 +129,13 @@ GGWave::~GGWave() {
     if (rsLength) delete rsLength;
 }
 
-bool GGWave::setParameters(
-        int aParamFreqDelta,
-        int aParamFreqStart,
-        int aParamFramesPerTx,
-        int aParamBytesPerTx,
-        int aParamVolume) {
-
-    paramFreqDelta = aParamFreqDelta;
-    paramFreqStart = aParamFreqStart;
-    paramFramesPerTx = aParamFramesPerTx;
-    paramBytesPerTx = aParamBytesPerTx;
-    paramVolume = aParamVolume;
-
-    return true;
-}
-
-bool GGWave::init(int textLength, const char * stext) {
+bool GGWave::init(int textLength, const char * stext, const TxProtocol & aProtocol) {
     if (textLength > kMaxLength) {
         printf("Truncating data from %d to 140 bytes\n", textLength);
         textLength = kMaxLength;
     }
+
+    txProtocol = aProtocol;
 
     const uint8_t * text = reinterpret_cast<const uint8_t *>(stext);
     frameId = 0;
@@ -157,13 +143,12 @@ bool GGWave::init(int textLength, const char * stext) {
     hasData = false;
 
     isamplesPerFrame = 1.0f/samplesPerFrame;
-    sendVolume = ((double)(paramVolume))/100.0f;
+    sendVolume = ((double)(txProtocol.paramVolume))/100.0f;
     hzPerFrame = sampleRateIn/samplesPerFrame;
     ihzPerFrame = 1.0/hzPerFrame;
-    framesPerTx = paramFramesPerTx;
 
-    nDataBitsPerTx = paramBytesPerTx*8;
-    nECCBytesPerTx = (txMode == TxMode::FixedLength) ? paramECCBytesPerTx : getECCBytesForLength(textLength);
+    nDataBitsPerTx = txProtocol.paramBytesPerTx*8;
+    nECCBytesPerTx = (txMode == TxMode::FixedLength) ? txProtocol.paramECCBytesPerTx : getECCBytesForLength(textLength);
 
     framesToAnalyze = 0;
     framesLeftToAnalyze = 0;
@@ -174,10 +159,10 @@ bool GGWave::init(int textLength, const char * stext) {
     nPostMarkerFrames = 0;
     sendDataLength = (txMode == TxMode::FixedLength) ? kDefaultFixedLength : textLength + 3;
 
-    freqDelta_bin = paramFreqDelta/2;
-    freqDelta_hz = hzPerFrame*paramFreqDelta;
-    freqStart_hz = hzPerFrame*paramFreqStart;
-    if (paramFreqDelta == 1) {
+    freqDelta_bin = txProtocol.paramFreqDelta/2;
+    freqDelta_hz = hzPerFrame*txProtocol.paramFreqDelta;
+    freqStart_hz = hzPerFrame*txProtocol.paramFreqStart;
+    if (txProtocol.paramFreqDelta == 1) {
         freqDelta_bin = 1;
         freqDelta_hz *= 2;
     }
@@ -244,7 +229,6 @@ bool GGWave::init(int textLength, const char * stext) {
     analyzingData = false;
 
     sampleAmplitude.fill(0);
-
     sampleSpectrum.fill(0);
     for (auto & s : sampleAmplitudeHistory) {
         s.fill(0);
@@ -311,15 +295,15 @@ void GGWave::send(const CBQueueAudio & cbQueueAudio) {
             }
         } else if (frameId <
                    (nMarkerFrames + nPostMarkerFrames) +
-                   ((sendDataLength + nECCBytesPerTx)/nBytesPerTx + 2)*framesPerTx) {
+                   ((sendDataLength + nECCBytesPerTx)/nBytesPerTx + 2)*txProtocol.paramFramesPerTx) {
             int dataOffset = frameId - nMarkerFrames - nPostMarkerFrames;
-            int cycleModMain = dataOffset%framesPerTx;
-            dataOffset /= framesPerTx;
+            int cycleModMain = dataOffset%txProtocol.paramFramesPerTx;
+            dataOffset /= txProtocol.paramFramesPerTx;
             dataOffset *= nBytesPerTx;
 
             dataBits.fill(0);
 
-            if (paramFreqDelta > 1) {
+            if (txProtocol.paramFreqDelta > 1) {
                 for (int j = 0; j < nBytesPerTx; ++j) {
                     for (int i = 0; i < 8; ++i) {
                         dataBits[j*8 + i] = txDataEncoded[dataOffset + j] & (1 << i);
@@ -329,10 +313,10 @@ void GGWave::send(const CBQueueAudio & cbQueueAudio) {
                 for (int k = 0; k < nDataBitsPerTx; ++k) {
                     ++nFreq;
                     if (dataBits[k] == false) {
-                        ::addAmplitudeSmooth(bit0Amplitude[k], outputBlock, sendVolume, 0, samplesPerFrameOut, cycleModMain, framesPerTx);
+                        ::addAmplitudeSmooth(bit0Amplitude[k], outputBlock, sendVolume, 0, samplesPerFrameOut, cycleModMain, txProtocol.paramFramesPerTx);
                         continue;
                     }
-                    ::addAmplitudeSmooth(bit1Amplitude[k], outputBlock, sendVolume, 0, samplesPerFrameOut, cycleModMain, framesPerTx);
+                    ::addAmplitudeSmooth(bit1Amplitude[k], outputBlock, sendVolume, 0, samplesPerFrameOut, cycleModMain, txProtocol.paramFramesPerTx);
                 }
             } else {
                 for (int j = 0; j < nBytesPerTx; ++j) {
@@ -351,19 +335,19 @@ void GGWave::send(const CBQueueAudio & cbQueueAudio) {
 
                     ++nFreq;
                     if (k%2) {
-                        ::addAmplitudeSmooth(bit0Amplitude[k/2], outputBlock, sendVolume, 0, samplesPerFrameOut, cycleModMain, framesPerTx);
+                        ::addAmplitudeSmooth(bit0Amplitude[k/2], outputBlock, sendVolume, 0, samplesPerFrameOut, cycleModMain, txProtocol.paramFramesPerTx);
                     } else {
-                        ::addAmplitudeSmooth(bit1Amplitude[k/2], outputBlock, sendVolume, 0, samplesPerFrameOut, cycleModMain, framesPerTx);
+                        ::addAmplitudeSmooth(bit1Amplitude[k/2], outputBlock, sendVolume, 0, samplesPerFrameOut, cycleModMain, txProtocol.paramFramesPerTx);
                     }
                 }
             }
         } else if (txMode == TxMode::VariableLength && frameId <
                    (nMarkerFrames + nPostMarkerFrames) +
-                   ((sendDataLength + nECCBytesPerTx)/nBytesPerTx + 2)*framesPerTx +
+                   ((sendDataLength + nECCBytesPerTx)/nBytesPerTx + 2)*txProtocol.paramFramesPerTx +
                    (nMarkerFrames)) {
             nFreq = nBitsInMarker;
 
-            int fId = frameId - ((nMarkerFrames + nPostMarkerFrames) + ((sendDataLength + nECCBytesPerTx)/nBytesPerTx + 2)*framesPerTx);
+            int fId = frameId - ((nMarkerFrames + nPostMarkerFrames) + ((sendDataLength + nECCBytesPerTx)/nBytesPerTx + 2)*txProtocol.paramFramesPerTx);
             for (int i = 0; i < nBitsInMarker; ++i) {
                 if (i%2 == 0) {
                     addAmplitudeSmooth(bit0Amplitude[i], outputBlock, sendVolume, 0, samplesPerFrameOut, fId, nMarkerFrames);
@@ -400,6 +384,7 @@ void GGWave::receive(const CBDequeueAudio & CBDequeueAudio) {
         //
         // todo : support for non-float input
         auto nBytesRecorded = CBDequeueAudio(sampleAmplitude.data(), samplesPerFrame*sampleSizeBytesIn);
+
 
         if (nBytesRecorded != 0) {
             {
@@ -448,131 +433,135 @@ void GGWave::receive(const CBDequeueAudio & CBDequeueAudio) {
                               recordedAmplitude.data() + (framesToRecord - framesLeftToRecord)*samplesPerFrame);
 
                     if (--framesLeftToRecord <= 0) {
-                        std::fill(sampleSpectrum.begin(), sampleSpectrum.end(), 0.0f);
                         analyzingData = true;
                     }
                 }
             }
 
             if (analyzingData) {
-                int nBytesPerTx = nDataBitsPerTx/8;
-                int stepsPerFrame = 16;
-                int step = samplesPerFrame/stepsPerFrame;
-
-                int offsetStart = 0;
-
-                framesToAnalyze = nMarkerFrames*stepsPerFrame;
-                framesLeftToAnalyze = framesToAnalyze;
+                const int stepsPerFrame = 16;
+                const int step = samplesPerFrame/stepsPerFrame;
 
                 bool isValid = false;
-                for (int ii = nMarkerFrames*stepsPerFrame - 1; ii >= nMarkerFrames*stepsPerFrame/2; --ii) {
-                    offsetStart = ii;
-                    bool knownLength = txMode == TxMode::FixedLength;
-                    int encodedOffset = (txMode == TxMode::FixedLength) ? 0 : 3;
+                for (const auto & rxProtocol : txProtocols) {
+                    std::fill(sampleSpectrum.begin(), sampleSpectrum.end(), 0.0f);
 
-                    for (int itx = 0; itx < 1024; ++itx) {
-                        int offsetTx = offsetStart + itx*framesPerTx*stepsPerFrame;
-                        if (offsetTx >= recvDuration_frames*stepsPerFrame) {
-                            break;
-                        }
+                    framesToAnalyze = nMarkerFrames*stepsPerFrame;
+                    framesLeftToAnalyze = framesToAnalyze;
+                    for (int ii = nMarkerFrames*stepsPerFrame - 1; ii >= nMarkerFrames*stepsPerFrame/2; --ii) {
+                        bool knownLength = txMode == TxMode::FixedLength;
 
-                        std::copy(
-                                recordedAmplitude.begin() + offsetTx*step,
-                                recordedAmplitude.begin() + offsetTx*step + samplesPerFrame, fftIn.data());
+                        const int offsetStart = ii;
+                        const int encodedOffset = (knownLength) ? 0 : 3;
 
-                        for (int k = 1; k < framesPerTx-1; ++k) {
+                        for (int itx = 0; itx < 1024; ++itx) {
+                            int offsetTx = offsetStart + itx*rxProtocol.paramFramesPerTx*stepsPerFrame;
+                            if (offsetTx >= recvDuration_frames*stepsPerFrame || (itx + 1)*rxProtocol.paramBytesPerTx >= (int) txDataEncoded.size()) {
+                                break;
+                            }
+
+                            std::copy(
+                                    recordedAmplitude.begin() + offsetTx*step,
+                                    recordedAmplitude.begin() + offsetTx*step + samplesPerFrame, fftIn.data());
+
+                            for (int k = 1; k < rxProtocol.paramFramesPerTx - 1; ++k) {
+                                for (int i = 0; i < samplesPerFrame; ++i) {
+                                    fftIn[i] += recordedAmplitude[(offsetTx + k*stepsPerFrame)*step + i];
+                                }
+                            }
+
+                            FFT(fftIn.data(), fftOut.data(), samplesPerFrame, 1.0);
+
                             for (int i = 0; i < samplesPerFrame; ++i) {
-                                fftIn[i] += recordedAmplitude[(offsetTx + k*stepsPerFrame)*step + i];
+                                sampleSpectrum[i] = (fftOut[i].real()*fftOut[i].real() + fftOut[i].imag()*fftOut[i].imag());
                             }
-                        }
-
-                        FFT(fftIn.data(), fftOut.data(), samplesPerFrame, 1.0);
-
-                        for (int i = 0; i < samplesPerFrame; ++i) {
-                            sampleSpectrum[i] = (fftOut[i].real()*fftOut[i].real() + fftOut[i].imag()*fftOut[i].imag());
-                        }
-                        for (int i = 1; i < samplesPerFrame/2; ++i) {
-                            sampleSpectrum[i] += sampleSpectrum[samplesPerFrame - i];
-                        }
-
-                        uint8_t curByte = 0;
-                        if (paramFreqDelta > 1) {
-                            for (int i = 0; i < nDataBitsPerTx; ++i) {
-                                int k = i%8;
-                                int bin = std::round(dataFreqs_hz[i]*ihzPerFrame);
-                                if (sampleSpectrum[bin] > 1*sampleSpectrum[bin + freqDelta_bin]) {
-                                    curByte += 1 << k;
-                                } else if (sampleSpectrum[bin + freqDelta_bin] > 1*sampleSpectrum[bin]) {
-                                } else {
-                                }
-                                if (k == 7) {
-                                    txDataEncoded[itx*nBytesPerTx + i/8] = curByte;
-                                    curByte = 0;
-                                }
+                            for (int i = 1; i < samplesPerFrame/2; ++i) {
+                                sampleSpectrum[i] += sampleSpectrum[samplesPerFrame - i];
                             }
-                        } else {
-                            for (int i = 0; i < 2*nBytesPerTx; ++i) {
-                                int bin = std::round(dataFreqs_hz[0]*ihzPerFrame) + i*16;
 
-                                int kmax = 0;
-                                double amax = 0.0;
-                                for (int k = 0; k < 16; ++k) {
-                                    if (sampleSpectrum[bin + k] > amax) {
-                                        kmax = k;
-                                        amax = sampleSpectrum[bin + k];
+                            uint8_t curByte = 0;
+                            if (rxProtocol.paramFreqDelta > 1) {
+                                for (int i = 0; i < nDataBitsPerTx; ++i) {
+                                    int k = i%8;
+                                    int bin = std::round(dataFreqs_hz[i]*ihzPerFrame);
+                                    if (sampleSpectrum[bin] > 1*sampleSpectrum[bin + freqDelta_bin]) {
+                                        curByte += 1 << k;
+                                    } else if (sampleSpectrum[bin + freqDelta_bin] > 1*sampleSpectrum[bin]) {
+                                    } else {
+                                    }
+                                    if (k == 7) {
+                                        txDataEncoded[itx*rxProtocol.paramBytesPerTx + i/8] = curByte;
+                                        curByte = 0;
                                     }
                                 }
-
-                                if (i%2) {
-                                    curByte += (kmax << 4);
-                                    txDataEncoded[itx*nBytesPerTx + i/2] = curByte;
-                                    curByte = 0;
-                                } else {
-                                    curByte = kmax;
-                                }
-                            }
-                        }
-
-                        if (txMode == TxMode::VariableLength) {
-                            if (itx*nBytesPerTx > 3 && knownLength == false) {
-                                if ((rsLength->Decode(txDataEncoded.data(), rxData.data()) == 0) && (rxData[0] <= 140)) {
-                                    knownLength = true;
-                                } else {
-                                    break;
-                                }
-                            }
-                        }
-                    }
-
-                    if (txMode == TxMode::VariableLength && knownLength) {
-                        if (rsData) delete rsData;
-                        rsData = new RS::ReedSolomon(rxData[0], ::getECCBytesForLength(rxData[0]));
-                    }
-
-                    if (knownLength) {
-                        int decodedLength = rxData[0];
-                        if (rsData->Decode(txDataEncoded.data() + encodedOffset, rxData.data()) == 0) {
-                            printf("Decoded length = %d\n", decodedLength);
-                            if (txMode == TxMode::FixedLength && rxData[0] == 'A') {
-                                printf("[ANSWER] Received sound data successfully!\n");
-                            } else if (txMode == TxMode::FixedLength && rxData[0] == 'O') {
-                                printf("[OFFER]  Received sound data successfully!\n");
                             } else {
-                                std::string s((char *) rxData.data(), decodedLength);
-                                printf("Received sound data successfully: '%s'\n", s.c_str());
+                                for (int i = 0; i < 2*rxProtocol.paramBytesPerTx; ++i) {
+                                    int bin = std::round(dataFreqs_hz[0]*ihzPerFrame) + i*16;
+
+                                    int kmax = 0;
+                                    double amax = 0.0;
+                                    for (int k = 0; k < 16; ++k) {
+                                        if (sampleSpectrum[bin + k] > amax) {
+                                            kmax = k;
+                                            amax = sampleSpectrum[bin + k];
+                                        }
+                                    }
+
+                                    if (i%2) {
+                                        curByte += (kmax << 4);
+                                        txDataEncoded[itx*rxProtocol.paramBytesPerTx + i/2] = curByte;
+                                        curByte = 0;
+                                    } else {
+                                        curByte = kmax;
+                                    }
+                                }
                             }
-                            hasNewRxData = true;
-                            lastRxDataLength = decodedLength;
-                            framesToRecord = 0;
-                            isValid = true;
+
+                            if (txMode == TxMode::VariableLength) {
+                                if (itx*rxProtocol.paramBytesPerTx > 3 && knownLength == false) {
+                                    if ((rsLength->Decode(txDataEncoded.data(), rxData.data()) == 0) && (rxData[0] > 0 && rxData[0] <= 140)) {
+                                        knownLength = true;
+                                    } else {
+                                        break;
+                                    }
+                                }
+                            }
                         }
+
+                        if (txMode == TxMode::VariableLength && knownLength) {
+                            if (rsData) delete rsData;
+                            rsData = new RS::ReedSolomon(rxData[0], ::getECCBytesForLength(rxData[0]));
+                        }
+
+                        if (knownLength) {
+                            int decodedLength = rxData[0];
+                            if (rsData->Decode(txDataEncoded.data() + encodedOffset, rxData.data()) == 0) {
+                                if (txMode == TxMode::FixedLength && rxData[0] == 'A') {
+                                    printf("[ANSWER] Received sound data successfully!\n");
+                                } else if (txMode == TxMode::FixedLength && rxData[0] == 'O') {
+                                    printf("[OFFER]  Received sound data successfully!\n");
+                                } else if (rxData[0] != 0) {
+                                    printf("Decoded length = %d\n", decodedLength);
+                                    std::string s((char *) rxData.data(), decodedLength);
+                                    printf("Received sound data successfully: '%s'\n", s.c_str());
+
+                                    isValid = true;
+                                    hasNewRxData = true;
+                                    lastRxDataLength = decodedLength;
+                                }
+                            }
+                        }
+
+                        if (isValid) {
+                            break;
+                        }
+                        --framesLeftToAnalyze;
                     }
 
-                    if (isValid) {
-                        break;
-                    }
-                    --framesLeftToAnalyze;
+                    if (isValid) break;
                 }
+
+                framesToRecord = 0;
 
                 if (isValid == false) {
                     printf("Failed to capture sound data. Please try again\n");
@@ -608,9 +597,9 @@ void GGWave::receive(const CBDequeueAudio & CBDequeueAudio) {
                     rxData.fill(0);
                     receivingData = true;
                     if (txMode == TxMode::FixedLength) {
-                        recvDuration_frames = nMarkerFrames + nPostMarkerFrames + framesPerTx*((kDefaultFixedLength + paramECCBytesPerTx)/paramBytesPerTx + 1);
+                        recvDuration_frames = nMarkerFrames + nPostMarkerFrames + maxFramesPerTx()*((kDefaultFixedLength + maxECCBytesPerTx())/minBytesPerTx() + 1);
                     } else {
-                        recvDuration_frames = nMarkerFrames + nPostMarkerFrames + framesPerTx*((kMaxLength + ::getECCBytesForLength(kMaxLength))/paramBytesPerTx + 1);
+                        recvDuration_frames = nMarkerFrames + nPostMarkerFrames + maxFramesPerTx()*((kMaxLength + ::getECCBytesForLength(kMaxLength))/minBytesPerTx() + 1);
                     }
                     framesToRecord = recvDuration_frames;
                     framesLeftToRecord = recvDuration_frames;

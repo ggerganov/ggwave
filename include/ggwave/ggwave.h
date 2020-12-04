@@ -4,6 +4,7 @@
 #include <complex>
 #include <cstdint>
 #include <functional>
+#include <vector>
 
 namespace RS {
 class ReedSolomon;
@@ -24,11 +25,23 @@ public:
     static constexpr auto kMaxRecordedFrames = 64*10;
     static constexpr auto kDefaultFixedLength = 82;
 
+    struct TxProtocol {
+        const char * name;
+
+        int paramFreqDelta;
+        int paramFreqStart;
+        int paramFramesPerTx;
+        int paramBytesPerTx;
+        int paramECCBytesPerTx;
+        int paramVolume;
+    };
+
     using AmplitudeData   = std::array<float, kMaxSamplesPerFrame>;
     using AmplitudeData16 = std::array<int16_t, kMaxRecordedFrames*kMaxSamplesPerFrame>;
     using SpectrumData    = std::array<float, kMaxSamplesPerFrame>;
     using RecordedData    = std::array<float, kMaxRecordedFrames*kMaxSamplesPerFrame>;
     using TxRxData        = std::array<std::uint8_t, kMaxDataSize>;
+    using TxProtocols     = std::vector<TxProtocol>;
 
     using CBQueueAudio = std::function<void(const void * data, uint32_t nBytes)>;
     using CBDequeueAudio = std::function<uint32_t(void * data, uint32_t nMaxBytes)>;
@@ -41,17 +54,12 @@ public:
             int aSampleSizeBytesOut);
     ~GGWave();
 
-    void setTxMode(TxMode aTxMode) { txMode = aTxMode; }
+    void setTxMode(TxMode aTxMode) {
+        txMode = aTxMode;
+        init(0, "", getDefultTxProtocol());
+    }
 
-    bool setParameters(
-            int aParamFreqDelta,
-            int aParamFreqStart,
-            int aParamFramesPerTx,
-            int aParamBytesPerTx,
-            int aParamVolume);
-
-    bool init(int textLength, const char * stext);
-
+    bool init(int textLength, const char * stext, const TxProtocol & aProtocol);
     void send(const CBQueueAudio & cbQueueAudio);
     void receive(const CBDequeueAudio & CBDequeueAudio);
 
@@ -70,6 +78,8 @@ public:
     const float & getAverageRxTime_ms() const { return averageRxTime_ms; }
 
     const TxRxData & getRxData() const { return rxData; }
+    const TxProtocol & getDefultTxProtocol() const { return txProtocols[1]; }
+    const TxProtocols & getTxProtocols() const { return txProtocols; }
 
     int takeRxData(TxRxData & dst) {
         if (lastRxDataLength == 0) return 0;
@@ -82,14 +92,38 @@ public:
     }
 
 private:
-    int nIterations;
+    const TxProtocols txProtocols {
+        { "Normal",     1, 40,  9, 3, 32, 50 },
+        { "Fast",       1, 40,  6, 3, 32, 50 },
+        { "Fastest",    1, 40,  3, 3, 32, 50 },
+        { "Ultrasonic", 1, 320, 9, 3, 32, 50 },
+    };
 
-    int paramFreqDelta = 6;
-    int paramFreqStart = 40;
-    int paramFramesPerTx = 6;
-    int paramBytesPerTx = 2;
-    int paramECCBytesPerTx = 32; // used for fixed-length Tx
-    int paramVolume = 10;
+    int maxFramesPerTx() const {
+        int res = 0;
+        for (const auto & protocol : txProtocols) {
+            res = std::max(res, protocol.paramFramesPerTx);
+        }
+        return res;
+    }
+
+    int minBytesPerTx() const {
+        int res = txProtocols.front().paramFramesPerTx;
+        for (const auto & protocol : txProtocols) {
+            res = std::min(res, protocol.paramBytesPerTx);
+        }
+        return res;
+    }
+
+    int maxECCBytesPerTx() const {
+        int res = 0;
+        for (const auto & protocol : txProtocols) {
+            res = std::max(res, protocol.paramECCBytesPerTx);
+        }
+        return res;
+    }
+
+    int nIterations;
 
     // Rx
     bool receivingData;
@@ -135,7 +169,6 @@ private:
     int frameId;
     int framesLeftToAnalyze;
     int framesLeftToRecord;
-    int framesPerTx;
     int framesToAnalyze;
     int framesToRecord;
     int freqDelta_bin = 1;
@@ -152,6 +185,7 @@ private:
     std::string textToSend;
 
     TxMode txMode = TxMode::FixedLength;
+    TxProtocol txProtocol;
 
     AmplitudeData outputBlock;
     AmplitudeData16 outputBlock16;

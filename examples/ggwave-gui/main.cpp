@@ -71,42 +71,6 @@ int main(int argc, char** argv) {
 
     ggWave->setTxMode(GGWave::TxMode::VariableLength);
 
-    printf("Selecting Tx protocol %d\n", txProtocol);
-    switch (txProtocol) {
-        case 0:
-            {
-                printf("Using 'Normal' Tx Protocol\n");
-                ggWave->setParameters(1, 40, 9, 3, 50);
-            }
-            break;
-        case 1:
-            {
-                printf("Using 'Fast' Tx Protocol\n");
-                ggWave->setParameters(1, 40, 6, 3, 50);
-            }
-            break;
-        case 2:
-            {
-                printf("Using 'Fastest' Tx Protocol\n");
-                ggWave->setParameters(1, 40, 3, 3, 50);
-            }
-            break;
-        case 3:
-            {
-                printf("Using 'Ultrasonic' Tx Protocol\n");
-                ggWave->setParameters(1, 320, 9, 3, 50);
-            }
-            break;
-        default:
-            {
-                printf("Using 'Fast' Tx Protocol\n");
-                ggWave->setParameters(1, 40, 6, 3, 50);
-            }
-    };
-    printf("\n");
-
-    ggWave->init(0, "");
-
     if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_TIMER | SDL_INIT_GAMECONTROLLER) != 0) {
         fprintf(stderr, "Error: %s\n", SDL_GetError());
         return -1;
@@ -175,7 +139,7 @@ int main(int argc, char** argv) {
             }
 
             if (inputCurrent.update) {
-                ggWave->init(inputCurrent.message.data.size(), inputCurrent.message.data.data());
+                ggWave->init(inputCurrent.message.data.size(), inputCurrent.message.data.data(), ggWave->getTxProtocols()[2]);
                 inputCurrent.update = false;
             }
 

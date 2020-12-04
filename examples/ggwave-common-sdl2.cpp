@@ -34,8 +34,8 @@ GGWave *g_ggWave = nullptr;
 // JS interface
 extern "C" {
     EMSCRIPTEN_KEEPALIVE
-        int setText(int textLength, const char * text) {
-            g_ggWave->init(textLength, text);
+        int setText(int textLength, const char * text, int protocolId) {
+            g_ggWave->init(textLength, text, g_ggWave->getTxProtocols()[protocolId]);
             return 0;
         }
 
@@ -77,28 +77,7 @@ extern "C" {
     EMSCRIPTEN_KEEPALIVE
         int setTxMode(int txMode) {
             g_ggWave->setTxMode((GGWave::TxMode)(txMode));
-            g_ggWave->init(0, "");
             return 0;
-        }
-
-    EMSCRIPTEN_KEEPALIVE
-        void setParameters(
-                int paramFreqDelta,
-                int paramFreqStart,
-                int paramFramesPerTx,
-                int paramBytesPerTx,
-                int /*paramECCBytesPerTx*/,
-                int paramVolume) {
-            if (g_ggWave == nullptr) return;
-
-            g_ggWave->setParameters(
-                    paramFreqDelta,
-                    paramFreqStart,
-                    paramFramesPerTx,
-                    paramBytesPerTx,
-                    paramVolume);
-
-            g_ggWave->init(0, "");
         }
 }
 

@@ -423,6 +423,7 @@ void GGWave::receive(const CBDequeueAudio & CBDequeueAudio) {
                 const int stepsPerFrame = 16;
                 const int step = m_samplesPerFrame/stepsPerFrame;
 
+                int lastRSLength = -1;
                 std::unique_ptr<RS::ReedSolomon> rsData;
 
                 bool isValid = false;
@@ -468,7 +469,7 @@ void GGWave::receive(const CBDequeueAudio & CBDequeueAudio) {
                             uint8_t curByte = 0;
                             for (int i = 0; i < 2*rxProtocol.bytesPerTx; ++i) {
                                 double freq = m_hzPerSample*rxProtocol.freqStart;
-                                int bin = std::round(freq*m_ihzPerSample) + i*16;
+                                int bin = std::round(freq*m_ihzPerSample) + 16*i;
 
                                 int kmax = 0;
                                 double amax = 0.0;
@@ -498,9 +499,13 @@ void GGWave::receive(const CBDequeueAudio & CBDequeueAudio) {
                         }
 
                         if (knownLength) {
-                            rsData.reset(new RS::ReedSolomon(m_rxData[0], ::getECCBytesForLength(m_rxData[0])));
-
                             int decodedLength = m_rxData[0];
+
+                            if (decodedLength != lastRSLength) {
+                                rsData.reset(new RS::ReedSolomon(decodedLength, ::getECCBytesForLength(decodedLength)));
+                                lastRSLength = decodedLength;
+                            }
+
                             if (rsData->Decode(m_txDataEncoded.data() + m_encodedDataOffset, m_rxData.data()) == 0) {
                                 if (m_rxData[0] != 0) {
                                     std::string s((char *) m_rxData.data(), decodedLength);
@@ -511,6 +516,7 @@ void GGWave::receive(const CBDequeueAudio & CBDequeueAudio) {
                                     isValid = true;
                                     m_hasNewRxData = true;
                                     m_lastRxDataLength = decodedLength;
+                                    m_rxProtocol = rxProtocol;
                                 }
                             }
                         }

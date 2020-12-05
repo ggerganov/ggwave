@@ -77,6 +77,7 @@ public:
     const TxProtocols & getTxProtocols() const { return kTxProtocols; }
 
     const TxRxData & getRxData() const { return m_rxData; }
+    const TxProtocol & getRxProtocol() const { return m_rxProtocol; }
     int takeRxData(TxRxData & dst);
 
 private:
@@ -106,14 +107,11 @@ private:
     const int m_encodedDataOffset;
 
     // Rx
-    bool m_hasNewRxData;
     bool m_receivingData;
     bool m_analyzingData;
 
     int m_markerFreqStart;
-
     int m_recvDuration_frames;
-    int m_lastRxDataLength;
 
     int m_framesLeftToAnalyze;
     int m_framesLeftToRecord;
@@ -126,7 +124,10 @@ private:
     AmplitudeData m_sampleAmplitude;
     SpectrumData m_sampleSpectrum;
 
+    bool m_hasNewRxData;
+    int m_lastRxDataLength;
     TxRxData m_rxData;
+    TxProtocol m_rxProtocol;
 
     int m_historyId = 0;
     AmplitudeData m_sampleAmplitudeAverage;

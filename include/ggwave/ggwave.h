@@ -28,7 +28,6 @@ public:
     struct TxProtocol {
         const char * name;
 
-        int paramFreqDelta;
         int paramFreqStart;
         int paramFramesPerTx;
         int paramBytesPerTx;
@@ -93,10 +92,10 @@ public:
 
 private:
     const TxProtocols txProtocols {
-        { "Normal",     1, 40,  9, 3, 32, 50 },
-        { "Fast",       1, 40,  6, 3, 32, 50 },
-        { "Fastest",    1, 40,  3, 3, 32, 50 },
-        { "Ultrasonic", 1, 320, 9, 3, 32, 50 },
+        { "Normal",     40,  9, 3, 32, 50 },
+        { "Fast",       40,  6, 3, 32, 50 },
+        { "Fastest",    40,  3, 3, 32, 50 },
+        { "Ultrasonic", 320, 9, 3, 32, 50 },
     };
 
     int maxFramesPerTx() const {
@@ -159,8 +158,8 @@ private:
 
     float freqDelta_hz;
     float freqStart_hz;
-    float hzPerFrame;
-    float ihzPerFrame;
+    float hzPerSample;
+    float ihzPerSample;
     float isamplesPerFrame;
     float sampleRateIn;
     float sampleRateOut;

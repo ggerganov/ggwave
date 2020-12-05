@@ -144,10 +144,10 @@ bool GGWave::init(int textLength, const char * stext, const TxProtocol & aProtoc
 
     isamplesPerFrame = 1.0f/samplesPerFrame;
     sendVolume = ((double)(txProtocol.paramVolume))/100.0f;
-    hzPerFrame = sampleRateIn/samplesPerFrame;
-    ihzPerFrame = 1.0/hzPerFrame;
+    hzPerSample = sampleRateIn/samplesPerFrame;
+    ihzPerSample = 1.0/hzPerSample;
 
-    nDataBitsPerTx = txProtocol.paramBytesPerTx*8;
+    nDataBitsPerTx = 8*txProtocol.paramBytesPerTx;
     nECCBytesPerTx = (txMode == TxMode::FixedLength) ? txProtocol.paramECCBytesPerTx : getECCBytesForLength(textLength);
 
     framesToAnalyze = 0;
@@ -159,13 +159,9 @@ bool GGWave::init(int textLength, const char * stext, const TxProtocol & aProtoc
     nPostMarkerFrames = 0;
     sendDataLength = (txMode == TxMode::FixedLength) ? kDefaultFixedLength : textLength + 3;
 
-    freqDelta_bin = txProtocol.paramFreqDelta/2;
-    freqDelta_hz = hzPerFrame*txProtocol.paramFreqDelta;
-    freqStart_hz = hzPerFrame*txProtocol.paramFreqStart;
-    if (txProtocol.paramFreqDelta == 1) {
-        freqDelta_bin = 1;
-        freqDelta_hz *= 2;
-    }
+    freqDelta_bin = 1;
+    freqDelta_hz = 2*hzPerSample;
+    freqStart_hz = hzPerSample*txProtocol.paramFreqStart;
 
     outputBlock.fill(0);
 
@@ -195,7 +191,7 @@ bool GGWave::init(int textLength, const char * stext, const TxProtocol & aProtoc
         }
         for (int i = 0; i < samplesPerFrame; i++) {
             double curi = i;
-            bit0Amplitude[k][i] = std::sin((2.0*M_PI)*(curi*isamplesPerFrame)*((freq + hzPerFrame*freqDelta_bin)*curIHzPerFrame) + phaseOffset);
+            bit0Amplitude[k][i] = std::sin((2.0*M_PI)*(curi*isamplesPerFrame)*((freq + hzPerSample*freqDelta_bin)*curIHzPerFrame) + phaseOffset);
         }
     }
 
@@ -268,7 +264,7 @@ void GGWave::send(const CBQueueAudio & cbQueueAudio) {
                 }
                 for (int i = 0; i < samplesPerFrameOut; i++) {
                     double curi = (i + frameId*samplesPerFrameOut);
-                    bit0Amplitude[k][i] = std::sin((2.0*M_PI)*(curi*isamplesPerFrame)*((freq + hzPerFrame*freqDelta_bin)*curIHzPerFrame) + phaseOffset);
+                    bit0Amplitude[k][i] = std::sin((2.0*M_PI)*(curi*isamplesPerFrame)*((freq + hzPerSample*freqDelta_bin)*curIHzPerFrame) + phaseOffset);
                 }
             }
         }
@@ -303,42 +299,25 @@ void GGWave::send(const CBQueueAudio & cbQueueAudio) {
 
             dataBits.fill(0);
 
-            if (txProtocol.paramFreqDelta > 1) {
-                for (int j = 0; j < nBytesPerTx; ++j) {
-                    for (int i = 0; i < 8; ++i) {
-                        dataBits[j*8 + i] = txDataEncoded[dataOffset + j] & (1 << i);
-                    }
+            for (int j = 0; j < nBytesPerTx; ++j) {
+                {
+                    uint8_t d = txDataEncoded[dataOffset + j] & 15;
+                    dataBits[(2*j + 0)*16 + d] = 1;
                 }
-
-                for (int k = 0; k < nDataBitsPerTx; ++k) {
-                    ++nFreq;
-                    if (dataBits[k] == false) {
-                        ::addAmplitudeSmooth(bit0Amplitude[k], outputBlock, sendVolume, 0, samplesPerFrameOut, cycleModMain, txProtocol.paramFramesPerTx);
-                        continue;
-                    }
-                    ::addAmplitudeSmooth(bit1Amplitude[k], outputBlock, sendVolume, 0, samplesPerFrameOut, cycleModMain, txProtocol.paramFramesPerTx);
+                {
+                    uint8_t d = txDataEncoded[dataOffset + j] & 240;
+                    dataBits[(2*j + 1)*16 + (d >> 4)] = 1;
                 }
-            } else {
-                for (int j = 0; j < nBytesPerTx; ++j) {
-                    {
-                        uint8_t d = txDataEncoded[dataOffset + j] & 15;
-                        dataBits[(2*j + 0)*16 + d] = 1;
-                    }
-                    {
-                        uint8_t d = txDataEncoded[dataOffset + j] & 240;
-                        dataBits[(2*j + 1)*16 + (d >> 4)] = 1;
-                    }
-                }
+            }
 
-                for (int k = 0; k < 2*nBytesPerTx*16; ++k) {
-                    if (dataBits[k] == 0) continue;
+            for (int k = 0; k < 2*nBytesPerTx*16; ++k) {
+                if (dataBits[k] == 0) continue;
 
-                    ++nFreq;
-                    if (k%2) {
-                        ::addAmplitudeSmooth(bit0Amplitude[k/2], outputBlock, sendVolume, 0, samplesPerFrameOut, cycleModMain, txProtocol.paramFramesPerTx);
-                    } else {
-                        ::addAmplitudeSmooth(bit1Amplitude[k/2], outputBlock, sendVolume, 0, samplesPerFrameOut, cycleModMain, txProtocol.paramFramesPerTx);
-                    }
+                ++nFreq;
+                if (k%2) {
+                    ::addAmplitudeSmooth(bit0Amplitude[k/2], outputBlock, sendVolume, 0, samplesPerFrameOut, cycleModMain, txProtocol.paramFramesPerTx);
+                } else {
+                    ::addAmplitudeSmooth(bit1Amplitude[k/2], outputBlock, sendVolume, 0, samplesPerFrameOut, cycleModMain, txProtocol.paramFramesPerTx);
                 }
             }
         } else if (txMode == TxMode::VariableLength && frameId <
@@ -439,6 +418,8 @@ void GGWave::receive(const CBDequeueAudio & CBDequeueAudio) {
             }
 
             if (analyzingData) {
+                auto tStart = std::chrono::high_resolution_clock::now();
+
                 const int stepsPerFrame = 16;
                 const int step = samplesPerFrame/stepsPerFrame;
 
@@ -480,40 +461,24 @@ void GGWave::receive(const CBDequeueAudio & CBDequeueAudio) {
                             }
 
                             uint8_t curByte = 0;
-                            if (rxProtocol.paramFreqDelta > 1) {
-                                for (int i = 0; i < nDataBitsPerTx; ++i) {
-                                    int k = i%8;
-                                    int bin = std::round(dataFreqs_hz[i]*ihzPerFrame);
-                                    if (sampleSpectrum[bin] > 1*sampleSpectrum[bin + freqDelta_bin]) {
-                                        curByte += 1 << k;
-                                    } else if (sampleSpectrum[bin + freqDelta_bin] > 1*sampleSpectrum[bin]) {
-                                    } else {
-                                    }
-                                    if (k == 7) {
-                                        txDataEncoded[itx*rxProtocol.paramBytesPerTx + i/8] = curByte;
-                                        curByte = 0;
+                            for (int i = 0; i < 2*rxProtocol.paramBytesPerTx; ++i) {
+                                int bin = std::round(dataFreqs_hz[0]*ihzPerSample) + i*16;
+
+                                int kmax = 0;
+                                double amax = 0.0;
+                                for (int k = 0; k < 16; ++k) {
+                                    if (sampleSpectrum[bin + k] > amax) {
+                                        kmax = k;
+                                        amax = sampleSpectrum[bin + k];
                                     }
                                 }
-                            } else {
-                                for (int i = 0; i < 2*rxProtocol.paramBytesPerTx; ++i) {
-                                    int bin = std::round(dataFreqs_hz[0]*ihzPerFrame) + i*16;
 
-                                    int kmax = 0;
-                                    double amax = 0.0;
-                                    for (int k = 0; k < 16; ++k) {
-                                        if (sampleSpectrum[bin + k] > amax) {
-                                            kmax = k;
-                                            amax = sampleSpectrum[bin + k];
-                                        }
-                                    }
-
-                                    if (i%2) {
-                                        curByte += (kmax << 4);
-                                        txDataEncoded[itx*rxProtocol.paramBytesPerTx + i/2] = curByte;
-                                        curByte = 0;
-                                    } else {
-                                        curByte = kmax;
-                                    }
+                                if (i%2) {
+                                    curByte += (kmax << 4);
+                                    txDataEncoded[itx*rxProtocol.paramBytesPerTx + i/2] = curByte;
+                                    curByte = 0;
+                                } else {
+                                    curByte = kmax;
                                 }
                             }
 
@@ -575,6 +540,9 @@ void GGWave::receive(const CBDequeueAudio & CBDequeueAudio) {
 
                 framesToAnalyze = 0;
                 framesLeftToAnalyze = 0;
+
+                auto tEnd = std::chrono::high_resolution_clock::now();
+                printf("Time to analyze: %d ms\n", (int) std::chrono::duration_cast<std::chrono::milliseconds>(tEnd - tStart).count());
             }
 
             // check if receiving data
@@ -582,7 +550,7 @@ void GGWave::receive(const CBDequeueAudio & CBDequeueAudio) {
                 bool isReceiving = true;
 
                 for (int i = 0; i < nBitsInMarker; ++i) {
-                    int bin = std::round(dataFreqs_hz[i]*ihzPerFrame);
+                    int bin = std::round(dataFreqs_hz[i]*ihzPerSample);
 
                     if (i%2 == 0) {
                         if (sampleSpectrum[bin] <= 3.0f*sampleSpectrum[bin + freqDelta_bin]) isReceiving = false;
@@ -608,7 +576,7 @@ void GGWave::receive(const CBDequeueAudio & CBDequeueAudio) {
                 bool isEnded = true;
 
                 for (int i = 0; i < nBitsInMarker; ++i) {
-                    int bin = std::round(dataFreqs_hz[i]*ihzPerFrame);
+                    int bin = std::round(dataFreqs_hz[i]*ihzPerSample);
 
                     if (i%2 == 0) {
                         if (sampleSpectrum[bin] >= 3.0f*sampleSpectrum[bin + freqDelta_bin]) isEnded = false;

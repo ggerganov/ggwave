@@ -12,19 +12,12 @@ class ReedSolomon;
 
 class GGWave {
 public:
-    enum TxMode {
-        FixedLength = 0,
-        VariableLength,
-    };
-
     static constexpr auto kMaxSamplesPerFrame = 1024;
     static constexpr auto kMaxDataBits = 256;
     static constexpr auto kMaxDataSize = 256;
     static constexpr auto kMaxLength = 140;
     static constexpr auto kMaxSpectrumHistory = 4;
     static constexpr auto kMaxRecordedFrames = 1024;
-    static constexpr auto kDefaultFixedLength = 82;
-    static constexpr auto kDefaultFixedECCBytes = 32;
 
     struct TxProtocol {
         const char * name;
@@ -52,11 +45,6 @@ public:
             int aSampleSizeBytesIn,
             int aSampleSizeBytesOut);
     ~GGWave();
-
-    void setTxMode(TxMode aTxMode) {
-        txMode = aTxMode;
-        init(0, "", getDefultTxProtocol());
-    }
 
     bool init(int textLength, const char * stext, const TxProtocol & aProtocol);
     void send(const CBQueueAudio & cbQueueAudio);
@@ -175,7 +163,6 @@ private:
 
     std::string textToSend;
 
-    TxMode txMode = TxMode::FixedLength;
     TxProtocol txProtocol;
 
     AmplitudeData outputBlock;

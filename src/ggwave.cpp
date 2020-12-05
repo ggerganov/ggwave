@@ -121,7 +121,17 @@ GGWave::GGWave(
     sampleSizeBytesIn = aSampleSizeBytesIn;
     sampleSizeBytesOut = aSampleSizeBytesOut;
 
-    setTxMode(TxMode::VariableLength);
+    isamplesPerFrame = 1.0f/samplesPerFrame;
+    hzPerSample = sampleRateIn/samplesPerFrame;
+    ihzPerSample = 1.0/hzPerSample;
+    freqDelta_bin = 1;
+    freqDelta_hz = 2*hzPerSample;
+
+    nBitsInMarker = 16;
+    nMarkerFrames = 16;
+    nPostMarkerFrames = 0;
+
+    init(0, "", getDefultTxProtocol());
 }
 
 GGWave::~GGWave() {
@@ -138,35 +148,68 @@ bool GGWave::init(int textLength, const char * stext, const TxProtocol & aProtoc
     txProtocol = aProtocol;
 
     const uint8_t * text = reinterpret_cast<const uint8_t *>(stext);
-    frameId = 0;
-    nIterations = 0;
+
+    nECCBytesPerTx = getECCBytesForLength(textLength);
+    sendDataLength = textLength + 3;
+
+    if (rsData) delete rsData;
+    if (rsLength) delete rsLength;
+
+    rsData = new RS::ReedSolomon(textLength, nECCBytesPerTx);
+    rsLength = new RS::ReedSolomon(1, 2);
+
     hasData = false;
+    txData.fill(0);
+    txDataEncoded.fill(0);
 
-    isamplesPerFrame = 1.0f/samplesPerFrame;
-    sendVolume = ((double)(txProtocol.paramVolume))/100.0f;
-    hzPerSample = sampleRateIn/samplesPerFrame;
-    ihzPerSample = 1.0/hzPerSample;
+    if (textLength > 0) {
+        txData[0] = textLength;
+        for (int i = 0; i < textLength; ++i) txData[i + 1] = text[i];
+        rsLength->Encode(txData.data(), txDataEncoded.data());
+        rsData->Encode(txData.data() + 1, txDataEncoded.data() + 3);
 
-    nDataBitsPerTx = 8*txProtocol.paramBytesPerTx;
-    nECCBytesPerTx = (txMode == TxMode::FixedLength) ? kDefaultFixedECCBytes : getECCBytesForLength(textLength);
+        hasData = true;
+    }
+
+    // Rx
+    receivingData = false;
+    analyzingData = false;
 
     framesToAnalyze = 0;
     framesLeftToAnalyze = 0;
     framesToRecord = 0;
     framesLeftToRecord = 0;
-    nBitsInMarker = 16;
-    nMarkerFrames = 16;
-    nPostMarkerFrames = 0;
-    sendDataLength = (txMode == TxMode::FixedLength) ? kDefaultFixedLength : textLength + 3;
 
-    freqDelta_bin = 1;
-    freqDelta_hz = 2*hzPerSample;
+    sampleAmplitude.fill(0);
+    sampleSpectrum.fill(0);
+    for (auto & s : sampleAmplitudeHistory) {
+        s.fill(0);
+    }
+
+    rxData.fill(0);
+
+    for (int i = 0; i < samplesPerFrame; ++i) {
+        fftOut[i].real(0.0f);
+        fftOut[i].imag(0.0f);
+    }
+
+    return true;
+}
+
+void GGWave::send(const CBQueueAudio & cbQueueAudio) {
+    int samplesPerFrameOut = (sampleRateOut/sampleRateIn)*samplesPerFrame;
+    if (sampleRateOut != sampleRateIn) {
+        printf("Resampling from %d Hz to %d Hz\n", (int) sampleRateIn, (int) sampleRateOut);
+    }
+
+    frameId = 0;
+    nIterations = 0;
+
+    nDataBitsPerTx = 8*txProtocol.paramBytesPerTx;
+    sendVolume = ((double)(txProtocol.paramVolume))/100.0f;
     freqStart_hz = hzPerSample*txProtocol.paramFreqStart;
 
     outputBlock.fill(0);
-
-    txData.fill(0);
-    txDataEncoded.fill(0);
 
     for (int k = 0; k < (int) phaseOffsets.size(); ++k) {
         phaseOffsets[k] = (M_PI*k)/(nDataBitsPerTx);
@@ -193,57 +236,6 @@ bool GGWave::init(int textLength, const char * stext, const TxProtocol & aProtoc
             double curi = i;
             bit0Amplitude[k][i] = std::sin((2.0*M_PI)*(curi*isamplesPerFrame)*((freq + hzPerSample*freqDelta_bin)*curIHzPerFrame) + phaseOffset);
         }
-    }
-
-    if (rsData) delete rsData;
-    if (rsLength) delete rsLength;
-
-    if (txMode == TxMode::FixedLength) {
-        rsData = new RS::ReedSolomon(kDefaultFixedLength, kDefaultFixedLength);
-        rsLength = nullptr;
-    } else {
-        rsData = new RS::ReedSolomon(textLength, nECCBytesPerTx);
-        rsLength = new RS::ReedSolomon(1, 2);
-    }
-
-    if (textLength > 0) {
-        if (txMode == TxMode::FixedLength) {
-            for (int i = 0; i < textLength; ++i) txData[i] = text[i];
-            rsData->Encode(txData.data(), txDataEncoded.data());
-        } else {
-            txData[0] = textLength;
-            for (int i = 0; i < textLength; ++i) txData[i + 1] = text[i];
-            rsData->Encode(txData.data() + 1, txDataEncoded.data() + 3);
-            rsLength->Encode(txData.data(), txDataEncoded.data());
-        }
-
-        hasData = true;
-    }
-
-    // Rx
-    receivingData = false;
-    analyzingData = false;
-
-    sampleAmplitude.fill(0);
-    sampleSpectrum.fill(0);
-    for (auto & s : sampleAmplitudeHistory) {
-        s.fill(0);
-    }
-
-    rxData.fill(0);
-
-    for (int i = 0; i < samplesPerFrame; ++i) {
-        fftOut[i].real(0.0f);
-        fftOut[i].imag(0.0f);
-    }
-
-    return true;
-}
-
-void GGWave::send(const CBQueueAudio & cbQueueAudio) {
-    int samplesPerFrameOut = (sampleRateOut/sampleRateIn)*samplesPerFrame;
-    if (sampleRateOut != sampleRateIn) {
-        printf("Resampling from %d Hz to %d Hz\n", (int) sampleRateIn, (int) sampleRateOut);
     }
 
     while (hasData) {
@@ -320,7 +312,7 @@ void GGWave::send(const CBQueueAudio & cbQueueAudio) {
                     ::addAmplitudeSmooth(bit1Amplitude[k/2], outputBlock, sendVolume, 0, samplesPerFrameOut, cycleModMain, txProtocol.paramFramesPerTx);
                 }
             }
-        } else if (txMode == TxMode::VariableLength && frameId <
+        } else if (frameId <
                    (nMarkerFrames + nPostMarkerFrames) +
                    ((sendDataLength + nECCBytesPerTx)/nBytesPerTx + 2)*txProtocol.paramFramesPerTx +
                    (nMarkerFrames)) {
@@ -364,7 +356,6 @@ void GGWave::receive(const CBDequeueAudio & CBDequeueAudio) {
         // todo : support for non-float input
         auto nBytesRecorded = CBDequeueAudio(sampleAmplitude.data(), samplesPerFrame*sampleSizeBytesIn);
 
-
         if (nBytesRecorded != 0) {
             {
                 sampleAmplitudeHistory[historyId] = sampleAmplitude;
@@ -373,7 +364,7 @@ void GGWave::receive(const CBDequeueAudio & CBDequeueAudio) {
                     historyId = 0;
                 }
 
-                if (historyId == 0 && (receivingData == false || (receivingData && txMode == TxMode::VariableLength))) {
+                if (historyId == 0 && (receivingData == false || receivingData)) {
                     std::fill(sampleAmplitudeAverage.begin(), sampleAmplitudeAverage.end(), 0.0f);
                     for (auto & s : sampleAmplitudeHistory) {
                         for (int i = 0; i < samplesPerFrame; ++i) {
@@ -423,6 +414,7 @@ void GGWave::receive(const CBDequeueAudio & CBDequeueAudio) {
 
                 const int stepsPerFrame = 16;
                 const int step = samplesPerFrame/stepsPerFrame;
+                const int encodedOffset = 3;
 
                 bool isValid = false;
                 for (const auto & rxProtocol : txProtocols) {
@@ -431,11 +423,9 @@ void GGWave::receive(const CBDequeueAudio & CBDequeueAudio) {
                     framesToAnalyze = nMarkerFrames*stepsPerFrame;
                     framesLeftToAnalyze = framesToAnalyze;
                     for (int ii = nMarkerFrames*stepsPerFrame - 1; ii >= nMarkerFrames*stepsPerFrame/2; --ii) {
-                        bool knownLength = txMode == TxMode::FixedLength;
+                        bool knownLength = false;
 
                         const int offsetStart = ii;
-                        const int encodedOffset = (knownLength) ? 0 : 3;
-
                         for (int itx = 0; itx < 1024; ++itx) {
                             int offsetTx = offsetStart + itx*rxProtocol.paramFramesPerTx*stepsPerFrame;
                             if (offsetTx >= recvDuration_frames*stepsPerFrame || (itx + 1)*rxProtocol.paramBytesPerTx >= (int) txDataEncoded.size()) {
@@ -484,48 +474,30 @@ void GGWave::receive(const CBDequeueAudio & CBDequeueAudio) {
                                 }
                             }
 
-                            if (txMode == TxMode::VariableLength) {
-                                if (itx*rxProtocol.paramBytesPerTx > 3 && knownLength == false) {
-                                    if ((rsLength->Decode(txDataEncoded.data(), rxData.data()) == 0) && (rxData[0] > 0 && rxData[0] <= 140)) {
-                                        knownLength = true;
-                                    } else {
-                                        break;
-                                    }
+                            if (itx*rxProtocol.paramBytesPerTx > 3 && knownLength == false) {
+                                if ((rsLength->Decode(txDataEncoded.data(), rxData.data()) == 0) && (rxData[0] > 0 && rxData[0] <= 140)) {
+                                    knownLength = true;
+                                } else {
+                                    break;
                                 }
                             }
                         }
 
-                        if (txMode == TxMode::VariableLength && knownLength) {
+                        if (knownLength) {
                             if (rsData) delete rsData;
                             rsData = new RS::ReedSolomon(rxData[0], ::getECCBytesForLength(rxData[0]));
-                        }
 
-                        if (knownLength) {
-                            if (txMode == FixedLength) {
-                                if (rsData->Decode(txDataEncoded.data() + encodedOffset, rxData.data()) == 0) {
-                                    if (rxData[0] == 'A') {
-                                        printf("[ANSWER] Received sound data successfully!\n");
-                                    } else if (rxData[0] == 'O') {
-                                        printf("[OFFER]  Received sound data successfully!\n");
-                                    }
+                            int decodedLength = rxData[0];
+                            if (rsData->Decode(txDataEncoded.data() + encodedOffset, rxData.data()) == 0) {
+                                if (rxData[0] != 0) {
+                                    std::string s((char *) rxData.data(), decodedLength);
+
+                                    printf("Decoded length = %d\n", decodedLength);
+                                    printf("Received sound data successfully: '%s'\n", s.c_str());
 
                                     isValid = true;
                                     hasNewRxData = true;
-                                    lastRxDataLength = kDefaultFixedLength;
-                                }
-                            } else {
-                                int decodedLength = rxData[0];
-                                if (rsData->Decode(txDataEncoded.data() + encodedOffset, rxData.data()) == 0) {
-                                    if (rxData[0] != 0) {
-                                        std::string s((char *) rxData.data(), decodedLength);
-
-                                        printf("Decoded length = %d\n", decodedLength);
-                                        printf("Received sound data successfully: '%s'\n", s.c_str());
-
-                                        isValid = true;
-                                        hasNewRxData = true;
-                                        lastRxDataLength = decodedLength;
-                                    }
+                                    lastRxDataLength = decodedLength;
                                 }
                             }
                         }
@@ -585,17 +557,17 @@ void GGWave::receive(const CBDequeueAudio & CBDequeueAudio) {
                 if (isReceiving) {
                     std::time_t timestamp = std::time(nullptr);
                     printf("%sReceiving sound data ...\n", std::asctime(std::localtime(&timestamp)));
+
                     rxData.fill(0);
                     receivingData = true;
-                    if (txMode == TxMode::FixedLength) {
-                        recvDuration_frames = 2*nMarkerFrames + nPostMarkerFrames + maxFramesPerTx()*((kDefaultFixedLength + kDefaultFixedECCBytes)/minBytesPerTx() + 1);
-                    } else {
-                        recvDuration_frames = 2*nMarkerFrames + nPostMarkerFrames + maxFramesPerTx()*((kMaxLength + ::getECCBytesForLength(kMaxLength))/minBytesPerTx() + 1);
-                    }
+
+                    // max recieve duration
+                    recvDuration_frames = 2*nMarkerFrames + nPostMarkerFrames + maxFramesPerTx()*((kMaxLength + ::getECCBytesForLength(kMaxLength))/minBytesPerTx() + 1);
+
                     framesToRecord = recvDuration_frames;
                     framesLeftToRecord = recvDuration_frames;
                 }
-            } else if (txMode == TxMode::VariableLength) {
+            } else {
                 bool isEnded = false;
 
                 for (const auto & rxProtocol : txProtocols) {

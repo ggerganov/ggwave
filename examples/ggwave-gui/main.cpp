@@ -69,8 +69,6 @@ int main(int argc, char** argv) {
 
     auto ggWave = GGWave_instance();
 
-    ggWave->setTxMode(GGWave::TxMode::VariableLength);
-
     if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_TIMER | SDL_INIT_GAMECONTROLLER) != 0) {
         fprintf(stderr, "Error: %s\n", SDL_GetError());
         return -1;

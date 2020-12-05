@@ -73,12 +73,6 @@ extern "C" {
         int doInit()                    {
             return GGWave_init(-1, -1);
         }
-
-    EMSCRIPTEN_KEEPALIVE
-        int setTxMode(int txMode) {
-            g_ggWave->setTxMode((GGWave::TxMode)(txMode));
-            return 0;
-        }
 }
 
 void GGWave_setDefaultCaptureDeviceName(std::string name) {

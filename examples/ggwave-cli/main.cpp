@@ -33,8 +33,6 @@ int main(int argc, char** argv) {
 
     auto ggWave = GGWave_instance();
 
-    ggWave->setTxMode(GGWave::TxMode::VariableLength);
-
     printf("Selecting Tx protocol %d\n", txProtocol);
 
     std::mutex mutex;

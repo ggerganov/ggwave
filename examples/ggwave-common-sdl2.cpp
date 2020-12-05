@@ -34,8 +34,8 @@ GGWave *g_ggWave = nullptr;
 // JS interface
 extern "C" {
     EMSCRIPTEN_KEEPALIVE
-        int setText(int textLength, const char * text, int protocolId) {
-            g_ggWave->init(textLength, text, g_ggWave->getTxProtocols()[protocolId]);
+        int sendData(int textLength, const char * text, int protocolId, int volume) {
+            g_ggWave->init(textLength, text, g_ggWave->getTxProtocols()[protocolId], volume);
             return 0;
         }
 

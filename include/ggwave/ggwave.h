@@ -26,9 +26,19 @@ public:
         int freqStart;
         int framesPerTx;
         int bytesPerTx;
-        int volume;
 
         int nDataBitsPerTx() const { return 8*bytesPerTx; }
+    };
+
+    using TxProtocols     = std::vector<TxProtocol>;
+
+    const TxProtocols kTxProtocols {
+        { "Normal",      40,  9, 3, },
+        { "Fast",        40,  6, 3, },
+        { "Fastest",     40,  3, 3, },
+        { "[U] Normal",  320, 9, 3, },
+        { "[U] Fast",    320, 6, 3, },
+        { "[U] Fastest", 320, 3, 3, },
     };
 
     using AmplitudeData   = std::array<float, kMaxSamplesPerFrame>;
@@ -36,7 +46,6 @@ public:
     using SpectrumData    = std::array<float, kMaxSamplesPerFrame>;
     using RecordedData    = std::array<float, kMaxRecordedFrames*kMaxSamplesPerFrame>;
     using TxRxData        = std::array<std::uint8_t, kMaxDataSize>;
-    using TxProtocols     = std::vector<TxProtocol>;
 
     using CBQueueAudio = std::function<void(const void * data, uint32_t nBytes)>;
     using CBDequeueAudio = std::function<uint32_t(void * data, uint32_t nMaxBytes)>;
@@ -49,7 +58,7 @@ public:
             int sampleSizeBytesOut);
     ~GGWave();
 
-    bool init(int textLength, const char * stext, const TxProtocol & aProtocol);
+    bool init(int textLength, const char * stext, const TxProtocol & aProtocol, const int volume);
     void send(const CBQueueAudio & cbQueueAudio);
     void receive(const CBDequeueAudio & CBDequeueAudio);
 
@@ -63,24 +72,15 @@ public:
     const int & getSampleSizeBytesIn()      const { return m_sampleSizeBytesIn; }
     const int & getSampleSizeBytesOut()     const { return m_sampleSizeBytesOut; }
 
-    const float & getSampleRateIn()     const { return m_sampleRateIn; }
+    const float & getSampleRateIn() const { return m_sampleRateIn; }
+
+    const TxProtocol & getDefultTxProtocol() const { return kTxProtocols[1]; }
+    const TxProtocols & getTxProtocols() const { return kTxProtocols; }
 
     const TxRxData & getRxData() const { return m_rxData; }
-    const TxProtocol & getDefultTxProtocol() const { return txProtocols[1]; }
-    const TxProtocols & getTxProtocols() const { return txProtocols; }
-
     int takeRxData(TxRxData & dst);
 
 private:
-    const TxProtocols txProtocols {
-        { "Normal",      40,  9, 3, 50 },
-        { "Fast",        40,  6, 3, 50 },
-        { "Fastest",     40,  3, 3, 50 },
-        { "[U] Normal",  320, 9, 3, 50 },
-        { "[U] Fast",    320, 6, 3, 50 },
-        { "[U] Fastest", 320, 3, 3, 50 },
-    };
-
     int maxFramesPerTx() const;
     int minBytesPerTx() const;
 
@@ -139,6 +139,7 @@ private:
     bool m_hasNewTxData;
     int m_nECCBytesPerTx;
     int m_sendDataLength;
+    float m_sendVolume;
 
     int m_txDataLength;
     TxRxData m_txData;

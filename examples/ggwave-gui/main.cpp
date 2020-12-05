@@ -137,7 +137,7 @@ int main(int argc, char** argv) {
             }
 
             if (inputCurrent.update) {
-                ggWave->init(inputCurrent.message.data.size(), inputCurrent.message.data.data(), ggWave->getTxProtocols()[2]);
+                ggWave->init(inputCurrent.message.data.size(), inputCurrent.message.data.data(), ggWave->getTxProtocols()[2], 50);
                 inputCurrent.update = false;
             }
 

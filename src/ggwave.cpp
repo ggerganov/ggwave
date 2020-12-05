@@ -130,13 +130,13 @@ GGWave::GGWave(
     m_encodedDataOffset(3),
     m_rsLength(new RS::ReedSolomon(1, m_encodedDataOffset - 1))
 {
-    init(0, "", getDefultTxProtocol());
+    init(0, "", getDefultTxProtocol(), 0);
 }
 
 GGWave::~GGWave() {
 }
 
-bool GGWave::init(int textLength, const char * stext, const TxProtocol & aProtocol) {
+bool GGWave::init(int textLength, const char * stext, const TxProtocol & aProtocol, const int volume) {
     if (textLength > kMaxLength) {
         printf("Truncating data from %d to 140 bytes\n", textLength);
         textLength = kMaxLength;
@@ -144,6 +144,7 @@ bool GGWave::init(int textLength, const char * stext, const TxProtocol & aProtoc
 
     m_txProtocol = aProtocol;
     m_txDataLength = textLength;
+    m_sendVolume = ((double)(volume))/100.0f;
 
     const uint8_t * text = reinterpret_cast<const uint8_t *>(stext);
 
@@ -190,8 +191,6 @@ void GGWave::send(const CBQueueAudio & cbQueueAudio) {
     }
 
     int frameId = 0;
-
-    float sendVolume = ((double)(m_txProtocol.volume))/100.0f;
 
     AmplitudeData outputBlock;
     AmplitudeData16 outputBlock16;
@@ -264,9 +263,9 @@ void GGWave::send(const CBQueueAudio & cbQueueAudio) {
 
             for (int i = 0; i < m_nBitsInMarker; ++i) {
                 if (i%2 == 0) {
-                    ::addAmplitudeSmooth(bit1Amplitude[i], outputBlock, sendVolume, 0, samplesPerFrameOut, frameId, m_nMarkerFrames);
+                    ::addAmplitudeSmooth(bit1Amplitude[i], outputBlock, m_sendVolume, 0, samplesPerFrameOut, frameId, m_nMarkerFrames);
                 } else {
-                    ::addAmplitudeSmooth(bit0Amplitude[i], outputBlock, sendVolume, 0, samplesPerFrameOut, frameId, m_nMarkerFrames);
+                    ::addAmplitudeSmooth(bit0Amplitude[i], outputBlock, m_sendVolume, 0, samplesPerFrameOut, frameId, m_nMarkerFrames);
                 }
             }
         } else if (frameId < m_nMarkerFrames + m_nPostMarkerFrames) {
@@ -274,9 +273,9 @@ void GGWave::send(const CBQueueAudio & cbQueueAudio) {
 
             for (int i = 0; i < m_nBitsInMarker; ++i) {
                 if (i%2 == 0) {
-                    ::addAmplitudeSmooth(bit0Amplitude[i], outputBlock, sendVolume, 0, samplesPerFrameOut, frameId - m_nMarkerFrames, m_nPostMarkerFrames);
+                    ::addAmplitudeSmooth(bit0Amplitude[i], outputBlock, m_sendVolume, 0, samplesPerFrameOut, frameId - m_nMarkerFrames, m_nPostMarkerFrames);
                 } else {
-                    ::addAmplitudeSmooth(bit1Amplitude[i], outputBlock, sendVolume, 0, samplesPerFrameOut, frameId - m_nMarkerFrames, m_nPostMarkerFrames);
+                    ::addAmplitudeSmooth(bit1Amplitude[i], outputBlock, m_sendVolume, 0, samplesPerFrameOut, frameId - m_nMarkerFrames, m_nPostMarkerFrames);
                 }
             }
         } else if (frameId <
@@ -305,9 +304,9 @@ void GGWave::send(const CBQueueAudio & cbQueueAudio) {
 
                 ++nFreq;
                 if (k%2) {
-                    ::addAmplitudeSmooth(bit0Amplitude[k/2], outputBlock, sendVolume, 0, samplesPerFrameOut, cycleModMain, m_txProtocol.framesPerTx);
+                    ::addAmplitudeSmooth(bit0Amplitude[k/2], outputBlock, m_sendVolume, 0, samplesPerFrameOut, cycleModMain, m_txProtocol.framesPerTx);
                 } else {
-                    ::addAmplitudeSmooth(bit1Amplitude[k/2], outputBlock, sendVolume, 0, samplesPerFrameOut, cycleModMain, m_txProtocol.framesPerTx);
+                    ::addAmplitudeSmooth(bit1Amplitude[k/2], outputBlock, m_sendVolume, 0, samplesPerFrameOut, cycleModMain, m_txProtocol.framesPerTx);
                 }
             }
         } else if (frameId <
@@ -319,9 +318,9 @@ void GGWave::send(const CBQueueAudio & cbQueueAudio) {
             int fId = frameId - ((m_nMarkerFrames + m_nPostMarkerFrames) + ((m_sendDataLength + m_nECCBytesPerTx)/m_txProtocol.bytesPerTx + 2)*m_txProtocol.framesPerTx);
             for (int i = 0; i < m_nBitsInMarker; ++i) {
                 if (i%2 == 0) {
-                    addAmplitudeSmooth(bit0Amplitude[i], outputBlock, sendVolume, 0, samplesPerFrameOut, fId, m_nMarkerFrames);
+                    addAmplitudeSmooth(bit0Amplitude[i], outputBlock, m_sendVolume, 0, samplesPerFrameOut, fId, m_nMarkerFrames);
                 } else {
-                    addAmplitudeSmooth(bit1Amplitude[i], outputBlock, sendVolume, 0, samplesPerFrameOut, fId, m_nMarkerFrames);
+                    addAmplitudeSmooth(bit1Amplitude[i], outputBlock, m_sendVolume, 0, samplesPerFrameOut, fId, m_nMarkerFrames);
                 }
             }
         } else {
@@ -408,7 +407,7 @@ void GGWave::receive(const CBDequeueAudio & CBDequeueAudio) {
                 std::unique_ptr<RS::ReedSolomon> rsData;
 
                 bool isValid = false;
-                for (const auto & rxProtocol : txProtocols) {
+                for (const auto & rxProtocol : kTxProtocols) {
                     // skip Rx protocol if start frequency is different from detected one
                     if (rxProtocol.freqStart != m_markerFreqStart) {
                         continue;
@@ -529,7 +528,7 @@ void GGWave::receive(const CBDequeueAudio & CBDequeueAudio) {
             if (m_receivingData == false) {
                 bool isReceiving = false;
 
-                for (const auto & rxProtocol : txProtocols) {
+                for (const auto & rxProtocol : kTxProtocols) {
                     bool isReceivingCur = true;
 
                     for (int i = 0; i < m_nBitsInMarker; ++i) {
@@ -568,7 +567,7 @@ void GGWave::receive(const CBDequeueAudio & CBDequeueAudio) {
             } else {
                 bool isEnded = false;
 
-                for (const auto & rxProtocol : txProtocols) {
+                for (const auto & rxProtocol : kTxProtocols) {
                     bool isEndedCur = true;
 
                     for (int i = 0; i < m_nBitsInMarker; ++i) {
@@ -613,15 +612,15 @@ int GGWave::takeRxData(TxRxData & dst) {
 
 int GGWave::maxFramesPerTx() const {
     int res = 0;
-    for (const auto & protocol : txProtocols) {
+    for (const auto & protocol : kTxProtocols) {
         res = std::max(res, protocol.framesPerTx);
     }
     return res;
 }
 
 int GGWave::minBytesPerTx() const {
-    int res = txProtocols.front().framesPerTx;
-    for (const auto & protocol : txProtocols) {
+    int res = kTxProtocols.front().framesPerTx;
+    for (const auto & protocol : kTxProtocols) {
         res = std::min(res, protocol.bytesPerTx);
     }
     return res;

@@ -22,7 +22,7 @@ static void * g_gl_context;
 
 #define ICON_FA_COGS "#"
 #define ICON_FA_COMMENT_ALT ""
-#define ICON_FA_LIST_UL ""
+#define ICON_FA_SIGNAL ""
 #define ICON_FA_PLAY_CIRCLE ""
 
 char * toTimeString(const std::time_t t) {
@@ -319,7 +319,7 @@ int main(int argc, char** argv) {
         }
         ImGui::SameLine();
 
-        if (ImGui::Button(ICON_FA_LIST_UL "  Spectrum", { 1.0f*ImGui::GetContentRegionAvailWidth(), menuButtonHeight })) {
+        if (ImGui::Button(ICON_FA_SIGNAL "  Spectrum", { 1.0f*ImGui::GetContentRegionAvailWidth(), menuButtonHeight })) {
             windowId = WindowId::Spectrum;
         }
 
@@ -334,7 +334,7 @@ int main(int argc, char** argv) {
             ImGui::Text("Sample rate (capture):  %g, %d B/sample", ggWave->getSampleRateIn(),  ggWave->getSampleSizeBytesIn());
             ImGui::Text("Sample rate (playback): %g, %d B/sample", ggWave->getSampleRateOut(), ggWave->getSampleSizeBytesOut());
 
-            const float kLabelWidth = 100.0f;
+            const float kLabelWidth = ImGui::CalcTextSize("Tx Protocol:  ").x;
 
             // volume
             ImGui::Text("%s", "");
@@ -483,6 +483,7 @@ int main(int argc, char** argv) {
 
         if (windowId == WindowId::Spectrum) {
             ImGui::BeginChild("Spectrum:main", ImGui::GetContentRegionAvail(), true);
+            ImGui::PushTextWrapPos();
             ImGui::Text("FPS: %g\n", ImGui::GetIO().Framerate);
             if (spectrumCurrent.empty() == false) {
                 auto wSize = ImGui::GetContentRegionAvail();
@@ -498,7 +499,12 @@ int main(int argc, char** argv) {
                                      (std::string("Current Spectrum")).c_str(),
                                      0.0f, FLT_MAX, wSize);
                 ImGui::PopStyleColor(2);
+            } else {
+                ImGui::Text("%s", "");
+                ImGui::TextColored({ 1.0f, 0.0f, 0.0f, 1.0f }, "No capture data available!");
+                ImGui::TextColored({ 1.0f, 0.0f, 0.0f, 1.0f }, "Please make sure you have allowed microphone access for this app.");
             }
+            ImGui::PopTextWrapPos();
             ImGui::EndChild();
         }
 

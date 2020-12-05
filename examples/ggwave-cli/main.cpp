@@ -14,11 +14,7 @@ int main(int argc, char** argv) {
     printf("Usage: %s [-cN] [-pN] [-tN]\n", argv[0]);
     printf("    -cN - select capture device N\n");
     printf("    -pN - select playback device N\n");
-    printf("    -tN - transmission protocol:\n");
-    printf("          -t0 : Normal\n");
-    printf("          -t1 : Fast (default)\n");
-    printf("          -t2 : Fastest\n");
-    printf("          -t3 : Ultrasonic\n");
+    printf("    -tN - transmission protocol\n");
     printf("\n");
 
     auto argm = parseCmdArguments(argc, argv);
@@ -33,43 +29,17 @@ int main(int argc, char** argv) {
 
     auto ggWave = GGWave_instance();
 
-    ggWave->setTxMode(GGWave::TxMode::VariableLength);
+    printf("Available Tx protocols:\n");
+    for (int i = 0; i < (int) ggWave->getTxProtocols().size(); ++i) {
+        printf("    -t%d : %s\n", i, ggWave->getTxProtocols()[i].name);
+    }
+
+    if (txProtocol < 0 || txProtocol > (int) ggWave->getTxProtocols().size()) {
+        fprintf(stderr, "Unknown Tx protocol %d\n", txProtocol);
+        return -3;
+    }
 
     printf("Selecting Tx protocol %d\n", txProtocol);
-    switch (txProtocol) {
-        case 0:
-            {
-                printf("Using 'Normal' Tx Protocol\n");
-                ggWave->setParameters(1, 40, 9, 3, 50);
-            }
-            break;
-        case 1:
-            {
-                printf("Using 'Fast' Tx Protocol\n");
-                ggWave->setParameters(1, 40, 6, 3, 50);
-            }
-            break;
-        case 2:
-            {
-                printf("Using 'Fastest' Tx Protocol\n");
-                ggWave->setParameters(1, 40, 3, 3, 50);
-            }
-            break;
-        case 3:
-            {
-                printf("Using 'Ultrasonic' Tx Protocol\n");
-                ggWave->setParameters(1, 320, 9, 3, 50);
-            }
-            break;
-        default:
-            {
-                printf("Using 'Fast' Tx Protocol\n");
-                ggWave->setParameters(1, 40, 6, 3, 50);
-            }
-    };
-    printf("\n");
-
-    ggWave->init(0, "");
 
     std::mutex mutex;
     std::thread inputThread([&]() {
@@ -86,7 +56,7 @@ int main(int argc, char** argv) {
             }
             {
                 std::lock_guard<std::mutex> lock(mutex);
-                ggWave->init(input.size(), input.data());
+                ggWave->init(input.size(), input.data(), ggWave->getTxProtocols()[txProtocol], 50);
             }
             inputOld = input;
         }

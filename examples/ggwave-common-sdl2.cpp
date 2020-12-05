@@ -34,8 +34,8 @@ GGWave *g_ggWave = nullptr;
 // JS interface
 extern "C" {
     EMSCRIPTEN_KEEPALIVE
-        int setText(int textLength, const char * text) {
-            g_ggWave->init(textLength, text);
+        int sendData(int textLength, const char * text, int protocolId, int volume) {
+            g_ggWave->init(textLength, text, g_ggWave->getTxProtocols()[protocolId], volume);
             return 0;
         }
 
@@ -47,9 +47,6 @@ extern "C" {
 
     EMSCRIPTEN_KEEPALIVE
         int getSampleRate()             { return g_ggWave->getSampleRateIn(); }
-
-    EMSCRIPTEN_KEEPALIVE
-        float getAverageRxTime_ms()     { return g_ggWave->getAverageRxTime_ms(); }
 
     EMSCRIPTEN_KEEPALIVE
         int getFramesToRecord()         { return g_ggWave->getFramesToRecord(); }
@@ -67,38 +64,11 @@ extern "C" {
         int hasDeviceOutput()           { return g_devIdOut; }
 
     EMSCRIPTEN_KEEPALIVE
-        int hasDeviceCapture()          { return (g_ggWave->getTotalBytesCaptured() > 0) ? g_devIdIn : 0; }
+        int hasDeviceCapture()          { return g_devIdIn; }
 
     EMSCRIPTEN_KEEPALIVE
         int doInit()                    {
             return GGWave_init(-1, -1);
-        }
-
-    EMSCRIPTEN_KEEPALIVE
-        int setTxMode(int txMode) {
-            g_ggWave->setTxMode((GGWave::TxMode)(txMode));
-            g_ggWave->init(0, "");
-            return 0;
-        }
-
-    EMSCRIPTEN_KEEPALIVE
-        void setParameters(
-                int paramFreqDelta,
-                int paramFreqStart,
-                int paramFramesPerTx,
-                int paramBytesPerTx,
-                int /*paramECCBytesPerTx*/,
-                int paramVolume) {
-            if (g_ggWave == nullptr) return;
-
-            g_ggWave->setParameters(
-                    paramFreqDelta,
-                    paramFreqStart,
-                    paramFramesPerTx,
-                    paramBytesPerTx,
-                    paramVolume);
-
-            g_ggWave->init(0, "");
         }
 }
 
@@ -266,7 +236,7 @@ bool GGWave_mainLoop() {
         return SDL_DequeueAudio(g_devIdIn, data, nMaxBytes);
     };
 
-    if (g_ggWave->getHasData() == false) {
+    if (g_ggWave->hasTxData() == false) {
         SDL_PauseAudioDevice(g_devIdOut, SDL_FALSE);
 
         static auto tLastNoData = std::chrono::high_resolution_clock::now();

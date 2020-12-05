@@ -1,9 +1,10 @@
 #pragma once
 
 #include <array>
-#include <complex>
 #include <cstdint>
 #include <functional>
+#include <vector>
+#include <memory>
 
 namespace RS {
 class ReedSolomon;
@@ -11,18 +12,33 @@ class ReedSolomon;
 
 class GGWave {
 public:
-    enum TxMode {
-        FixedLength = 0,
-        VariableLength,
-    };
-
     static constexpr auto kMaxSamplesPerFrame = 1024;
     static constexpr auto kMaxDataBits = 256;
     static constexpr auto kMaxDataSize = 256;
     static constexpr auto kMaxLength = 140;
     static constexpr auto kMaxSpectrumHistory = 4;
-    static constexpr auto kMaxRecordedFrames = 64*10;
-    static constexpr auto kDefaultFixedLength = 82;
+    static constexpr auto kMaxRecordedFrames = 1024;
+
+    struct TxProtocol {
+        const char * name;
+
+        int freqStart;
+        int framesPerTx;
+        int bytesPerTx;
+
+        int nDataBitsPerTx() const { return 8*bytesPerTx; }
+    };
+
+    using TxProtocols     = std::vector<TxProtocol>;
+
+    const TxProtocols kTxProtocols {
+        { "Normal",      40,  9, 3, },
+        { "Fast",        40,  6, 3, },
+        { "Fastest",     40,  3, 3, },
+        { "[U] Normal",  320, 9, 3, },
+        { "[U] Fast",    320, 6, 3, },
+        { "[U] Fastest", 320, 3, 3, },
+    };
 
     using AmplitudeData   = std::array<float, kMaxSamplesPerFrame>;
     using AmplitudeData16 = std::array<int16_t, kMaxRecordedFrames*kMaxSamplesPerFrame>;
@@ -34,135 +50,105 @@ public:
     using CBDequeueAudio = std::function<uint32_t(void * data, uint32_t nMaxBytes)>;
 
     GGWave(
-            int aSampleRateIn,
-            int aSampleRateOut,
-            int aSamplesPerFrame,
-            int aSampleSizeBytesIn,
-            int aSampleSizeBytesOut);
+            int sampleRateIn,
+            int sampleRateOut,
+            int samplesPerFrame,
+            int sampleSizeBytesIn,
+            int sampleSizeBytesOut);
     ~GGWave();
 
-    void setTxMode(TxMode aTxMode) { txMode = aTxMode; }
-
-    bool setParameters(
-            int aParamFreqDelta,
-            int aParamFreqStart,
-            int aParamFramesPerTx,
-            int aParamBytesPerTx,
-            int aParamVolume);
-
-    bool init(int textLength, const char * stext);
-
+    bool init(int textLength, const char * stext, const TxProtocol & aProtocol, const int volume);
     void send(const CBQueueAudio & cbQueueAudio);
     void receive(const CBDequeueAudio & CBDequeueAudio);
 
-    const bool & getHasData() const { return hasData; }
+    const bool & hasTxData() const { return m_hasNewTxData; }
 
-    const int & getFramesToRecord()         const { return framesToRecord; }
-    const int & getFramesLeftToRecord()     const { return framesLeftToRecord; }
-    const int & getFramesToAnalyze()        const { return framesToAnalyze; }
-    const int & getFramesLeftToAnalyze()    const { return framesLeftToAnalyze; }
-    const int & getSamplesPerFrame()        const { return samplesPerFrame; }
-    const int & getSampleSizeBytesIn()      const { return sampleSizeBytesIn; }
-    const int & getSampleSizeBytesOut()     const { return sampleSizeBytesOut; }
-    const int & getTotalBytesCaptured()     const { return totalBytesCaptured; }
+    const int & getFramesToRecord()         const { return m_framesToRecord; }
+    const int & getFramesLeftToRecord()     const { return m_framesLeftToRecord; }
+    const int & getFramesToAnalyze()        const { return m_framesToAnalyze; }
+    const int & getFramesLeftToAnalyze()    const { return m_framesLeftToAnalyze; }
+    const int & getSamplesPerFrame()        const { return m_samplesPerFrame; }
+    const int & getSampleSizeBytesIn()      const { return m_sampleSizeBytesIn; }
+    const int & getSampleSizeBytesOut()     const { return m_sampleSizeBytesOut; }
 
-    const float & getSampleRateIn()     const { return sampleRateIn; }
-    const float & getAverageRxTime_ms() const { return averageRxTime_ms; }
+    const float & getSampleRateIn() const { return m_sampleRateIn; }
+    const float & getSampleRateOut() const { return m_sampleRateOut; }
 
-    const TxRxData & getRxData() const { return rxData; }
+    const TxProtocol & getDefultTxProtocol() const { return kTxProtocols[1]; }
+    const TxProtocols & getTxProtocols() const { return kTxProtocols; }
 
-    int takeRxData(TxRxData & dst) {
-        if (lastRxDataLength == 0) return 0;
-
-        auto res = lastRxDataLength;
-        lastRxDataLength = 0;
-        dst = rxData;
-
-        return res;
-    }
+    const TxRxData & getRxData() const { return m_rxData; }
+    const TxProtocol & getRxProtocol() const { return m_rxProtocol; }
+    const int & getRxProtocolId() const { return m_rxProtocolId; }
+    int takeRxData(TxRxData & dst);
 
 private:
-    int nIterations;
+    int maxFramesPerTx() const;
+    int minBytesPerTx() const;
 
-    int paramFreqDelta = 6;
-    int paramFreqStart = 40;
-    int paramFramesPerTx = 6;
-    int paramBytesPerTx = 2;
-    int paramECCBytesPerTx = 32; // used for fixed-length Tx
-    int paramVolume = 10;
+    double bitFreq(const TxProtocol & p, int bit) const {
+        return m_hzPerSample*p.freqStart + m_freqDelta_hz*bit;
+    }
+
+    const float m_sampleRateIn;
+    const float m_sampleRateOut;
+    const int m_samplesPerFrame;
+    const float m_isamplesPerFrame;
+    const int m_sampleSizeBytesIn;
+    const int m_sampleSizeBytesOut;
+
+    const float m_hzPerSample;
+    const float m_ihzPerSample;
+
+    const int m_freqDelta_bin;
+    const float m_freqDelta_hz;
+
+    const int m_nBitsInMarker;
+    const int m_nMarkerFrames;
+    const int m_nPostMarkerFrames;
+    const int m_encodedDataOffset;
 
     // Rx
-    bool receivingData;
-    bool analyzingData;
-    bool hasNewRxData = false;
+    bool m_receivingData;
+    bool m_analyzingData;
 
-    int nCalls = 0;
-    int recvDuration_frames;
-    int totalBytesCaptured;
-    int lastRxDataLength = 0;
+    int m_markerFreqStart;
+    int m_recvDuration_frames;
 
-    float tSum_ms = 0.0f;
-    float averageRxTime_ms = 0.0;
+    int m_framesLeftToAnalyze;
+    int m_framesLeftToRecord;
+    int m_framesToAnalyze;
+    int m_framesToRecord;
 
-    std::array<float, kMaxSamplesPerFrame> fftIn;
-    std::array<std::complex<float>, kMaxSamplesPerFrame> fftOut;
+    std::array<float, kMaxSamplesPerFrame> m_fftIn;    // real
+    std::array<float, 2*kMaxSamplesPerFrame> m_fftOut; // complex
 
-    AmplitudeData sampleAmplitude;
-    SpectrumData sampleSpectrum;
+    AmplitudeData m_sampleAmplitude;
+    SpectrumData m_sampleSpectrum;
 
-    TxRxData rxData;
-    TxRxData txData;
-    TxRxData txDataEncoded;
+    bool m_hasNewRxData;
+    int m_lastRxDataLength;
+    TxRxData m_rxData;
+    TxProtocol m_rxProtocol;
+    int m_rxProtocolId;
 
-    int historyId = 0;
-    AmplitudeData sampleAmplitudeAverage;
-    std::array<AmplitudeData, kMaxSpectrumHistory> sampleAmplitudeHistory;
+    int m_historyId = 0;
+    AmplitudeData m_sampleAmplitudeAverage;
+    std::array<AmplitudeData, kMaxSpectrumHistory> m_sampleAmplitudeHistory;
 
-    RecordedData recordedAmplitude;
+    RecordedData m_recordedAmplitude;
 
     // Tx
-    bool hasData;
+    bool m_hasNewTxData;
+    int m_nECCBytesPerTx;
+    int m_sendDataLength;
+    float m_sendVolume;
 
-    float freqDelta_hz;
-    float freqStart_hz;
-    float hzPerFrame;
-    float ihzPerFrame;
-    float isamplesPerFrame;
-    float sampleRateIn;
-    float sampleRateOut;
-    float sendVolume;
+    int m_txDataLength;
+    TxRxData m_txData;
+    TxRxData m_txDataEncoded;
 
-    int frameId;
-    int framesLeftToAnalyze;
-    int framesLeftToRecord;
-    int framesPerTx;
-    int framesToAnalyze;
-    int framesToRecord;
-    int freqDelta_bin = 1;
-    int nBitsInMarker;
-    int nDataBitsPerTx;
-    int nECCBytesPerTx;
-    int nMarkerFrames;
-    int nPostMarkerFrames;
-    int sampleSizeBytesIn;
-    int sampleSizeBytesOut;
-    int samplesPerFrame;
-    int sendDataLength;
+    TxProtocol m_txProtocol;
 
-    std::string textToSend;
-
-    TxMode txMode = TxMode::FixedLength;
-
-    AmplitudeData outputBlock;
-    AmplitudeData16 outputBlock16;
-
-    std::array<bool, kMaxDataBits> dataBits;
-    std::array<double, kMaxDataBits> phaseOffsets;
-    std::array<double, kMaxDataBits> dataFreqs_hz;
-
-    std::array<AmplitudeData, kMaxDataBits> bit1Amplitude;
-    std::array<AmplitudeData, kMaxDataBits> bit0Amplitude;
-
-    RS::ReedSolomon * rsData = nullptr;
-    RS::ReedSolomon * rsLength = nullptr;
+    std::unique_ptr<RS::ReedSolomon> m_rsLength;
 };

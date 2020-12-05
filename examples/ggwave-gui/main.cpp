@@ -50,17 +50,11 @@ int main(int argc, char** argv) {
     printf("Usage: %s [-cN] [-pN] [-tN]\n", argv[0]);
     printf("    -cN - select capture device N\n");
     printf("    -pN - select playback device N\n");
-    printf("    -tN - transmission protocol:\n");
-    printf("          -t0 : Normal\n");
-    printf("          -t1 : Fast (default)\n");
-    printf("          -t2 : Fastest\n");
-    printf("          -t3 : Ultrasonic\n");
     printf("\n");
 
     auto argm = parseCmdArguments(argc, argv);
     int captureId = argm["c"].empty() ? 0 : std::stoi(argm["c"]);
     int playbackId = argm["p"].empty() ? 0 : std::stoi(argm["p"]);
-    int txProtocol = argm["t"].empty() ? 1 : std::stoi(argm["t"]);
 
     if (GGWave_init(playbackId, captureId) == false) {
         fprintf(stderr, "Failed to initialize GGWave\n");
@@ -68,44 +62,6 @@ int main(int argc, char** argv) {
     }
 
     auto ggWave = GGWave_instance();
-
-    ggWave->setTxMode(GGWave::TxMode::VariableLength);
-
-    printf("Selecting Tx protocol %d\n", txProtocol);
-    switch (txProtocol) {
-        case 0:
-            {
-                printf("Using 'Normal' Tx Protocol\n");
-                ggWave->setParameters(1, 40, 9, 3, 50);
-            }
-            break;
-        case 1:
-            {
-                printf("Using 'Fast' Tx Protocol\n");
-                ggWave->setParameters(1, 40, 6, 3, 50);
-            }
-            break;
-        case 2:
-            {
-                printf("Using 'Fastest' Tx Protocol\n");
-                ggWave->setParameters(1, 40, 3, 3, 50);
-            }
-            break;
-        case 3:
-            {
-                printf("Using 'Ultrasonic' Tx Protocol\n");
-                ggWave->setParameters(1, 320, 9, 3, 50);
-            }
-            break;
-        default:
-            {
-                printf("Using 'Fast' Tx Protocol\n");
-                ggWave->setParameters(1, 40, 6, 3, 50);
-            }
-    };
-    printf("\n");
-
-    ggWave->init(0, "");
 
     if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_TIMER | SDL_INIT_GAMECONTROLLER) != 0) {
         fprintf(stderr, "Error: %s\n", SDL_GetError());
@@ -134,7 +90,8 @@ int main(int argc, char** argv) {
         bool received;
         std::time_t timestamp;
         std::string data;
-        std::string protocol;
+        int protocolId;
+        float volume;
     };
 
     struct State {
@@ -175,7 +132,12 @@ int main(int argc, char** argv) {
             }
 
             if (inputCurrent.update) {
-                ggWave->init(inputCurrent.message.data.size(), inputCurrent.message.data.data());
+                ggWave->init(
+                        inputCurrent.message.data.size(),
+                        inputCurrent.message.data.data(),
+                        ggWave->getTxProtocols()[inputCurrent.message.protocolId],
+                        100*inputCurrent.message.volume);
+
                 inputCurrent.update = false;
             }
 
@@ -184,7 +146,13 @@ int main(int argc, char** argv) {
             lastRxDataLength = ggWave->takeRxData(lastRxData);
             if (lastRxDataLength > 0) {
                 buffer.stateCore.update = true;
-                buffer.stateCore.message = { true, std::time(nullptr), std::string((char *) lastRxData.data(), lastRxDataLength), "" };
+                buffer.stateCore.message = {
+                    true,
+                    std::time(nullptr),
+                    std::string((char *) lastRxData.data(), lastRxDataLength),
+                    ggWave->getRxProtocolId(),
+                    0,
+                };
             }
 
             {
@@ -213,6 +181,20 @@ int main(int argc, char** argv) {
                 buffer.stateUI.update = false;
             }
         }
+
+        enum class WindowId {
+            Settings,
+            Messages,
+            Commands,
+        };
+
+        struct Settings {
+            int protocolId = 1;
+            float volume = 0.25f;
+        };
+
+        static WindowId windowId = WindowId::Messages;
+        static Settings settings;
 
         static char inputBuf[256];
 
@@ -260,106 +242,162 @@ int main(int argc, char** argv) {
         ImGui::InvisibleButton("StatusBar", { ImGui::GetContentRegionAvailWidth(), statusBarHeight });
 
         if (ImGui::Button(ICON_FA_COGS, { menuButtonHeight, menuButtonHeight } )) {
+            windowId = WindowId::Settings;
         }
         ImGui::SameLine();
 
         if (ImGui::Button(ICON_FA_COMMENT_ALT "  Messages", { 0.5f*ImGui::GetContentRegionAvailWidth(), menuButtonHeight })) {
+            windowId = WindowId::Messages;
         }
         ImGui::SameLine();
 
         if (ImGui::Button(ICON_FA_LIST_UL "  Commands", { 1.0f*ImGui::GetContentRegionAvailWidth(), menuButtonHeight })) {
+            windowId = WindowId::Commands;
         }
 
-        const float messagesInputHeight = ImGui::GetTextLineHeightWithSpacing();
-        const float messagesHistoryHeigthMax = ImGui::GetContentRegionAvail().y - messagesInputHeight - 2.0f*style.ItemSpacing.x;
-        float messagesHistoryHeigth = messagesHistoryHeigthMax;
+        if (windowId == WindowId::Settings) {
+            ImGui::BeginChild("Settings:main", ImGui::GetContentRegionAvail(), true);
+            ImGui::Text("Waver v0.1");
+            ImGui::Separator();
 
-        // no automatic screen resize support for iOS
+            ImGui::Text("%s", "");
+            ImGui::Text("Sample rate (capture):  %g, %d B/sample", ggWave->getSampleRateIn(),  ggWave->getSampleSizeBytesIn());
+            ImGui::Text("Sample rate (playback): %g, %d B/sample", ggWave->getSampleRateOut(), ggWave->getSampleSizeBytesOut());
+
+            static float kLabelWidth = 100.0f;
+
+            // volume
+            ImGui::Text("%s", "");
+            {
+                auto posSave = ImGui::GetCursorScreenPos();
+                ImGui::Text("Volume: ");
+                ImGui::SetCursorScreenPos({ posSave.x + kLabelWidth, posSave.y });
+            }
+            ImGui::SliderFloat("##volume", &settings.volume, 0.0f, 1.0f);
+
+            // protocol
+            ImGui::Text("%s", "");
+            {
+                auto posSave = ImGui::GetCursorScreenPos();
+                ImGui::Text("Tx Protocol: ");
+                ImGui::SetCursorScreenPos({ posSave.x + kLabelWidth, posSave.y });
+            }
+            ImGui::SameLine();
+            if (ImGui::BeginCombo("##protocol", ggWave->getTxProtocols()[settings.protocolId].name)) {
+                for (int i = 0; i < (int) ggWave->getTxProtocols().size(); ++i) {
+                    const bool isSelected = (settings.protocolId == i);
+                    if (ImGui::Selectable(ggWave->getTxProtocols()[i].name, isSelected)) {
+                        settings.protocolId = i;
+                    }
+
+                    if (isSelected) {
+                        ImGui::SetItemDefaultFocus();
+                    }
+                }
+                ImGui::EndCombo();
+            }
+
+            ImGui::EndChild();
+        }
+
+        if (windowId == WindowId::Messages) {
+            const float messagesInputHeight = ImGui::GetTextLineHeightWithSpacing();
+            const float messagesHistoryHeigthMax = ImGui::GetContentRegionAvail().y - messagesInputHeight - 2.0f*style.ItemSpacing.x;
+            float messagesHistoryHeigth = messagesHistoryHeigthMax;
+
+            // no automatic screen resize support for iOS
 #ifdef IOS
-        if (displaySize.x < displaySize.y) {
-            if (isTextInput) {
-                messagesHistoryHeigth -= 0.5f*messagesHistoryHeigthMax*std::min(tShowKeyboard, ImGui::GetTime() - tStartInput) / tShowKeyboard;
+            if (displaySize.x < displaySize.y) {
+                if (isTextInput) {
+                    messagesHistoryHeigth -= 0.5f*messagesHistoryHeigthMax*std::min(tShowKeyboard, ImGui::GetTime() - tStartInput) / tShowKeyboard;
+                } else {
+                    messagesHistoryHeigth -= 0.5f*messagesHistoryHeigthMax - 0.5f*messagesHistoryHeigthMax*std::min(tShowKeyboard, ImGui::GetTime() - tEndInput) / tShowKeyboard;
+                }
             } else {
-                messagesHistoryHeigth -= 0.5f*messagesHistoryHeigthMax - 0.5f*messagesHistoryHeigthMax*std::min(tShowKeyboard, ImGui::GetTime() - tEndInput) / tShowKeyboard;
+                if (isTextInput) {
+                    messagesHistoryHeigth -= 0.5f*displaySize.y*std::min(tShowKeyboard, ImGui::GetTime() - tStartInput) / tShowKeyboard;
+                } else {
+                    messagesHistoryHeigth -= 0.5f*displaySize.y - 0.5f*displaySize.y*std::min(tShowKeyboard, ImGui::GetTime() - tEndInput) / tShowKeyboard;
+                }
             }
-        } else {
-            if (isTextInput) {
-                messagesHistoryHeigth -= 0.5f*displaySize.y*std::min(tShowKeyboard, ImGui::GetTime() - tStartInput) / tShowKeyboard;
-            } else {
-                messagesHistoryHeigth -= 0.5f*displaySize.y - 0.5f*displaySize.y*std::min(tShowKeyboard, ImGui::GetTime() - tEndInput) / tShowKeyboard;
-            }
-        }
 #endif
 
-        ImGui::BeginChild("Messages:history", { ImGui::GetContentRegionAvailWidth(), messagesHistoryHeigth }, true);
+            ImGui::BeginChild("Messages:history", { ImGui::GetContentRegionAvailWidth(), messagesHistoryHeigth }, true);
 
-        for (int i = 0; i < (int) messageHistory.size(); ++i) {
-            ImGui::PushID(i);
-            const auto & message = messageHistory[i];
-            if (message.received) {
-                ImGui::TextColored({ 0.0f, 1.0f, 0.0f, 1.0f }, "[%s] Recv:", ::toTimeString(message.timestamp));
-                ImGui::SameLine();
-                if (ImGui::SmallButton("Resend")) {
-                    buffer.inputUI.update = true;
-                    buffer.inputUI.message = { false, std::time(nullptr), message.data, "" };
+            for (int i = 0; i < (int) messageHistory.size(); ++i) {
+                ImGui::PushID(i);
+                const auto & message = messageHistory[i];
+                if (message.received) {
+                    ImGui::TextColored({ 0.0f, 1.0f, 0.0f, 1.0f }, "[%s] Recv (%s):", ::toTimeString(message.timestamp), ggWave->getTxProtocols()[message.protocolId].name);
+                    ImGui::SameLine();
+                    if (ImGui::SmallButton("Resend")) {
+                        buffer.inputUI.update = true;
+                        buffer.inputUI.message = { false, std::time(nullptr), message.data, message.protocolId, settings.volume };
 
-                    messageHistory.push_back(buffer.inputUI.message);
+                        messageHistory.push_back(buffer.inputUI.message);
+                    }
+                    ImGui::Text("%s", message.data.c_str());
+                } else {
+                    ImGui::TextColored({ 1.0f, 1.0f, 0.0f, 1.0f }, "[%s] Sent (%s):", ::toTimeString(message.timestamp), ggWave->getTxProtocols()[message.protocolId].name);
+                    ImGui::SameLine();
+                    if (ImGui::SmallButton("Resend")) {
+                        buffer.inputUI.update = true;
+                        buffer.inputUI.message = { false, std::time(nullptr), message.data, message.protocolId, settings.volume };
+
+                        messageHistory.push_back(buffer.inputUI.message);
+                    }
+                    ImGui::Text("%s", message.data.c_str());
                 }
-                ImGui::Text("%s", message.data.c_str());
-            } else {
-                ImGui::TextColored({ 1.0f, 1.0f, 0.0f, 1.0f }, "[%s] Sent:", ::toTimeString(message.timestamp));
-                ImGui::SameLine();
-                if (ImGui::SmallButton("Resend")) {
-                    buffer.inputUI.update = true;
-                    buffer.inputUI.message = { false, std::time(nullptr), message.data, "" };
-
-                    messageHistory.push_back(buffer.inputUI.message);
-                }
-                ImGui::Text("%s", message.data.c_str());
+                ImGui::Text("%s", "");
+                ImGui::PopID();
             }
-            ImGui::Text("%s", "");
-            ImGui::PopID();
+
+            if (scrollMessagesToBottom) {
+                ImGui::SetScrollHereY();
+                scrollMessagesToBottom = false;
+            }
+
+            ImVec2 mouse_delta = ImGui::GetIO().MouseDelta;
+            ScrollWhenDraggingOnVoid(ImVec2(0.0f, -mouse_delta.y), ImGuiMouseButton_Left);
+            ImGui::EndChild();
+
+            if (doInputFocus) {
+                ImGui::SetKeyboardFocusHere();
+                doInputFocus = false;
+            }
+            ImGui::PushItemWidth(ImGui::GetContentRegionAvailWidth() - ImGui::CalcTextSize(sendButtonText).x - 2*style.ItemSpacing.x);
+            ImGui::InputText("##Messages:Input", inputBuf, 256, ImGuiInputTextFlags_EnterReturnsTrue);
+            ImGui::PopItemWidth();
+            if (ImGui::IsItemActive() && isTextInput == false) {
+                SDL_StartTextInput();
+                isTextInput = true;
+                tStartInput = ImGui::GetTime();
+            }
+            bool requestStopTextInput = false;
+            if (ImGui::IsItemDeactivated()) {
+                requestStopTextInput = true;
+            }
+            ImGui::SameLine();
+            if (ImGui::Button(sendButtonText) && inputBuf[0] != 0) {
+                buffer.inputUI.update = true;
+                buffer.inputUI.message = { false, std::time(nullptr), std::string(inputBuf), settings.protocolId, settings.volume };
+
+                messageHistory.push_back(buffer.inputUI.message);
+
+                inputBuf[0] = 0;
+                doInputFocus = true;
+            }
+            if (!ImGui::IsItemHovered() && requestStopTextInput) {
+                SDL_StopTextInput();
+                isTextInput = false;
+                tEndInput = ImGui::GetTime();
+            }
         }
 
-        if (scrollMessagesToBottom) {
-            ImGui::SetScrollHereY();
-            scrollMessagesToBottom = false;
-        }
-
-        ImVec2 mouse_delta = ImGui::GetIO().MouseDelta;
-        ScrollWhenDraggingOnVoid(ImVec2(0.0f, -mouse_delta.y), ImGuiMouseButton_Left);
-        ImGui::EndChild();
-
-        if (doInputFocus) {
-            ImGui::SetKeyboardFocusHere();
-            doInputFocus = false;
-        }
-        ImGui::PushItemWidth(ImGui::GetContentRegionAvailWidth() - ImGui::CalcTextSize(sendButtonText).x - 2*style.ItemSpacing.x);
-        ImGui::InputText("##Messages:Input", inputBuf, 256, ImGuiInputTextFlags_EnterReturnsTrue);
-        ImGui::PopItemWidth();
-        if (ImGui::IsItemActive() && isTextInput == false) {
-            SDL_StartTextInput();
-            isTextInput = true;
-            tStartInput = ImGui::GetTime();
-        }
-        bool requestStopTextInput = false;
-        if (ImGui::IsItemDeactivated()) {
-            requestStopTextInput = true;
-        }
-        ImGui::SameLine();
-        if (ImGui::Button(sendButtonText) && inputBuf[0] != 0) {
-            buffer.inputUI.update = true;
-            buffer.inputUI.message = { false, std::time(nullptr), std::string(inputBuf), "" };
-
-            messageHistory.push_back(buffer.inputUI.message);
-
-            inputBuf[0] = 0;
-            doInputFocus = true;
-        }
-        if (!ImGui::IsItemHovered() && requestStopTextInput) {
-            SDL_StopTextInput();
-            isTextInput = false;
-            tEndInput = ImGui::GetTime();
+        if (windowId == WindowId::Commands) {
+            ImGui::BeginChild("Commands:main", ImGui::GetContentRegionAvail(), true);
+            ImGui::Text("Todo");
+            ImGui::EndChild();
         }
 
         ImGui::End();

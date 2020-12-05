@@ -1,6 +1,5 @@
 #pragma once
 
-#include <array>
 #include <cstdint>
 #include <functional>
 #include <vector>
@@ -40,11 +39,11 @@ public:
         { "[U] Fastest", 320, 3, 3, },
     };
 
-    using AmplitudeData   = std::array<float, kMaxSamplesPerFrame>;
-    using AmplitudeData16 = std::array<int16_t, kMaxRecordedFrames*kMaxSamplesPerFrame>;
-    using SpectrumData    = std::array<float, kMaxSamplesPerFrame>;
-    using RecordedData    = std::array<float, kMaxRecordedFrames*kMaxSamplesPerFrame>;
-    using TxRxData        = std::array<std::uint8_t, kMaxDataSize>;
+    using AmplitudeData   = std::vector<float>;
+    using AmplitudeData16 = std::vector<int16_t>;
+    using SpectrumData    = std::vector<float>;
+    using RecordedData    = std::vector<float>;
+    using TxRxData        = std::vector<std::uint8_t>;
 
     using CBQueueAudio = std::function<void(const void * data, uint32_t nBytes)>;
     using CBDequeueAudio = std::function<uint32_t(void * data, uint32_t nMaxBytes)>;
@@ -120,11 +119,11 @@ private:
     int m_framesToAnalyze;
     int m_framesToRecord;
 
-    std::array<float, kMaxSamplesPerFrame> m_fftIn;    // real
-    std::array<float, 2*kMaxSamplesPerFrame> m_fftOut; // complex
+    std::vector<float> m_fftIn;  // real
+    std::vector<float> m_fftOut; // complex
 
-    AmplitudeData m_sampleAmplitude;
     SpectrumData m_sampleSpectrum;
+    AmplitudeData m_sampleAmplitude;
 
     bool m_hasNewRxData;
     int m_lastRxDataLength;
@@ -134,7 +133,7 @@ private:
 
     int m_historyId = 0;
     AmplitudeData m_sampleAmplitudeAverage;
-    std::array<AmplitudeData, kMaxSpectrumHistory> m_sampleAmplitudeHistory;
+    std::vector<AmplitudeData> m_sampleAmplitudeHistory;
 
     RecordedData m_recordedAmplitude;
 

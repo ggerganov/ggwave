@@ -147,6 +147,16 @@ GGWave::GGWave(
     m_nMarkerFrames(16),
     m_nPostMarkerFrames(0),
     m_encodedDataOffset(3),
+    m_fftIn(kMaxSamplesPerFrame),
+    m_fftOut(2*kMaxSamplesPerFrame),
+    m_sampleSpectrum(kMaxSamplesPerFrame),
+    m_sampleAmplitude(kMaxSamplesPerFrame),
+    m_rxData(kMaxDataSize),
+    m_sampleAmplitudeAverage(kMaxSamplesPerFrame),
+    m_sampleAmplitudeHistory(kMaxSpectrumHistory),
+    m_recordedAmplitude(kMaxRecordedFrames*kMaxSamplesPerFrame),
+    m_txData(kMaxDataSize),
+    m_txDataEncoded(kMaxDataSize),
     m_rsLength(new RS::ReedSolomon(1, m_encodedDataOffset - 1))
 {
     init(0, "", getDefultTxProtocol(), 0);
@@ -168,8 +178,8 @@ bool GGWave::init(int textLength, const char * stext, const TxProtocol & aProtoc
     const uint8_t * text = reinterpret_cast<const uint8_t *>(stext);
 
     m_hasNewTxData = false;
-    m_txData.fill(0);
-    m_txDataEncoded.fill(0);
+    std::fill(m_txData.begin(), m_txData.end(), 0);
+    std::fill(m_txDataEncoded.begin(), m_txDataEncoded.end(), 0);
 
     if (m_txDataLength > 0) {
         m_txData[0] = m_txDataLength;
@@ -187,13 +197,14 @@ bool GGWave::init(int textLength, const char * stext, const TxProtocol & aProtoc
     m_framesToRecord = 0;
     m_framesLeftToRecord = 0;
 
-    m_sampleAmplitude.fill(0);
-    m_sampleSpectrum.fill(0);
+    std::fill(m_sampleSpectrum.begin(), m_sampleSpectrum.end(), 0);
+    std::fill(m_sampleAmplitude.begin(), m_sampleAmplitude.end(), 0);
     for (auto & s : m_sampleAmplitudeHistory) {
-        s.fill(0);
+        s.resize(kMaxSamplesPerFrame);
+        std::fill(s.begin(), s.end(), 0);
     }
 
-    m_rxData.fill(0);
+    std::fill(m_rxData.begin(), m_rxData.end(), 0);
 
     for (int i = 0; i < m_samplesPerFrame; ++i) {
         m_fftOut[2*i + 0] = 0.0f;
@@ -211,10 +222,10 @@ void GGWave::send(const CBQueueAudio & cbQueueAudio) {
 
     int frameId = 0;
 
-    AmplitudeData outputBlock;
-    AmplitudeData16 outputBlock16;
+    AmplitudeData outputBlock(kMaxSamplesPerFrame);
+    AmplitudeData16 outputBlock16(kMaxRecordedFrames*kMaxSamplesPerFrame);
 
-    std::array<double, kMaxDataBits> phaseOffsets;
+    std::vector<double> phaseOffsets(kMaxDataBits);
 
     for (int k = 0; k < (int) phaseOffsets.size(); ++k) {
         phaseOffsets[k] = (M_PI*k)/(m_txProtocol.nDataBitsPerTx());
@@ -226,13 +237,16 @@ void GGWave::send(const CBQueueAudio & cbQueueAudio) {
 
     std::shuffle(phaseOffsets.begin(), phaseOffsets.end(), g);
 
-    std::array<bool, kMaxDataBits> dataBits;
+    std::vector<bool> dataBits(kMaxDataBits);
 
-    std::array<AmplitudeData, kMaxDataBits> bit1Amplitude;
-    std::array<AmplitudeData, kMaxDataBits> bit0Amplitude;
+    std::vector<AmplitudeData> bit1Amplitude(kMaxDataBits);
+    std::vector<AmplitudeData> bit0Amplitude(kMaxDataBits);
 
     for (int k = 0; k < (int) dataBits.size(); ++k) {
         double freq = bitFreq(m_txProtocol, k);
+
+        bit1Amplitude[k].resize(kMaxSamplesPerFrame);
+        bit0Amplitude[k].resize(kMaxSamplesPerFrame);
 
         double phaseOffset = phaseOffsets[k];
         double curHzPerSample = m_sampleRateOut/m_samplesPerFrame;
@@ -305,7 +319,7 @@ void GGWave::send(const CBQueueAudio & cbQueueAudio) {
             dataOffset /= m_txProtocol.framesPerTx;
             dataOffset *= m_txProtocol.bytesPerTx;
 
-            dataBits.fill(0);
+            std::fill(dataBits.begin(), dataBits.end(), 0);
 
             for (int j = 0; j < m_txProtocol.bytesPerTx; ++j) {
                 {
@@ -581,8 +595,8 @@ void GGWave::receive(const CBDequeueAudio & CBDequeueAudio) {
                     std::time_t timestamp = std::time(nullptr);
                     printf("%sReceiving sound data ...\n", std::asctime(std::localtime(&timestamp)));
 
-                    m_rxData.fill(0);
                     m_receivingData = true;
+                    std::fill(m_rxData.begin(), m_rxData.end(), 0);
 
                     // max recieve duration
                     m_recvDuration_frames =

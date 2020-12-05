@@ -72,12 +72,14 @@ public:
     const int & getSampleSizeBytesOut()     const { return m_sampleSizeBytesOut; }
 
     const float & getSampleRateIn() const { return m_sampleRateIn; }
+    const float & getSampleRateOut() const { return m_sampleRateOut; }
 
     const TxProtocol & getDefultTxProtocol() const { return kTxProtocols[1]; }
     const TxProtocols & getTxProtocols() const { return kTxProtocols; }
 
     const TxRxData & getRxData() const { return m_rxData; }
     const TxProtocol & getRxProtocol() const { return m_rxProtocol; }
+    const int & getRxProtocolId() const { return m_rxProtocolId; }
     int takeRxData(TxRxData & dst);
 
 private:
@@ -128,6 +130,7 @@ private:
     int m_lastRxDataLength;
     TxRxData m_rxData;
     TxProtocol m_rxProtocol;
+    int m_rxProtocolId;
 
     int m_historyId = 0;
     AmplitudeData m_sampleAmplitudeAverage;

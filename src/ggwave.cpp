@@ -427,7 +427,9 @@ void GGWave::receive(const CBDequeueAudio & CBDequeueAudio) {
                 std::unique_ptr<RS::ReedSolomon> rsData;
 
                 bool isValid = false;
-                for (const auto & rxProtocol : kTxProtocols) {
+                for (int rxProtocolId = 0; rxProtocolId < (int) kTxProtocols.size(); ++rxProtocolId) {
+                    const auto & rxProtocol = kTxProtocols[rxProtocolId];
+
                     // skip Rx protocol if start frequency is different from detected one
                     if (rxProtocol.freqStart != m_markerFreqStart) {
                         continue;
@@ -517,6 +519,7 @@ void GGWave::receive(const CBDequeueAudio & CBDequeueAudio) {
                                     m_hasNewRxData = true;
                                     m_lastRxDataLength = decodedLength;
                                     m_rxProtocol = rxProtocol;
+                                    m_rxProtocolId = rxProtocolId;
                                 }
                             }
                         }

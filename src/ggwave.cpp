@@ -149,8 +149,11 @@ GGWave::GGWave(
     m_encodedDataOffset(3),
     m_fftIn(kMaxSamplesPerFrame),
     m_fftOut(2*kMaxSamplesPerFrame),
+    m_hasNewSpectrum(false),
     m_sampleSpectrum(kMaxSamplesPerFrame),
     m_sampleAmplitude(kMaxSamplesPerFrame),
+    m_hasNewRxData(false),
+    m_lastRxDataLength(0),
     m_rxData(kMaxDataSize),
     m_sampleAmplitudeAverage(kMaxSamplesPerFrame),
     m_sampleAmplitudeHistory(kMaxSpectrumHistory),
@@ -385,48 +388,47 @@ void GGWave::receive(const CBDequeueAudio & CBDequeueAudio) {
         auto nBytesRecorded = CBDequeueAudio(m_sampleAmplitude.data(), m_samplesPerFrame*m_sampleSizeBytesIn);
 
         if (nBytesRecorded != 0) {
-            {
-                m_sampleAmplitudeHistory[m_historyId] = m_sampleAmplitude;
+            m_sampleAmplitudeHistory[m_historyId] = m_sampleAmplitude;
 
-                if (++m_historyId >= kMaxSpectrumHistory) {
-                    m_historyId = 0;
-                }
+            if (++m_historyId >= kMaxSpectrumHistory) {
+                m_historyId = 0;
+            }
 
-                if (m_historyId == 0 && (m_receivingData == false || m_receivingData)) {
-                    std::fill(m_sampleAmplitudeAverage.begin(), m_sampleAmplitudeAverage.end(), 0.0f);
-                    for (auto & s : m_sampleAmplitudeHistory) {
-                        for (int i = 0; i < m_samplesPerFrame; ++i) {
-                            m_sampleAmplitudeAverage[i] += s[i];
-                        }
-                    }
-                    float norm = 1.0f/kMaxSpectrumHistory;
+            if (m_historyId == 0 || m_receivingData) {
+                m_hasNewSpectrum = true;
+
+                std::fill(m_sampleAmplitudeAverage.begin(), m_sampleAmplitudeAverage.end(), 0.0f);
+                for (auto & s : m_sampleAmplitudeHistory) {
                     for (int i = 0; i < m_samplesPerFrame; ++i) {
-                        m_sampleAmplitudeAverage[i] *= norm;
-                    }
-
-                    // calculate spectrum
-                    std::copy(m_sampleAmplitudeAverage.begin(), m_sampleAmplitudeAverage.begin() + m_samplesPerFrame, m_fftIn.data());
-
-                    FFT(m_fftIn.data(), m_fftOut.data(), m_samplesPerFrame, 1.0);
-
-                    double fsum = 0.0;
-                    for (int i = 0; i < m_samplesPerFrame; ++i) {
-                        m_sampleSpectrum[i] = (m_fftOut[2*i + 0]*m_fftOut[2*i + 0] + m_fftOut[2*i + 1]*m_fftOut[2*i + 1]);
-                        fsum += m_sampleSpectrum[i];
-                    }
-                    for (int i = 1; i < m_samplesPerFrame/2; ++i) {
-                        m_sampleSpectrum[i] += m_sampleSpectrum[m_samplesPerFrame - i];
+                        m_sampleAmplitudeAverage[i] += s[i];
                     }
                 }
 
-                if (m_framesLeftToRecord > 0) {
-                    std::copy(m_sampleAmplitude.begin(),
-                              m_sampleAmplitude.begin() + m_samplesPerFrame,
-                              m_recordedAmplitude.data() + (m_framesToRecord - m_framesLeftToRecord)*m_samplesPerFrame);
+                float norm = 1.0f/kMaxSpectrumHistory;
+                for (int i = 0; i < m_samplesPerFrame; ++i) {
+                    m_sampleAmplitudeAverage[i] *= norm;
+                }
 
-                    if (--m_framesLeftToRecord <= 0) {
-                        m_analyzingData = true;
-                    }
+                // calculate spectrum
+                std::copy(m_sampleAmplitudeAverage.begin(), m_sampleAmplitudeAverage.begin() + m_samplesPerFrame, m_fftIn.data());
+
+                FFT(m_fftIn.data(), m_fftOut.data(), m_samplesPerFrame, 1.0);
+
+                for (int i = 0; i < m_samplesPerFrame; ++i) {
+                    m_sampleSpectrum[i] = (m_fftOut[2*i + 0]*m_fftOut[2*i + 0] + m_fftOut[2*i + 1]*m_fftOut[2*i + 1]);
+                }
+                for (int i = 1; i < m_samplesPerFrame/2; ++i) {
+                    m_sampleSpectrum[i] += m_sampleSpectrum[m_samplesPerFrame - i];
+                }
+            }
+
+            if (m_framesLeftToRecord > 0) {
+                std::copy(m_sampleAmplitude.begin(),
+                          m_sampleAmplitude.begin() + m_samplesPerFrame,
+                          m_recordedAmplitude.data() + (m_framesToRecord - m_framesLeftToRecord)*m_samplesPerFrame);
+
+                if (--m_framesLeftToRecord <= 0) {
+                    m_analyzingData = true;
                 }
             }
 
@@ -649,6 +651,15 @@ int GGWave::takeRxData(TxRxData & dst) {
     dst = m_rxData;
 
     return res;
+}
+
+bool GGWave::takeSpectrum(SpectrumData & dst) {
+    if (m_hasNewSpectrum == false) return false;
+
+    m_hasNewSpectrum = false;
+    dst = m_sampleSpectrum;
+
+    return true;
 }
 
 int GGWave::maxFramesPerTx() const {

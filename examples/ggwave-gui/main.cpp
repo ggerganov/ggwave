@@ -94,9 +94,54 @@ int main(int argc, char** argv) {
         float volume;
     };
 
+    struct GGWaveStats {
+        bool isReceiving;
+        bool isAnalyzing;
+        int framesToRecord;
+        int framesLeftToRecord;
+        int framesToAnalyze;
+        int framesLeftToAnalyze;
+    };
+
     struct State {
         bool update = false;
+
+        struct Flags {
+            bool newMessage = false;
+            bool newSpectrum = false;
+            bool newStats = false;
+
+            void clear() { memset(this, 0, sizeof(Flags)); }
+        } flags;
+
+        void apply(State & dst) {
+            if (update == false) return;
+
+            if (this->flags.newMessage) {
+                dst.update = true;
+                dst.flags.newMessage = true;
+                dst.message = std::move(this->message);
+            }
+
+            if (this->flags.newSpectrum) {
+                dst.update = true;
+                dst.flags.newSpectrum = true;
+                dst.spectrum = std::move(this->spectrum);
+            }
+
+            if (this->flags.newStats) {
+                dst.update = true;
+                dst.flags.newStats = true;
+                dst.stats = std::move(this->stats);
+            }
+
+            flags.clear();
+            update = false;
+        }
+
         Message message;
+        GGWave::SpectrumData spectrum;
+        GGWaveStats stats;
     };
 
     struct Input {
@@ -146,6 +191,7 @@ int main(int argc, char** argv) {
             lastRxDataLength = ggWave->takeRxData(lastRxData);
             if (lastRxDataLength > 0) {
                 buffer.stateCore.update = true;
+                buffer.stateCore.flags.newMessage = true;
                 buffer.stateCore.message = {
                     true,
                     std::time(nullptr),
@@ -155,15 +201,28 @@ int main(int argc, char** argv) {
                 };
             }
 
-            {
-                std::lock_guard<std::mutex> lock(buffer.mutex);
-                if (buffer.stateCore.update) {
-                    buffer.stateUI = std::move(buffer.stateCore);
-                    buffer.stateCore.update = false;
-                }
+            if (ggWave->takeSpectrum(buffer.stateCore.spectrum)) {
+                buffer.stateCore.update = true;
+                buffer.stateCore.flags.newSpectrum = true;
             }
 
-            std::this_thread::sleep_for(std::chrono::milliseconds(5));
+            if (true) {
+                buffer.stateCore.update = true;
+                buffer.stateCore.flags.newStats = true;
+                buffer.stateCore.stats.isReceiving = ggWave->isReceiving();
+                buffer.stateCore.stats.isAnalyzing = ggWave->isAnalyzing();
+                buffer.stateCore.stats.framesToRecord = ggWave->getFramesToRecord();
+                buffer.stateCore.stats.framesLeftToRecord = ggWave->getFramesLeftToRecord();
+                buffer.stateCore.stats.framesToAnalyze = ggWave->getFramesToAnalyze();
+                buffer.stateCore.stats.framesLeftToAnalyze = ggWave->getFramesLeftToAnalyze();
+            }
+
+            {
+                std::lock_guard<std::mutex> lock(buffer.mutex);
+                buffer.stateCore.apply(buffer.stateUI);
+            }
+
+            std::this_thread::sleep_for(std::chrono::milliseconds(1));
         }
     });
 
@@ -176,16 +235,13 @@ int main(int argc, char** argv) {
 
         {
             std::lock_guard<std::mutex> lock(buffer.mutex);
-            if (buffer.stateUI.update) {
-                stateCurrent = std::move(buffer.stateUI);
-                buffer.stateUI.update = false;
-            }
+            buffer.stateUI.apply(stateCurrent);
         }
 
         enum class WindowId {
             Settings,
             Messages,
-            Commands,
+            Spectrum,
         };
 
         struct Settings {
@@ -206,10 +262,22 @@ int main(int argc, char** argv) {
         static double tStartInput = 0.0f;
         static double tEndInput = -100.0f;
 
+        static GGWaveStats statsCurrent;
+        static GGWave::SpectrumData spectrumCurrent;
         static std::vector<Message> messageHistory;
 
         if (stateCurrent.update) {
-            messageHistory.push_back(std::move(stateCurrent.message));
+            if (stateCurrent.flags.newMessage) {
+                scrollMessagesToBottom = true;
+                messageHistory.push_back(std::move(stateCurrent.message));
+            }
+            if (stateCurrent.flags.newSpectrum) {
+                spectrumCurrent = std::move(stateCurrent.spectrum);
+            }
+            if (stateCurrent.flags.newStats) {
+                statsCurrent = std::move(stateCurrent.stats);
+            }
+            stateCurrent.flags.clear();
             stateCurrent.update = false;
         }
 
@@ -251,12 +319,14 @@ int main(int argc, char** argv) {
         }
         ImGui::SameLine();
 
-        if (ImGui::Button(ICON_FA_LIST_UL "  Commands", { 1.0f*ImGui::GetContentRegionAvailWidth(), menuButtonHeight })) {
-            windowId = WindowId::Commands;
+        if (ImGui::Button(ICON_FA_LIST_UL "  Spectrum", { 1.0f*ImGui::GetContentRegionAvailWidth(), menuButtonHeight })) {
+            windowId = WindowId::Spectrum;
         }
 
         if (windowId == WindowId::Settings) {
             ImGui::BeginChild("Settings:main", ImGui::GetContentRegionAvail(), true);
+            ImGui::Text("%s", "");
+            ImGui::Text("%s", "");
             ImGui::Text("Waver v0.1");
             ImGui::Separator();
 
@@ -264,7 +334,7 @@ int main(int argc, char** argv) {
             ImGui::Text("Sample rate (capture):  %g, %d B/sample", ggWave->getSampleRateIn(),  ggWave->getSampleSizeBytesIn());
             ImGui::Text("Sample rate (playback): %g, %d B/sample", ggWave->getSampleRateOut(), ggWave->getSampleSizeBytesOut());
 
-            static float kLabelWidth = 100.0f;
+            const float kLabelWidth = 100.0f;
 
             // volume
             ImGui::Text("%s", "");
@@ -282,7 +352,6 @@ int main(int argc, char** argv) {
                 ImGui::Text("Tx Protocol: ");
                 ImGui::SetCursorScreenPos({ posSave.x + kLabelWidth, posSave.y });
             }
-            ImGui::SameLine();
             if (ImGui::BeginCombo("##protocol", ggWave->getTxProtocols()[settings.protocolId].name)) {
                 for (int i = 0; i < (int) ggWave->getTxProtocols().size(); ++i) {
                     const bool isSelected = (settings.protocolId == i);
@@ -301,7 +370,7 @@ int main(int argc, char** argv) {
         }
 
         if (windowId == WindowId::Messages) {
-            const float messagesInputHeight = ImGui::GetTextLineHeightWithSpacing();
+            const float messagesInputHeight = 2*ImGui::GetTextLineHeightWithSpacing();
             const float messagesHistoryHeigthMax = ImGui::GetContentRegionAvail().y - messagesInputHeight - 2.0f*style.ItemSpacing.x;
             float messagesHistoryHeigth = messagesHistoryHeigthMax;
 
@@ -324,6 +393,7 @@ int main(int argc, char** argv) {
 
             ImGui::BeginChild("Messages:history", { ImGui::GetContentRegionAvailWidth(), messagesHistoryHeigth }, true);
 
+            ImGui::PushTextWrapPos();
             for (int i = 0; i < (int) messageHistory.size(); ++i) {
                 ImGui::PushID(i);
                 const auto & message = messageHistory[i];
@@ -351,6 +421,7 @@ int main(int argc, char** argv) {
                 ImGui::Text("%s", "");
                 ImGui::PopID();
             }
+            ImGui::PopTextWrapPos();
 
             if (scrollMessagesToBottom) {
                 ImGui::SetScrollHereY();
@@ -360,6 +431,22 @@ int main(int argc, char** argv) {
             ImVec2 mouse_delta = ImGui::GetIO().MouseDelta;
             ScrollWhenDraggingOnVoid(ImVec2(0.0f, -mouse_delta.y), ImGuiMouseButton_Left);
             ImGui::EndChild();
+
+            if (statsCurrent.isReceiving) {
+                if (statsCurrent.isAnalyzing) {
+                    ImGui::TextColored({ 0.0f, 1.0f, 0.0f, 1.0f }, "Analyzing ...");
+                    ImGui::SameLine();
+                    ImGui::ProgressBar(1.0f - float(statsCurrent.framesLeftToAnalyze)/statsCurrent.framesToAnalyze,
+                                       { ImGui::GetContentRegionAvailWidth(), ImGui::GetTextLineHeight() });
+                } else {
+                    ImGui::TextColored({ 0.0f, 1.0f, 0.0f, 1.0f }, "Receiving ...");
+                    ImGui::SameLine();
+                    ImGui::ProgressBar(1.0f - float(statsCurrent.framesLeftToRecord)/statsCurrent.framesToRecord,
+                                       { ImGui::GetContentRegionAvailWidth(), ImGui::GetTextLineHeight() });
+                }
+            } else {
+                ImGui::TextDisabled("Listening for waves ...\n");
+            }
 
             if (doInputFocus) {
                 ImGui::SetKeyboardFocusHere();
@@ -394,9 +481,24 @@ int main(int argc, char** argv) {
             }
         }
 
-        if (windowId == WindowId::Commands) {
-            ImGui::BeginChild("Commands:main", ImGui::GetContentRegionAvail(), true);
-            ImGui::Text("Todo");
+        if (windowId == WindowId::Spectrum) {
+            ImGui::BeginChild("Spectrum:main", ImGui::GetContentRegionAvail(), true);
+            ImGui::Text("FPS: %g\n", ImGui::GetIO().Framerate);
+            if (spectrumCurrent.empty() == false) {
+                auto wSize = ImGui::GetContentRegionAvail();
+                ImGui::PushStyleColor(ImGuiCol_FrameBg, { 0.3f, 0.3f, 0.3f, 0.3f });
+                if (statsCurrent.isReceiving) {
+                    ImGui::PushStyleColor(ImGuiCol_PlotHistogram, { 1.0f, 0.0f, 0.0f, 1.0f });
+                } else {
+                    ImGui::PushStyleColor(ImGuiCol_PlotHistogram, { 0.0f, 1.0f, 0.0f, 1.0f });
+                }
+                ImGui::PlotHistogram("##plotSpectrumCurrent",
+                                     spectrumCurrent.data() + 30,
+                                     ggWave->getSamplesPerFrame()/2 - 30, 0,
+                                     (std::string("Current Spectrum")).c_str(),
+                                     0.0f, FLT_MAX, wSize);
+                ImGui::PopStyleColor(2);
+            }
             ImGui::EndChild();
         }
 

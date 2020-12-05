@@ -56,6 +56,8 @@ public:
     void receive(const CBDequeueAudio & CBDequeueAudio);
 
     const bool & hasTxData() const { return m_hasNewTxData; }
+    const bool & isReceiving() const { return m_receivingData; }
+    const bool & isAnalyzing() const { return m_analyzingData; }
 
     const int & getFramesToRecord()         const { return m_framesToRecord; }
     const int & getFramesLeftToRecord()     const { return m_framesLeftToRecord; }
@@ -74,7 +76,9 @@ public:
     const TxRxData & getRxData() const { return m_rxData; }
     const TxProtocol & getRxProtocol() const { return m_rxProtocol; }
     const int & getRxProtocolId() const { return m_rxProtocolId; }
+
     int takeRxData(TxRxData & dst);
+    bool takeSpectrum(SpectrumData & dst);
 
 private:
     int maxFramesPerTx() const;
@@ -117,6 +121,7 @@ private:
     std::vector<float> m_fftIn;  // real
     std::vector<float> m_fftOut; // complex
 
+    bool m_hasNewSpectrum;
     SpectrumData m_sampleSpectrum;
     AmplitudeData m_sampleAmplitude;
 

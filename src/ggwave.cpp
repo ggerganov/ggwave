@@ -156,8 +156,7 @@ GGWave::GGWave(
     m_sampleAmplitudeHistory(kMaxSpectrumHistory),
     m_recordedAmplitude(kMaxRecordedFrames*kMaxSamplesPerFrame),
     m_txData(kMaxDataSize),
-    m_txDataEncoded(kMaxDataSize),
-    m_rsLength(new RS::ReedSolomon(1, m_encodedDataOffset - 1))
+    m_txDataEncoded(kMaxDataSize)
 {
     init(0, "", getDefultTxProtocol(), 0);
 }
@@ -265,8 +264,9 @@ void GGWave::send(const CBQueueAudio & cbQueueAudio) {
     m_sendDataLength = m_txDataLength + m_encodedDataOffset;
 
     RS::ReedSolomon rsData = RS::ReedSolomon(m_txDataLength, m_nECCBytesPerTx);
+    RS::ReedSolomon rsLength(1, m_encodedDataOffset - 1);
 
-    m_rsLength->Encode(m_txData.data(), m_txDataEncoded.data());
+    rsLength.Encode(m_txData.data(), m_txDataEncoded.data());
     rsData.Encode(m_txData.data() + 1, m_txDataEncoded.data() + m_encodedDataOffset);
 
     while (m_hasNewTxData) {
@@ -437,9 +437,6 @@ void GGWave::receive(const CBDequeueAudio & CBDequeueAudio) {
                 const int stepsPerFrame = 16;
                 const int step = m_samplesPerFrame/stepsPerFrame;
 
-                int lastRSLength = -1;
-                std::unique_ptr<RS::ReedSolomon> rsData;
-
                 bool isValid = false;
                 for (int rxProtocolId = 0; rxProtocolId < (int) kTxProtocols.size(); ++rxProtocolId) {
                     const auto & rxProtocol = kTxProtocols[rxProtocolId];
@@ -506,23 +503,25 @@ void GGWave::receive(const CBDequeueAudio & CBDequeueAudio) {
                             }
 
                             if (itx*rxProtocol.bytesPerTx > m_encodedDataOffset && knownLength == false) {
-                                if ((m_rsLength->Decode(m_txDataEncoded.data(), m_rxData.data()) == 0) && (m_rxData[0] > 0 && m_rxData[0] <= 140)) {
+                                RS::ReedSolomon rsLength(1, m_encodedDataOffset - 1);
+                                if ((rsLength.Decode(m_txDataEncoded.data(), m_rxData.data()) == 0) && (m_rxData[0] > 0 && m_rxData[0] <= 140)) {
                                     knownLength = true;
                                 } else {
                                     break;
                                 }
+                            }
+
+                            if (knownLength && itx*rxProtocol.bytesPerTx > m_encodedDataOffset + m_rxData[0] + ::getECCBytesForLength(m_rxData[0]) + 1) {
+                                break;
                             }
                         }
 
                         if (knownLength) {
                             int decodedLength = m_rxData[0];
 
-                            if (decodedLength != lastRSLength) {
-                                rsData.reset(new RS::ReedSolomon(decodedLength, ::getECCBytesForLength(decodedLength)));
-                                lastRSLength = decodedLength;
-                            }
+                            RS::ReedSolomon rsData(decodedLength, ::getECCBytesForLength(decodedLength));
 
-                            if (rsData->Decode(m_txDataEncoded.data() + m_encodedDataOffset, m_rxData.data()) == 0) {
+                            if (rsData.Decode(m_txDataEncoded.data() + m_encodedDataOffset, m_rxData.data()) == 0) {
                                 if (m_rxData[0] != 0) {
                                     std::string s((char *) m_rxData.data(), decodedLength);
 

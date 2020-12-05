@@ -3,11 +3,6 @@
 #include <cstdint>
 #include <functional>
 #include <vector>
-#include <memory>
-
-namespace RS {
-class ReedSolomon;
-}
 
 class GGWave {
 public:
@@ -148,6 +143,4 @@ private:
     TxRxData m_txDataEncoded;
 
     TxProtocol m_txProtocol;
-
-    std::unique_ptr<RS::ReedSolomon> m_rsLength;
 };

@@ -418,6 +418,7 @@ void GGWave::receive(const CBDequeueAudio & CBDequeueAudio) {
             }
 
             if (analyzingData) {
+                printf("Analyzing captured data ..\n");
                 auto tStart = std::chrono::high_resolution_clock::now();
 
                 const int stepsPerFrame = 16;
@@ -565,9 +566,9 @@ void GGWave::receive(const CBDequeueAudio & CBDequeueAudio) {
                     rxData.fill(0);
                     receivingData = true;
                     if (txMode == TxMode::FixedLength) {
-                        recvDuration_frames = nMarkerFrames + nPostMarkerFrames + maxFramesPerTx()*((kDefaultFixedLength + maxECCBytesPerTx())/minBytesPerTx() + 1);
+                        recvDuration_frames = 2*nMarkerFrames + nPostMarkerFrames + maxFramesPerTx()*((kDefaultFixedLength + maxECCBytesPerTx())/minBytesPerTx() + 1);
                     } else {
-                        recvDuration_frames = nMarkerFrames + nPostMarkerFrames + maxFramesPerTx()*((kMaxLength + ::getECCBytesForLength(kMaxLength))/minBytesPerTx() + 1);
+                        recvDuration_frames = 2*nMarkerFrames + nPostMarkerFrames + maxFramesPerTx()*((kMaxLength + ::getECCBytesForLength(kMaxLength))/minBytesPerTx() + 1);
                     }
                     framesToRecord = recvDuration_frames;
                     framesLeftToRecord = recvDuration_frames;
@@ -587,7 +588,7 @@ void GGWave::receive(const CBDequeueAudio & CBDequeueAudio) {
 
                 if (isEnded && framesToRecord > 1) {
                     std::time_t timestamp = std::time(nullptr);
-                    printf("%sReceived end marker\n", std::asctime(std::localtime(&timestamp)));
+                    printf("%sReceived end marker. Frames left = %d\n", std::asctime(std::localtime(&timestamp)), framesLeftToRecord);
                     recvDuration_frames -= framesLeftToRecord - 1;
                     framesLeftToRecord = 1;
                 }

@@ -22,7 +22,7 @@ public:
     static constexpr auto kMaxDataSize = 256;
     static constexpr auto kMaxLength = 140;
     static constexpr auto kMaxSpectrumHistory = 4;
-    static constexpr auto kMaxRecordedFrames = 64*10;
+    static constexpr auto kMaxRecordedFrames = 1024;
     static constexpr auto kDefaultFixedLength = 82;
 
     struct TxProtocol {

@@ -463,7 +463,8 @@ void GGWave::receive(const CBDequeueAudio & CBDequeueAudio) {
 
                             uint8_t curByte = 0;
                             for (int i = 0; i < 2*rxProtocol.paramBytesPerTx; ++i) {
-                                int bin = std::round(dataFreqs_hz[0]*ihzPerSample) + i*16;
+                                double freq = hzPerSample*rxProtocol.paramFreqStart;
+                                int bin = std::round(freq*ihzPerSample) + i*16;
 
                                 int kmax = 0;
                                 double amax = 0.0;
@@ -548,15 +549,25 @@ void GGWave::receive(const CBDequeueAudio & CBDequeueAudio) {
 
             // check if receiving data
             if (receivingData == false) {
-                bool isReceiving = true;
+                bool isReceiving = false;
 
-                for (int i = 0; i < nBitsInMarker; ++i) {
-                    int bin = std::round(dataFreqs_hz[i]*ihzPerSample);
+                for (const auto & rxProtocol : txProtocols) {
+                    bool isReceivingCur = true;
 
-                    if (i%2 == 0) {
-                        if (sampleSpectrum[bin] <= 3.0f*sampleSpectrum[bin + freqDelta_bin]) isReceiving = false;
-                    } else {
-                        if (sampleSpectrum[bin] >= 3.0f*sampleSpectrum[bin + freqDelta_bin]) isReceiving = false;
+                    for (int i = 0; i < nBitsInMarker; ++i) {
+                        double freq = hzPerSample*rxProtocol.paramFreqStart + freqDelta_hz*i;
+                        int bin = std::round(freq*ihzPerSample);
+
+                        if (i%2 == 0) {
+                            if (sampleSpectrum[bin] <= 3.0f*sampleSpectrum[bin + freqDelta_bin]) isReceivingCur = false;
+                        } else {
+                            if (sampleSpectrum[bin] >= 3.0f*sampleSpectrum[bin + freqDelta_bin]) isReceivingCur = false;
+                        }
+                    }
+
+                    if (isReceivingCur) {
+                        isReceiving = true;
+                        break;
                     }
                 }
 
@@ -574,15 +585,25 @@ void GGWave::receive(const CBDequeueAudio & CBDequeueAudio) {
                     framesLeftToRecord = recvDuration_frames;
                 }
             } else if (txMode == TxMode::VariableLength) {
-                bool isEnded = true;
+                bool isEnded = false;
 
-                for (int i = 0; i < nBitsInMarker; ++i) {
-                    int bin = std::round(dataFreqs_hz[i]*ihzPerSample);
+                for (const auto & rxProtocol : txProtocols) {
+                    bool isEndedCur = true;
 
-                    if (i%2 == 0) {
-                        if (sampleSpectrum[bin] >= 3.0f*sampleSpectrum[bin + freqDelta_bin]) isEnded = false;
-                    } else {
-                        if (sampleSpectrum[bin] <= 3.0f*sampleSpectrum[bin + freqDelta_bin]) isEnded = false;
+                    for (int i = 0; i < nBitsInMarker; ++i) {
+                        double freq = hzPerSample*rxProtocol.paramFreqStart + freqDelta_hz*i;
+                        int bin = std::round(freq*ihzPerSample);
+
+                        if (i%2 == 0) {
+                            if (sampleSpectrum[bin] >= 3.0f*sampleSpectrum[bin + freqDelta_bin]) isEndedCur = false;
+                        } else {
+                            if (sampleSpectrum[bin] <= 3.0f*sampleSpectrum[bin + freqDelta_bin]) isEndedCur = false;
+                        }
+                    }
+
+                    if (isEndedCur) {
+                        isEnded = true;
+                        break;
                     }
                 }
 

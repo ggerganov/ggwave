@@ -1,7 +1,6 @@
 #pragma once
 
 #include <array>
-#include <complex>
 #include <cstdint>
 #include <functional>
 #include <vector>
@@ -121,8 +120,8 @@ private:
     int m_framesToAnalyze;
     int m_framesToRecord;
 
-    std::array<float, kMaxSamplesPerFrame> m_fftIn;
-    std::array<std::complex<float>, kMaxSamplesPerFrame> m_fftOut;
+    std::array<float, kMaxSamplesPerFrame> m_fftIn;    // real
+    std::array<float, 2*kMaxSamplesPerFrame> m_fftOut; // complex
 
     AmplitudeData m_sampleAmplitude;
     SpectrumData m_sampleSpectrum;

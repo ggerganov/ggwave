@@ -49,9 +49,6 @@ extern "C" {
         int getSampleRate()             { return g_ggWave->getSampleRateIn(); }
 
     EMSCRIPTEN_KEEPALIVE
-        float getAverageRxTime_ms()     { return g_ggWave->getAverageRxTime_ms(); }
-
-    EMSCRIPTEN_KEEPALIVE
         int getFramesToRecord()         { return g_ggWave->getFramesToRecord(); }
 
     EMSCRIPTEN_KEEPALIVE
@@ -67,7 +64,7 @@ extern "C" {
         int hasDeviceOutput()           { return g_devIdOut; }
 
     EMSCRIPTEN_KEEPALIVE
-        int hasDeviceCapture()          { return (g_ggWave->getTotalBytesCaptured() > 0) ? g_devIdIn : 0; }
+        int hasDeviceCapture()          { return g_devIdIn; }
 
     EMSCRIPTEN_KEEPALIVE
         int doInit()                    {
@@ -239,7 +236,7 @@ bool GGWave_mainLoop() {
         return SDL_DequeueAudio(g_devIdIn, data, nMaxBytes);
     };
 
-    if (g_ggWave->getHasData() == false) {
+    if (g_ggWave->hasTxData() == false) {
         SDL_PauseAudioDevice(g_devIdOut, SDL_FALSE);
 
         static auto tLastNoData = std::chrono::high_resolution_clock::now();

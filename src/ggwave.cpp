@@ -148,7 +148,7 @@ bool GGWave::init(int textLength, const char * stext, const TxProtocol & aProtoc
     ihzPerSample = 1.0/hzPerSample;
 
     nDataBitsPerTx = 8*txProtocol.paramBytesPerTx;
-    nECCBytesPerTx = (txMode == TxMode::FixedLength) ? txProtocol.paramECCBytesPerTx : getECCBytesForLength(textLength);
+    nECCBytesPerTx = (txMode == TxMode::FixedLength) ? kDefaultFixedECCBytes : getECCBytesForLength(textLength);
 
     framesToAnalyze = 0;
     framesLeftToAnalyze = 0;
@@ -199,7 +199,7 @@ bool GGWave::init(int textLength, const char * stext, const TxProtocol & aProtoc
     if (rsLength) delete rsLength;
 
     if (txMode == TxMode::FixedLength) {
-        rsData = new RS::ReedSolomon(kDefaultFixedLength, nECCBytesPerTx);
+        rsData = new RS::ReedSolomon(kDefaultFixedLength, kDefaultFixedLength);
         rsLength = nullptr;
     } else {
         rsData = new RS::ReedSolomon(textLength, nECCBytesPerTx);
@@ -501,20 +501,31 @@ void GGWave::receive(const CBDequeueAudio & CBDequeueAudio) {
                         }
 
                         if (knownLength) {
-                            int decodedLength = rxData[0];
-                            if (rsData->Decode(txDataEncoded.data() + encodedOffset, rxData.data()) == 0) {
-                                if (txMode == TxMode::FixedLength && rxData[0] == 'A') {
-                                    printf("[ANSWER] Received sound data successfully!\n");
-                                } else if (txMode == TxMode::FixedLength && rxData[0] == 'O') {
-                                    printf("[OFFER]  Received sound data successfully!\n");
-                                } else if (rxData[0] != 0) {
-                                    printf("Decoded length = %d\n", decodedLength);
-                                    std::string s((char *) rxData.data(), decodedLength);
-                                    printf("Received sound data successfully: '%s'\n", s.c_str());
+                            if (txMode == FixedLength) {
+                                if (rsData->Decode(txDataEncoded.data() + encodedOffset, rxData.data()) == 0) {
+                                    if (rxData[0] == 'A') {
+                                        printf("[ANSWER] Received sound data successfully!\n");
+                                    } else if (rxData[0] == 'O') {
+                                        printf("[OFFER]  Received sound data successfully!\n");
+                                    }
 
                                     isValid = true;
                                     hasNewRxData = true;
-                                    lastRxDataLength = decodedLength;
+                                    lastRxDataLength = kDefaultFixedLength;
+                                }
+                            } else {
+                                int decodedLength = rxData[0];
+                                if (rsData->Decode(txDataEncoded.data() + encodedOffset, rxData.data()) == 0) {
+                                    if (rxData[0] != 0) {
+                                        std::string s((char *) rxData.data(), decodedLength);
+
+                                        printf("Decoded length = %d\n", decodedLength);
+                                        printf("Received sound data successfully: '%s'\n", s.c_str());
+
+                                        isValid = true;
+                                        hasNewRxData = true;
+                                        lastRxDataLength = decodedLength;
+                                    }
                                 }
                             }
                         }
@@ -577,7 +588,7 @@ void GGWave::receive(const CBDequeueAudio & CBDequeueAudio) {
                     rxData.fill(0);
                     receivingData = true;
                     if (txMode == TxMode::FixedLength) {
-                        recvDuration_frames = 2*nMarkerFrames + nPostMarkerFrames + maxFramesPerTx()*((kDefaultFixedLength + maxECCBytesPerTx())/minBytesPerTx() + 1);
+                        recvDuration_frames = 2*nMarkerFrames + nPostMarkerFrames + maxFramesPerTx()*((kDefaultFixedLength + kDefaultFixedECCBytes)/minBytesPerTx() + 1);
                     } else {
                         recvDuration_frames = 2*nMarkerFrames + nPostMarkerFrames + maxFramesPerTx()*((kMaxLength + ::getECCBytesForLength(kMaxLength))/minBytesPerTx() + 1);
                     }

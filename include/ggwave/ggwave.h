@@ -24,6 +24,7 @@ public:
     static constexpr auto kMaxSpectrumHistory = 4;
     static constexpr auto kMaxRecordedFrames = 1024;
     static constexpr auto kDefaultFixedLength = 82;
+    static constexpr auto kDefaultFixedECCBytes = 32;
 
     struct TxProtocol {
         const char * name;
@@ -31,7 +32,6 @@ public:
         int paramFreqStart;
         int paramFramesPerTx;
         int paramBytesPerTx;
-        int paramECCBytesPerTx;
         int paramVolume;
     };
 
@@ -92,10 +92,10 @@ public:
 
 private:
     const TxProtocols txProtocols {
-        { "Normal",     40,  9, 3, 32, 50 },
-        { "Fast",       40,  6, 3, 32, 50 },
-        { "Fastest",    40,  3, 3, 32, 50 },
-        { "Ultrasonic", 320, 9, 3, 32, 50 },
+        { "Normal",     40,  9, 3, 50 },
+        { "Fast",       40,  6, 3, 50 },
+        { "Fastest",    40,  3, 3, 50 },
+        { "Ultrasonic", 320, 9, 3, 50 },
     };
 
     int maxFramesPerTx() const {
@@ -110,14 +110,6 @@ private:
         int res = txProtocols.front().paramFramesPerTx;
         for (const auto & protocol : txProtocols) {
             res = std::min(res, protocol.paramBytesPerTx);
-        }
-        return res;
-    }
-
-    int maxECCBytesPerTx() const {
-        int res = 0;
-        for (const auto & protocol : txProtocols) {
-            res = std::max(res, protocol.paramECCBytesPerTx);
         }
         return res;
     }

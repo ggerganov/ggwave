@@ -14,11 +14,7 @@ int main(int argc, char** argv) {
     printf("Usage: %s [-cN] [-pN] [-tN]\n", argv[0]);
     printf("    -cN - select capture device N\n");
     printf("    -pN - select playback device N\n");
-    printf("    -tN - transmission protocol:\n");
-    printf("          -t0 : Normal\n");
-    printf("          -t1 : Fast (default)\n");
-    printf("          -t2 : Fastest\n");
-    printf("          -t3 : Ultrasonic\n");
+    printf("    -tN - transmission protocol\n");
     printf("\n");
 
     auto argm = parseCmdArguments(argc, argv);
@@ -32,6 +28,16 @@ int main(int argc, char** argv) {
     }
 
     auto ggWave = GGWave_instance();
+
+    printf("Available Tx protocols:\n");
+    for (int i = 0; i < (int) ggWave->getTxProtocols().size(); ++i) {
+        printf("    -t%d : %s\n", i, ggWave->getTxProtocols()[i].name);
+    }
+
+    if (txProtocol < 0 || txProtocol > (int) ggWave->getTxProtocols().size()) {
+        fprintf(stderr, "Unknown Tx protocol %d\n", txProtocol);
+        return -3;
+    }
 
     printf("Selecting Tx protocol %d\n", txProtocol);
 

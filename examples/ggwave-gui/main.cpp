@@ -50,17 +50,11 @@ int main(int argc, char** argv) {
     printf("Usage: %s [-cN] [-pN] [-tN]\n", argv[0]);
     printf("    -cN - select capture device N\n");
     printf("    -pN - select playback device N\n");
-    printf("    -tN - transmission protocol:\n");
-    printf("          -t0 : Normal\n");
-    printf("          -t1 : Fast (default)\n");
-    printf("          -t2 : Fastest\n");
-    printf("          -t3 : Ultrasonic\n");
     printf("\n");
 
     auto argm = parseCmdArguments(argc, argv);
     int captureId = argm["c"].empty() ? 0 : std::stoi(argm["c"]);
     int playbackId = argm["p"].empty() ? 0 : std::stoi(argm["p"]);
-    int txProtocol = argm["t"].empty() ? 1 : std::stoi(argm["t"]);
 
     if (GGWave_init(playbackId, captureId) == false) {
         fprintf(stderr, "Failed to initialize GGWave\n");

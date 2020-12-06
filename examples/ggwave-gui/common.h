@@ -20,11 +20,12 @@
 #define ICON_FA_COMMENT_ALT ""
 #define ICON_FA_SIGNAL ""
 #define ICON_FA_PLAY_CIRCLE ""
+#define ICON_FA_ARROW_CIRCLE_DOWN "V"
 #endif
 
 struct Message {
     bool received;
-    std::time_t timestamp;
+    std::chrono::system_clock::time_point timestamp;
     std::string data;
     int protocolId;
     float volume;
@@ -95,7 +96,8 @@ struct Buffer {
     Input inputUI;
 };
 
-char * toTimeString(const std::time_t t) {
+char * toTimeString(const std::chrono::system_clock::time_point & tp) {
+    time_t t = std::chrono::system_clock::to_time_t(tp);
     std::tm * ptm = std::localtime(&t);
     static char buffer[32];
     std::strftime(buffer, 32, "%H:%M:%S", ptm);
@@ -157,7 +159,7 @@ std::thread initMain() {
                 g_buffer.stateCore.flags.newMessage = true;
                 g_buffer.stateCore.message = {
                     true,
-                    std::time(nullptr),
+                    std::chrono::system_clock::now(),
                     std::string((char *) lastRxData.data(), lastRxDataLength),
                     g_ggWave->getRxProtocolId(),
                     0,
@@ -401,41 +403,73 @@ void renderMain() {
         }
 #endif
 
-        ImGui::BeginChild("Messages:history", { ImGui::GetContentRegionAvailWidth(), messagesHistoryHeigth }, true);
+        bool showScrollToBottom = false;
+        const auto wPos0 = ImGui::GetCursorScreenPos();
+        const auto wSize = ImVec2 { ImGui::GetContentRegionAvailWidth(), messagesHistoryHeigth };
 
-        ImGui::PushTextWrapPos();
+        ImGui::BeginChild("Messages:history", wSize, true, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
+
+        const float tMessageFlyIn = 0.3f;
+
         for (int i = 0; i < (int) messageHistory.size(); ++i) {
             ImGui::PushID(i);
             const auto & message = messageHistory[i];
+            const float tRecv = 0.001f*std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now() - message.timestamp).count();
+            const float interp = std::min(tRecv, tMessageFlyIn)/tMessageFlyIn;
+            const float xoffset = std::max(0.0f, (1.0f - interp)*ImGui::GetContentRegionAvailWidth());
+
+            if (xoffset > 0.0f) {
+                ImGui::Indent(xoffset);
+            } else {
+                ImGui::PushTextWrapPos();
+            }
             if (message.received) {
-                ImGui::TextColored({ 0.0f, 1.0f, 0.0f, 1.0f }, "[%s] Recv (%s):", ::toTimeString(message.timestamp), g_ggWave->getTxProtocols()[message.protocolId].name);
+                ImGui::TextColored({ 0.0f, 1.0f, 0.0f, interp }, "[%s] Recv (%s):", ::toTimeString(message.timestamp), g_ggWave->getTxProtocols()[message.protocolId].name);
                 ImGui::SameLine();
                 if (ImGui::SmallButton("Resend")) {
                     g_buffer.inputUI.update = true;
-                    g_buffer.inputUI.message = { false, std::time(nullptr), message.data, message.protocolId, settings.volume };
+                    g_buffer.inputUI.message = { false, std::chrono::system_clock::now(), message.data, message.protocolId, settings.volume };
 
                     messageHistory.push_back(g_buffer.inputUI.message);
                 }
                 ImGui::Text("%s", message.data.c_str());
             } else {
-                ImGui::TextColored({ 1.0f, 1.0f, 0.0f, 1.0f }, "[%s] Sent (%s):", ::toTimeString(message.timestamp), g_ggWave->getTxProtocols()[message.protocolId].name);
+                ImGui::TextColored({ 1.0f, 1.0f, 0.0f, interp }, "[%s] Sent (%s):", ::toTimeString(message.timestamp), g_ggWave->getTxProtocols()[message.protocolId].name);
                 ImGui::SameLine();
                 if (ImGui::SmallButton("Resend")) {
                     g_buffer.inputUI.update = true;
-                    g_buffer.inputUI.message = { false, std::time(nullptr), message.data, message.protocolId, settings.volume };
+                    g_buffer.inputUI.message = { false, std::chrono::system_clock::now(), message.data, message.protocolId, settings.volume };
 
                     messageHistory.push_back(g_buffer.inputUI.message);
                 }
-                ImGui::Text("%s", message.data.c_str());
+                auto col = style.Colors[ImGuiCol_Text];
+                col.w = interp;
+                ImGui::TextColored(col, "%s", message.data.c_str());
+            }
+            if (xoffset == 0.0f) {
+                ImGui::PopTextWrapPos();
             }
             ImGui::Text("%s", "");
             ImGui::PopID();
         }
-        ImGui::PopTextWrapPos();
 
         if (scrollMessagesToBottom) {
             ImGui::SetScrollHereY();
             scrollMessagesToBottom = false;
+        }
+
+        if (ImGui::GetScrollY() < ImGui::GetScrollMaxY() - 10) {
+            showScrollToBottom = true;
+        }
+
+        if (showScrollToBottom) {
+            auto posSave = ImGui::GetCursorScreenPos();
+            auto butSize = ImGui::CalcTextSize(ICON_FA_ARROW_CIRCLE_DOWN);
+            ImGui::SetCursorScreenPos({ wPos0.x + wSize.x - 5.0f*butSize.x, wPos0.y + wSize.y - 3.0f*butSize.y });
+            if (ImGui::Button(ICON_FA_ARROW_CIRCLE_DOWN)) {
+                scrollMessagesToBottom = true;
+            }
+            ImGui::SetCursorScreenPos(posSave);
         }
 
         ImVec2 mouse_delta = ImGui::GetIO().MouseDelta;
@@ -477,7 +511,7 @@ void renderMain() {
         ImGui::SameLine();
         if (ImGui::Button(sendButtonText) && inputBuf[0] != 0) {
             g_buffer.inputUI.update = true;
-            g_buffer.inputUI.message = { false, std::time(nullptr), std::string(inputBuf), settings.protocolId, settings.volume };
+            g_buffer.inputUI.message = { false, std::chrono::system_clock::now(), std::string(inputBuf), settings.protocolId, settings.volume };
 
             messageHistory.push_back(g_buffer.inputUI.message);
 

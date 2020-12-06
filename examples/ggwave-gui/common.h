@@ -143,7 +143,7 @@ std::thread initMain() {
 
             if (inputCurrent.update) {
                 g_ggWave->init(
-                        inputCurrent.message.data.size(),
+                        (int) inputCurrent.message.data.size(),
                         inputCurrent.message.data.data(),
                         g_ggWave->getTxProtocols()[inputCurrent.message.protocolId],
                         100*inputCurrent.message.volume);

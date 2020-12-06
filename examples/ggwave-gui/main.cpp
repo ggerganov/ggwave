@@ -87,8 +87,11 @@ int main(int argc, char** argv) {
     }
 
     deinitMain(worker);
-
     GGWave_deinit();
+
+    // Cleanup
+    ImGui_Shutdown();
+    ImGui::DestroyContext();
 
     SDL_GL_DeleteContext(g_gl_context);
     SDL_DestroyWindow(g_window);

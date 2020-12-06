@@ -308,7 +308,7 @@ int main(int argc, char** argv) {
 
         struct Settings {
             int protocolId = 1;
-            float volume = 0.25f;
+            float volume = 0.10f;
         };
 
         static WindowId windowId = WindowId::Messages;
@@ -354,7 +354,7 @@ int main(int argc, char** argv) {
         const auto sendButtonText = ICON_FA_PLAY_CIRCLE " Send";
         const double tShowKeyboard = 0.2f;
 #ifdef IOS
-        const float statusBarHeight = displaySize.x < displaySize.y ? 20.0f + 2.0f*style.ItemSpacing.y : 0.1f;
+        const float statusBarHeight = displaySize.x < displaySize.y ? 10.0f + 2.0f*style.ItemSpacing.y : 0.1f;
 #else
         const float statusBarHeight = 0.1f;
 #endif
@@ -535,6 +535,7 @@ int main(int argc, char** argv) {
 
                 inputBuf[0] = 0;
                 doInputFocus = true;
+                scrollMessagesToBottom = true;
             }
             if (!ImGui::IsItemHovered() && requestStopTextInput) {
                 SDL_StopTextInput();

@@ -411,6 +411,11 @@ void renderMain() {
 
         const float tMessageFlyIn = 0.3f;
 
+        // we need this because we push messages in the next loop
+        if (messageHistory.capacity() == messageHistory.size()) {
+            messageHistory.reserve(messageHistory.size() + 16);
+        }
+
         for (int i = 0; i < (int) messageHistory.size(); ++i) {
             ImGui::PushID(i);
             const auto & message = messageHistory[i];

@@ -6,7 +6,7 @@ function transmitText(sText) {
 
     var buffer = Module._malloc(256);
     Module.writeArrayToMemory(r, buffer, 256);
-    Module._setText(sText.length, buffer);
+    Module._sendData(sText.length, buffer, protocolId, volume);
     Module._free(buffer);
 }
 

@@ -62,12 +62,10 @@
                                 <option value=0>Normal</option>
                                 <option value=1 selected>Fast</option>
                                 <option value=2>Fastest</option>
-                                <option value=3>Ultrasonic</option>
+                                <option value=3>[Ultrasound] Normal</option>
+                                <option value=4>[Ultrasound] Fast</option>
+                                <option value=5>[Ultrasound] Fastest</option>
                             </select>
-                            <label hidden id="paramFreqDelta"></label>
-                            <label hidden id="paramFreqStart"></label>
-                            <label hidden id="paramFramesPerTx"></label>
-                            <label hidden id="paramBytesPerTx"></label>
                         </td>
                         <td colspan=1>
                             Volume:
@@ -128,6 +126,9 @@
             var bufferRx = null;
             var brx = new Uint8Array(256);
 
+            var volume = 10;
+            var protocolId = 1;
+
             function lockoutSubmit(button) {
                 var oldValue = button.value;
 
@@ -141,81 +142,13 @@
             }
 
             function selectConfig(configId) {
-                paramFreqDelta.value = 1;
-                paramFreqStart.value = 40;
-                paramFramesPerTx.value = 9;
-                paramBytesPerTx.value = 3;
-
-                if (configId == 1) {
-                    paramFreqDelta.value = 1;
-                    paramFreqStart.value = 40;
-                    paramFramesPerTx.value = 6;
-                    paramBytesPerTx.value = 3;
-                }
-
-                if (configId == 2) {
-                    paramFreqDelta.value = 1;
-                    paramFreqStart.value = 40;
-                    paramFramesPerTx.value = 3;
-                    paramBytesPerTx.value = 3;
-                }
-
-                if (configId == 3) {
-                    paramFreqDelta.value = 1;
-                    paramFreqStart.value = 320;
-                    paramFramesPerTx.value = 9;
-                    paramBytesPerTx.value = 3;
-                }
-
-                if (configId == 4) {
-                    paramFreqDelta.value = 4;
-                    paramFreqStart.value = 40;
-                    paramFramesPerTx.value = 9;
-                    paramBytesPerTx.value = 3;
-                }
-
-                if (configId == 5) {
-                    paramFreqDelta.value = 2;
-                    paramFreqStart.value = 40;
-                    paramFramesPerTx.value = 18;
-                    paramBytesPerTx.value = 6;
-                }
-
-                if (configId == 6) {
-                    paramFreqDelta.value = 2;
-                    paramFreqStart.value = 40;
-                    paramFramesPerTx.value = 9;
-                    paramBytesPerTx.value = 6;
-                }
-
-                if (configId == 7) {
-                    paramFreqDelta.value = 4;
-                    paramFreqStart.value = 320;
-                    paramFramesPerTx.value = 9;
-                    paramBytesPerTx.value = 3;
-                }
-
-                Module._setTxMode(1); // Variable length mode
-                Module._setParameters(
-                        paramFreqDelta.value,
-                        paramFreqStart.value,
-                        paramFramesPerTx.value,
-                        paramBytesPerTx.value,
-                        0,
-                        paramVolume.value);
+                protocolId = configId;
             }
 
             function updateScroll(sName) {
                 val = document.getElementById('param'+sName).value;
                 document.getElementById('param'+sName+'Scroll').innerHTML = val;
-
-                Module._setParameters(
-                        paramFreqDelta.value,
-                        paramFreqStart.value,
-                        paramFramesPerTx.value,
-                        paramBytesPerTx.value,
-                        0,
-                        paramVolume.value);
+                volume = val;
             }
 
             function getSampleRate() {

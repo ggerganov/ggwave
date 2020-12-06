@@ -465,7 +465,7 @@ void renderMain() {
         if (showScrollToBottom) {
             auto posSave = ImGui::GetCursorScreenPos();
             auto butSize = ImGui::CalcTextSize(ICON_FA_ARROW_CIRCLE_DOWN);
-            ImGui::SetCursorScreenPos({ wPos0.x + wSize.x - 5.0f*butSize.x, wPos0.y + wSize.y - 3.0f*butSize.y });
+            ImGui::SetCursorScreenPos({ wPos0.x + wSize.x - 2.0f*butSize.x - 2*style.ItemSpacing.x, wPos0.y + wSize.y - 2.0f*butSize.y - 2*style.ItemSpacing.y });
             if (ImGui::Button(ICON_FA_ARROW_CIRCLE_DOWN)) {
                 scrollMessagesToBottom = true;
             }

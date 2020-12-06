@@ -300,13 +300,63 @@ void renderMain() {
         ImGui::Text("%s", "");
         {
             auto posSave = ImGui::GetCursorScreenPos();
+            ImGui::Text("%s", "");
+            ImGui::SetCursorScreenPos({ posSave.x + kLabelWidth, posSave.y });
+            if (settings.volume < 0.2f) {
+                ImGui::TextColored({ 0.0f, 1.0f, 0.0f, 0.5f }, "Normal volume");
+            } else if (settings.volume < 0.5f) {
+                ImGui::TextColored({ 1.0f, 1.0f, 0.0f, 0.5f }, "Intermediate volume");
+            } else {
+                ImGui::TextColored({ 1.0f, 0.0f, 0.0f, 0.5f }, "Warning: high volume!");
+            }
+        }
+        {
+            auto posSave = ImGui::GetCursorScreenPos();
             ImGui::Text("Volume: ");
             ImGui::SetCursorScreenPos({ posSave.x + kLabelWidth, posSave.y });
         }
-        ImGui::SliderFloat("##volume", &settings.volume, 0.0f, 1.0f);
+        {
+            auto p0 = ImGui::GetCursorScreenPos();
+
+            {
+                auto & cols = ImGui::GetStyle().Colors;
+                ImGui::PushStyleColor(ImGuiCol_FrameBg, cols[ImGuiCol_WindowBg]);
+                ImGui::PushStyleColor(ImGuiCol_FrameBgActive, cols[ImGuiCol_WindowBg]);
+                ImGui::PushStyleColor(ImGuiCol_FrameBgHovered, cols[ImGuiCol_WindowBg]);
+                ImGui::SliderFloat("##volume", &settings.volume, 0.0f, 1.0f);
+                ImGui::PopStyleColor(3);
+            }
+
+            auto posSave = ImGui::GetCursorScreenPos();
+            ImGui::SameLine();
+            auto p1 = ImGui::GetCursorScreenPos();
+            p1.x -= ImGui::CalcTextSize(" ").x;
+            p1.y += ImGui::GetTextLineHeightWithSpacing() + 0.5f*style.ItemInnerSpacing.y;
+            ImGui::GetWindowDrawList()->AddRectFilledMultiColor(
+                    p0, { 0.35f*(p0.x + p1.x), p1.y },
+                    ImGui::ColorConvertFloat4ToU32({0.0f, 1.0f, 0.0f, 0.5f}),
+                    ImGui::ColorConvertFloat4ToU32({1.0f, 1.0f, 0.0f, 0.3f}),
+                    ImGui::ColorConvertFloat4ToU32({1.0f, 1.0f, 0.0f, 0.3f}),
+                    ImGui::ColorConvertFloat4ToU32({0.0f, 1.0f, 0.0f, 0.5f})
+                    );
+            ImGui::GetWindowDrawList()->AddRectFilledMultiColor(
+                    { 0.35f*(p0.x + p1.x), p0.y }, p1,
+                    ImGui::ColorConvertFloat4ToU32({1.0f, 1.0f, 0.0f, 0.3f}),
+                    ImGui::ColorConvertFloat4ToU32({1.0f, 0.0f, 0.0f, 0.5f}),
+                    ImGui::ColorConvertFloat4ToU32({1.0f, 0.0f, 0.0f, 0.5f}),
+                    ImGui::ColorConvertFloat4ToU32({1.0f, 1.0f, 0.0f, 0.3f})
+                    );
+            ImGui::SetCursorScreenPos(posSave);
+        }
 
         // protocol
         ImGui::Text("%s", "");
+        {
+            auto posSave = ImGui::GetCursorScreenPos();
+            ImGui::Text("%s", "");
+            ImGui::SetCursorScreenPos({ posSave.x + kLabelWidth, posSave.y });
+            ImGui::TextDisabled("[U] = ultrasound");
+        }
         {
             auto posSave = ImGui::GetCursorScreenPos();
             ImGui::Text("Tx Protocol: ");

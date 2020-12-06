@@ -559,8 +559,6 @@ void deinitMain(std::thread & worker) {
     g_isRunning = false;
     worker.join();
 
-    GGWave_deinit();
-
     // Cleanup
     ImGui_Shutdown();
     ImGui::DestroyContext();

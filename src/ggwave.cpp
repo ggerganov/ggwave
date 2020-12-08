@@ -572,20 +572,20 @@ void GGWave::receive(const CBDequeueAudio & CBDequeueAudio) {
                 bool isReceiving = false;
 
                 for (const auto & rxProtocol : kTxProtocols) {
-                    bool isReceivingCur = true;
+                    int nDetectedMarkerBits = m_nBitsInMarker;
 
                     for (int i = 0; i < m_nBitsInMarker; ++i) {
                         double freq = bitFreq(rxProtocol, i);
                         int bin = std::round(freq*m_ihzPerSample);
 
                         if (i%2 == 0) {
-                            if (m_sampleSpectrum[bin] <= 3.0f*m_sampleSpectrum[bin + m_freqDelta_bin]) isReceivingCur = false;
+                            if (m_sampleSpectrum[bin] <= 3.0f*m_sampleSpectrum[bin + m_freqDelta_bin]) --nDetectedMarkerBits;
                         } else {
-                            if (m_sampleSpectrum[bin] >= 3.0f*m_sampleSpectrum[bin + m_freqDelta_bin]) isReceivingCur = false;
+                            if (m_sampleSpectrum[bin] >= 3.0f*m_sampleSpectrum[bin + m_freqDelta_bin]) --nDetectedMarkerBits;
                         }
                     }
 
-                    if (isReceivingCur) {
+                    if (nDetectedMarkerBits == m_nBitsInMarker) {
                         m_markerFreqStart = rxProtocol.freqStart;
                         isReceiving = true;
                         break;
@@ -611,20 +611,20 @@ void GGWave::receive(const CBDequeueAudio & CBDequeueAudio) {
                 bool isEnded = false;
 
                 for (const auto & rxProtocol : kTxProtocols) {
-                    bool isEndedCur = true;
+                    int nDetectedMarkerBits = m_nBitsInMarker;
 
                     for (int i = 0; i < m_nBitsInMarker; ++i) {
                         double freq = bitFreq(rxProtocol, i);
                         int bin = std::round(freq*m_ihzPerSample);
 
                         if (i%2 == 0) {
-                            if (m_sampleSpectrum[bin] >= 3.0f*m_sampleSpectrum[bin + m_freqDelta_bin]) isEndedCur = false;
+                            if (m_sampleSpectrum[bin] >= 3.0f*m_sampleSpectrum[bin + m_freqDelta_bin]) nDetectedMarkerBits--;
                         } else {
-                            if (m_sampleSpectrum[bin] <= 3.0f*m_sampleSpectrum[bin + m_freqDelta_bin]) isEndedCur = false;
+                            if (m_sampleSpectrum[bin] <= 3.0f*m_sampleSpectrum[bin + m_freqDelta_bin]) nDetectedMarkerBits--;
                         }
                     }
 
-                    if (isEndedCur) {
+                    if (nDetectedMarkerBits == m_nBitsInMarker) {
                         isEnded = true;
                         break;
                     }

@@ -289,7 +289,7 @@ void renderMain() {
         ImGui::BeginChild("Settings:main", ImGui::GetContentRegionAvail(), true);
         ImGui::Text("%s", "");
         ImGui::Text("%s", "");
-        ImGui::Text("Waver v0.1");
+        ImGui::Text("Waver v1.0.0");
         ImGui::Separator();
 
         ImGui::Text("%s", "");

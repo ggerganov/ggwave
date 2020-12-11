@@ -13,7 +13,11 @@ This is a simple C++ library that allows to communicate small amounts of data be
 
 This library is used only to generate and analyze the RAW waveforms that are played and captured from your audio devices (speakers, microphones, etc.). You are free to use any audio backend (e.g. PulseAudio, ALSA, etc.) as long as you provide callbacks for queuing and dequeuing audio samples.
 
-Browser demo: https://ggwave.ggerganov.com
+**Browser demo:** https://ggwave.ggerganov.com
+
+**Mobile demo:**
+
+<a href="https://apps.apple.com/us/app/waver-data-over-sound/id1543607865?itsct=apps_box&amp;itscg=30200&ign-itsct=apps_box#?platform=iphone" style="display: inline-block; overflow: hidden; border-radius: 13px; width: 250px; height: 83px;"><img src="https://tools.applemediaservices.com/api/badges/download-on-the-app-store/white/en-US?size=250x83&amp;releaseDate=1607558400&h=8e5fafc57929918f684abc83ff8311ef" alt="Download on the App Store" style="border-radius: 13px; width: 250px; height: 83px;"></a>
 
 ### Modulation (Tx)
 
@@ -44,6 +48,7 @@ Reed-Solomon decoding is finally performed to obtain the original data.
 The [examples](https://github.com/ggerganov/ggwave/blob/master/examples/) folder contains several sample applications of the library:
 
 - [ggwave-cli](https://github.com/ggerganov/ggwave/blob/master/examples/ggwave-cli) - a command line tool for sending/receiving data through sound
+- [ggwave-gui](https://github.com/ggerganov/ggwave/blob/master/examples/ggwave-gui) - a GUI tool for sending/receiving data through sound
 - [ggwave-wasm](https://github.com/ggerganov/ggwave/blob/master/examples/ggwave-wasm) - a WebAssembly module for web applications
 
 Other projects using **ggwave** or one of its prototypes:

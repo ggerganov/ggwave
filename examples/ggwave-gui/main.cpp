@@ -1,8 +1,8 @@
-#include <imgui/imgui.h>
-#include <imgui/imgui_internal.h>
-#include <imgui-extra/imgui_impl.h>
-
 #include "common.h"
+
+#include "ggwave-common.h"
+
+#include <imgui-extra/imgui_impl.h>
 
 #include <SDL_opengl.h>
 

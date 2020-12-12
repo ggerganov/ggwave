@@ -1,4 +1,4 @@
-add_executable(ggwave-gui main.cpp)
+add_executable(ggwave-gui main.cpp common.cpp)
 
 target_include_directories(ggwave-gui PRIVATE
     ..

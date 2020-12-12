@@ -289,7 +289,7 @@ void renderMain() {
         ImGui::BeginChild("Settings:main", ImGui::GetContentRegionAvail(), true);
         ImGui::Text("%s", "");
         ImGui::Text("%s", "");
-        ImGui::Text("Waver v1.0.0");
+        ImGui::Text("Waver v1.1");
         ImGui::Separator();
 
         ImGui::Text("%s", "");
@@ -428,29 +428,30 @@ void renderMain() {
             } else {
                 ImGui::PushTextWrapPos();
             }
-            if (message.received) {
-                ImGui::TextColored({ 0.0f, 1.0f, 0.0f, interp }, "[%s] Recv (%s):", ::toTimeString(message.timestamp), g_ggWave->getTxProtocols()[message.protocolId].name);
-                ImGui::SameLine();
-                if (ImGui::SmallButton("Resend")) {
-                    g_buffer.inputUI.update = true;
-                    g_buffer.inputUI.message = { false, std::chrono::system_clock::now(), message.data, message.protocolId, settings.volume };
 
-                    messageHistory.push_back(g_buffer.inputUI.message);
-                }
-                ImGui::Text("%s", message.data.c_str());
-            } else {
-                ImGui::TextColored({ 1.0f, 1.0f, 0.0f, interp }, "[%s] Sent (%s):", ::toTimeString(message.timestamp), g_ggWave->getTxProtocols()[message.protocolId].name);
-                ImGui::SameLine();
-                if (ImGui::SmallButton("Resend")) {
-                    g_buffer.inputUI.update = true;
-                    g_buffer.inputUI.message = { false, std::chrono::system_clock::now(), message.data, message.protocolId, settings.volume };
+            const auto msgStatus = message.received ? "Recv" : "Send";
+            const auto msgColor = message.received ? ImVec4 { 0.0f, 1.0f, 0.0f, interp } : ImVec4 { 1.0f, 1.0f, 0.0f, interp };
 
-                    messageHistory.push_back(g_buffer.inputUI.message);
-                }
+            ImGui::TextColored(msgColor, "[%s] %s (%s):", ::toTimeString(message.timestamp), msgStatus, g_ggWave->getTxProtocols()[message.protocolId].name);
+            ImGui::SameLine();
+            if (ImGui::SmallButton("Resend")) {
+                g_buffer.inputUI.update = true;
+                g_buffer.inputUI.message = { false, std::chrono::system_clock::now(), message.data, message.protocolId, settings.volume };
+
+                messageHistory.push_back(g_buffer.inputUI.message);
+            }
+
+            ImGui::SameLine();
+            if (ImGui::SmallButton("Copy")) {
+                SDL_SetClipboardText(message.data.c_str());
+            }
+
+            {
                 auto col = style.Colors[ImGuiCol_Text];
                 col.w = interp;
                 ImGui::TextColored(col, "%s", message.data.c_str());
             }
+
             if (xoffset == 0.0f) {
                 ImGui::PopTextWrapPos();
             }

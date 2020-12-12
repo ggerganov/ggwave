@@ -21,6 +21,7 @@
 #define ICON_FA_SIGNAL ""
 #define ICON_FA_PLAY_CIRCLE ""
 #define ICON_FA_ARROW_CIRCLE_DOWN "V"
+#define ICON_FA_PASTE "P"
 #endif
 
 struct Message {
@@ -214,7 +215,8 @@ void renderMain() {
     static WindowId windowId = WindowId::Messages;
     static Settings settings;
 
-    static char inputBuf[256];
+    const int kMaxInputSize = 140;
+    static char inputBuf[kMaxInputSize];
 
     static bool doInputFocus = false;
     static bool lastMouseButtonLeft = 0;
@@ -502,8 +504,14 @@ void renderMain() {
             ImGui::SetKeyboardFocusHere();
             doInputFocus = false;
         }
+
+        if (ImGui::Button(ICON_FA_PASTE)) {
+            for (int i = 0; i < kMaxInputSize; ++i) inputBuf[i] = 0;
+            strncpy(inputBuf, SDL_GetClipboardText(), kMaxInputSize - 1);
+        }
+        ImGui::SameLine();
         ImGui::PushItemWidth(ImGui::GetContentRegionAvailWidth() - ImGui::CalcTextSize(sendButtonText).x - 2*style.ItemSpacing.x);
-        ImGui::InputText("##Messages:Input", inputBuf, 256, ImGuiInputTextFlags_EnterReturnsTrue);
+        ImGui::InputText("##Messages:Input", inputBuf, kMaxInputSize, ImGuiInputTextFlags_EnterReturnsTrue);
         ImGui::PopItemWidth();
         if (ImGui::IsItemActive() && isTextInput == false) {
             SDL_StartTextInput();

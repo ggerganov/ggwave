@@ -473,23 +473,47 @@ void renderMain() {
             const auto msgColor = message.received ? ImVec4 { 0.0f, 1.0f, 0.0f, interp } : ImVec4 { 1.0f, 1.0f, 0.0f, interp };
 
             ImGui::TextColored(msgColor, "[%s] %s (%s):", ::toTimeString(message.timestamp), msgStatus, g_ggWave->getTxProtocols()[message.protocolId].name);
-            ImGui::SameLine();
-            if (ImGui::SmallButton("Resend")) {
-                g_buffer.inputUI.update = true;
-                g_buffer.inputUI.message = { false, std::chrono::system_clock::now(), message.data, message.protocolId, settings.volume };
-
-                messageHistory.push_back(g_buffer.inputUI.message);
-            }
-
-            ImGui::SameLine();
-            if (ImGui::SmallButton("Copy")) {
-                SDL_SetClipboardText(message.data.c_str());
-            }
 
             {
+                auto p0 = ImGui::GetCursorScreenPos();
+                auto p00 = p0;
+                p00.y -= ImGui::GetTextLineHeightWithSpacing();
+                p0.x -= style.ItemSpacing.x;
+                p0.y -= 0.5f*style.ItemSpacing.y;
+
                 auto col = style.Colors[ImGuiCol_Text];
                 col.w = interp;
                 ImGui::TextColored(col, "%s", message.data.c_str());
+
+                auto p1 = ImGui::GetCursorScreenPos();
+                p1.x = p00.x + ImGui::GetContentRegionAvailWidth();
+
+                if (xoffset == 0.0f) {
+                    ImGui::SetCursorScreenPos(p00);
+                    ImGui::InvisibleButton("##messageFrame", { p1.x - p00.x, p1.y - p00.y });
+
+                    if (ImGui::IsItemHovered()) {
+                        auto col = ImGui::GetStyleColorVec4(ImGuiCol_TextDisabled);
+                        col.w *= 0.25f;
+                        ImGui::GetWindowDrawList()->AddRectFilled(
+                                p0, p1, ImGui::ColorConvertFloat4ToU32(col), 12.0f);
+                    }
+
+                    if (ImGui::BeginPopupContextItem("Message options", 0)) {
+                        if (ImGui::MenuItem("Resend")) {
+                            g_buffer.inputUI.update = true;
+                            g_buffer.inputUI.message = { false, std::chrono::system_clock::now(), message.data, message.protocolId, settings.volume };
+
+                            messageHistory.push_back(g_buffer.inputUI.message);
+                        }
+
+                        if (ImGui::MenuItem("Copy")) {
+                            SDL_SetClipboardText(message.data.c_str());
+                        }
+
+                        ImGui::EndPopup();
+                    }
+                }
             }
 
             if (xoffset == 0.0f) {
@@ -592,11 +616,12 @@ void renderMain() {
             doInputFocus = false;
         }
 
-        if (ImGui::Button(ICON_FA_PASTE)) {
-            for (int i = 0; i < kMaxInputSize; ++i) inputBuf[i] = 0;
-            strncpy(inputBuf, SDL_GetClipboardText(), kMaxInputSize - 1);
-        }
-        ImGui::SameLine();
+        //if (ImGui::Button(ICON_FA_PASTE)) {
+        //    for (int i = 0; i < kMaxInputSize; ++i) inputBuf[i] = 0;
+        //    strncpy(inputBuf, SDL_GetClipboardText(), kMaxInputSize - 1);
+        //}
+        //ImGui::SameLine();
+
         ImGui::PushItemWidth(ImGui::GetContentRegionAvailWidth() - ImGui::CalcTextSize(sendButtonText).x - 2*style.ItemSpacing.x);
         ImGui::InputText("##Messages:Input", inputBuf, kMaxInputSize, ImGuiInputTextFlags_EnterReturnsTrue);
         ImGui::PopItemWidth();
@@ -608,6 +633,16 @@ void renderMain() {
         bool requestStopTextInput = false;
         if (ImGui::IsItemDeactivated()) {
             requestStopTextInput = true;
+        }
+        if (isTextInput) {
+            if (ImGui::BeginPopupContextItem("Input options", 0)) {
+                if (ImGui::MenuItem("Paste")) {
+                    for (int i = 0; i < kMaxInputSize; ++i) inputBuf[i] = 0;
+                    strncpy(inputBuf, SDL_GetClipboardText(), kMaxInputSize - 1);
+                }
+
+                ImGui::EndPopup();
+            }
         }
         ImGui::SameLine();
         if (ImGui::Button(sendButtonText) && inputBuf[0] != 0) {

@@ -18,6 +18,10 @@
 #include <thread>
 #include <vector>
 
+#if defined(IOS) || defined(ANDROID)
+#include "imgui-wrapper/icons_font_awesome.h"
+#endif
+
 #ifndef ICON_FA_COGS
 #define ICON_FA_COGS "#"
 #define ICON_FA_COMMENT_ALT ""
@@ -295,7 +299,7 @@ void renderMain() {
 
     const auto sendButtonText = ICON_FA_PLAY_CIRCLE " Send";
     const double tShowKeyboard = 0.2f;
-#ifdef IOS
+#if defined(IOS) || defined(ANDROID)
     const float statusBarHeight = displaySize.x < displaySize.y ? 10.0f + 2.0f*style.ItemSpacing.y : 0.1f;
 #else
     const float statusBarHeight = 0.1f;
@@ -429,7 +433,7 @@ void renderMain() {
         float messagesHistoryHeigth = messagesHistoryHeigthMax;
 
         // no automatic screen resize support for iOS
-#ifdef IOS
+#if defined(IOS) || defined(ANDROID)
         if (displaySize.x < displaySize.y) {
             if (isTextInput) {
                 messagesHistoryHeigth -= 0.5f*messagesHistoryHeigthMax*std::min(tShowKeyboard, ImGui::GetTime() - tStartInput) / tShowKeyboard;

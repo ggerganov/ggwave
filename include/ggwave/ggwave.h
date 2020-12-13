@@ -78,6 +78,7 @@ public:
     const int & getRxProtocolId() const { return m_rxProtocolId; }
 
     int takeRxData(TxRxData & dst);
+    int takeTxAmplitudeData16(AmplitudeData16 & dst);
     bool takeSpectrum(SpectrumData & dst);
 
 private:
@@ -148,4 +149,8 @@ private:
     TxRxData m_txDataEncoded;
 
     TxProtocol m_txProtocol;
+
+    AmplitudeData m_outputBlock;
+    AmplitudeData16 m_outputBlock16;
+    AmplitudeData16 m_txAmplitudeData16;
 };

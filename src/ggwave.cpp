@@ -159,7 +159,9 @@ GGWave::GGWave(
     m_sampleAmplitudeHistory(kMaxSpectrumHistory),
     m_recordedAmplitude(kMaxRecordedFrames*kMaxSamplesPerFrame),
     m_txData(kMaxDataSize),
-    m_txDataEncoded(kMaxDataSize)
+    m_txDataEncoded(kMaxDataSize),
+    m_outputBlock(kMaxSamplesPerFrame),
+    m_outputBlock16(kMaxRecordedFrames*kMaxSamplesPerFrame)
 {
     init(0, "", getDefultTxProtocol(), 0);
 }
@@ -224,9 +226,6 @@ void GGWave::send(const CBQueueAudio & cbQueueAudio) {
 
     int frameId = 0;
 
-    AmplitudeData outputBlock(kMaxSamplesPerFrame);
-    AmplitudeData16 outputBlock16(kMaxRecordedFrames*kMaxSamplesPerFrame);
-
     std::vector<double> phaseOffsets(kMaxDataBits);
 
     for (int k = 0; k < (int) phaseOffsets.size(); ++k) {
@@ -273,7 +272,7 @@ void GGWave::send(const CBQueueAudio & cbQueueAudio) {
     rsData.Encode(m_txData.data() + 1, m_txDataEncoded.data() + m_encodedDataOffset);
 
     while (m_hasNewTxData) {
-        std::fill(outputBlock.begin(), outputBlock.end(), 0.0f);
+        std::fill(m_outputBlock.begin(), m_outputBlock.end(), 0.0f);
 
         if (m_sampleRateOut != m_sampleRateIn) {
             for (int k = 0; k < m_txProtocol.nDataBitsPerTx(); ++k) {
@@ -299,9 +298,9 @@ void GGWave::send(const CBQueueAudio & cbQueueAudio) {
 
             for (int i = 0; i < m_nBitsInMarker; ++i) {
                 if (i%2 == 0) {
-                    ::addAmplitudeSmooth(bit1Amplitude[i], outputBlock, m_sendVolume, 0, samplesPerFrameOut, frameId, m_nMarkerFrames);
+                    ::addAmplitudeSmooth(bit1Amplitude[i], m_outputBlock, m_sendVolume, 0, samplesPerFrameOut, frameId, m_nMarkerFrames);
                 } else {
-                    ::addAmplitudeSmooth(bit0Amplitude[i], outputBlock, m_sendVolume, 0, samplesPerFrameOut, frameId, m_nMarkerFrames);
+                    ::addAmplitudeSmooth(bit0Amplitude[i], m_outputBlock, m_sendVolume, 0, samplesPerFrameOut, frameId, m_nMarkerFrames);
                 }
             }
         } else if (frameId < m_nMarkerFrames + m_nPostMarkerFrames) {
@@ -309,9 +308,9 @@ void GGWave::send(const CBQueueAudio & cbQueueAudio) {
 
             for (int i = 0; i < m_nBitsInMarker; ++i) {
                 if (i%2 == 0) {
-                    ::addAmplitudeSmooth(bit0Amplitude[i], outputBlock, m_sendVolume, 0, samplesPerFrameOut, frameId - m_nMarkerFrames, m_nPostMarkerFrames);
+                    ::addAmplitudeSmooth(bit0Amplitude[i], m_outputBlock, m_sendVolume, 0, samplesPerFrameOut, frameId - m_nMarkerFrames, m_nPostMarkerFrames);
                 } else {
-                    ::addAmplitudeSmooth(bit1Amplitude[i], outputBlock, m_sendVolume, 0, samplesPerFrameOut, frameId - m_nMarkerFrames, m_nPostMarkerFrames);
+                    ::addAmplitudeSmooth(bit1Amplitude[i], m_outputBlock, m_sendVolume, 0, samplesPerFrameOut, frameId - m_nMarkerFrames, m_nPostMarkerFrames);
                 }
             }
         } else if (frameId <
@@ -340,9 +339,9 @@ void GGWave::send(const CBQueueAudio & cbQueueAudio) {
 
                 ++nFreq;
                 if (k%2) {
-                    ::addAmplitudeSmooth(bit0Amplitude[k/2], outputBlock, m_sendVolume, 0, samplesPerFrameOut, cycleModMain, m_txProtocol.framesPerTx);
+                    ::addAmplitudeSmooth(bit0Amplitude[k/2], m_outputBlock, m_sendVolume, 0, samplesPerFrameOut, cycleModMain, m_txProtocol.framesPerTx);
                 } else {
-                    ::addAmplitudeSmooth(bit1Amplitude[k/2], outputBlock, m_sendVolume, 0, samplesPerFrameOut, cycleModMain, m_txProtocol.framesPerTx);
+                    ::addAmplitudeSmooth(bit1Amplitude[k/2], m_outputBlock, m_sendVolume, 0, samplesPerFrameOut, cycleModMain, m_txProtocol.framesPerTx);
                 }
             }
         } else if (frameId <
@@ -354,9 +353,9 @@ void GGWave::send(const CBQueueAudio & cbQueueAudio) {
             int fId = frameId - ((m_nMarkerFrames + m_nPostMarkerFrames) + ((m_sendDataLength + m_nECCBytesPerTx)/m_txProtocol.bytesPerTx + 2)*m_txProtocol.framesPerTx);
             for (int i = 0; i < m_nBitsInMarker; ++i) {
                 if (i%2 == 0) {
-                    addAmplitudeSmooth(bit0Amplitude[i], outputBlock, m_sendVolume, 0, samplesPerFrameOut, fId, m_nMarkerFrames);
+                    addAmplitudeSmooth(bit0Amplitude[i], m_outputBlock, m_sendVolume, 0, samplesPerFrameOut, fId, m_nMarkerFrames);
                 } else {
-                    addAmplitudeSmooth(bit1Amplitude[i], outputBlock, m_sendVolume, 0, samplesPerFrameOut, fId, m_nMarkerFrames);
+                    addAmplitudeSmooth(bit1Amplitude[i], m_outputBlock, m_sendVolume, 0, samplesPerFrameOut, fId, m_nMarkerFrames);
                 }
             }
         } else {
@@ -366,18 +365,23 @@ void GGWave::send(const CBQueueAudio & cbQueueAudio) {
         if (nFreq == 0) nFreq = 1;
         float scale = 1.0f/nFreq;
         for (int i = 0; i < samplesPerFrameOut; ++i) {
-            outputBlock[i] *= scale;
+            m_outputBlock[i] *= scale;
         }
 
         // todo : support for non-int16 output
         for (int i = 0; i < samplesPerFrameOut; ++i) {
-            outputBlock16[frameId*samplesPerFrameOut + i] = std::round(32000.0*outputBlock[i]);
+            m_outputBlock16[frameId*samplesPerFrameOut + i] = std::round(32000.0*m_outputBlock[i]);
         }
 
         ++frameId;
     }
 
-    cbQueueAudio(outputBlock16.data(), frameId*samplesPerFrameOut*m_sampleSizeBytesOut);
+    cbQueueAudio(m_outputBlock16.data(), frameId*samplesPerFrameOut*m_sampleSizeBytesOut);
+
+    m_txAmplitudeData16.resize(frameId*samplesPerFrameOut);
+    for (int i = 0; i < frameId*samplesPerFrameOut; ++i) {
+        m_txAmplitudeData16[i] = m_outputBlock16[i];
+    }
 }
 
 void GGWave::receive(const CBDequeueAudio & CBDequeueAudio) {
@@ -649,6 +653,15 @@ int GGWave::takeRxData(TxRxData & dst) {
     auto res = m_lastRxDataLength;
     m_lastRxDataLength = 0;
     dst = m_rxData;
+
+    return res;
+}
+
+int GGWave::takeTxAmplitudeData16(AmplitudeData16 & dst) {
+    if (m_txAmplitudeData16.size() == 0) return 0;
+
+    auto res = m_txAmplitudeData16.size();
+    dst = std::move(m_txAmplitudeData16);
 
     return res;
 }

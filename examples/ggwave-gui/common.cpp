@@ -49,6 +49,7 @@ struct State {
     struct Flags {
         bool newMessage = false;
         bool newSpectrum = false;
+        bool newTxAmplitudeData = false;
         bool newStats = false;
 
         void clear() { memset(this, 0, sizeof(Flags)); }
@@ -69,6 +70,12 @@ struct State {
             dst.spectrum = std::move(this->spectrum);
         }
 
+        if (this->flags.newTxAmplitudeData) {
+            dst.update = true;
+            dst.flags.newTxAmplitudeData = true;
+            dst.txAmplitudeData = std::move(this->txAmplitudeData);
+        }
+
         if (this->flags.newStats) {
             dst.update = true;
             dst.flags.newStats = true;
@@ -81,6 +88,7 @@ struct State {
 
     Message message;
     GGWave::SpectrumData spectrum;
+    GGWave::AmplitudeData16 txAmplitudeData;
     GGWaveStats stats;
 };
 
@@ -174,6 +182,11 @@ std::thread initMain() {
                 g_buffer.stateCore.flags.newSpectrum = true;
             }
 
+            if (g_ggWave->takeTxAmplitudeData16(g_buffer.stateCore.txAmplitudeData)) {
+                g_buffer.stateCore.update = true;
+                g_buffer.stateCore.flags.newTxAmplitudeData = true;
+            }
+
             if (true) {
                 g_buffer.stateCore.update = true;
                 g_buffer.stateCore.flags.newStats = true;
@@ -227,9 +240,12 @@ void renderMain() {
 
     static double tStartInput = 0.0f;
     static double tEndInput = -100.0f;
+    static double tStartTx = 0.0f;
+    static double tLengthTx = 0.0f;
 
     static GGWaveStats statsCurrent;
     static GGWave::SpectrumData spectrumCurrent;
+    static GGWave::AmplitudeData16 txAmplitudeDataCurrent;
     static std::vector<Message> messageHistory;
 
     if (stateCurrent.update) {
@@ -239,6 +255,25 @@ void renderMain() {
         }
         if (stateCurrent.flags.newSpectrum) {
             spectrumCurrent = std::move(stateCurrent.spectrum);
+        }
+        if (stateCurrent.flags.newTxAmplitudeData) {
+            txAmplitudeDataCurrent = std::move(stateCurrent.txAmplitudeData);
+
+            tStartTx = ImGui::GetTime();
+            tLengthTx = txAmplitudeDataCurrent.size()/g_ggWave->getSampleRateOut();
+            {
+                auto & ampl = txAmplitudeDataCurrent;
+                int nBins = 512;
+                int nspb = ampl.size()/nBins;
+                for (int i = 0; i < nBins; ++i) {
+                    double sum = 0.0;
+                    for (int j = 0; j < nspb; ++j) {
+                        sum += std::abs(ampl[i*nspb + j]);
+                    }
+                    ampl[i] = sum/nspb;
+                }
+                ampl.resize(nBins);
+            }
         }
         if (stateCurrent.flags.newStats) {
             statsCurrent = std::move(stateCurrent.stats);
@@ -499,7 +534,56 @@ void renderMain() {
                                    { ImGui::GetContentRegionAvailWidth(), ImGui::GetTextLineHeight() });
             }
         } else {
-            ImGui::TextDisabled("Listening for waves ...\n");
+            static float amax = 0.0f;
+            static float frac = 0.0f;
+
+            amax = 0.0f;
+            frac = (ImGui::GetTime() - tStartTx)/tLengthTx;
+
+            if (txAmplitudeDataCurrent.size() && frac <= 1.0f) {
+                struct Funcs {
+                    static float Sample(void * data, int i) {
+                        auto res = std::fabs(((int16_t *)(data))[i]) ;
+                        if (res > amax) amax = res;
+                        return res;
+                    }
+
+                    static float SampleFrac(void * data, int i) {
+                        if (i > frac*txAmplitudeDataCurrent.size()) {
+                            return 0.0f;
+                        }
+                        return std::fabs(((int16_t *)(data))[i]);
+                    }
+                };
+
+                auto posSave = ImGui::GetCursorScreenPos();
+                auto wSize = ImGui::GetContentRegionAvail();
+                wSize.y = ImGui::GetTextLineHeight();
+
+                ImGui::PushStyleColor(ImGuiCol_FrameBg, { 0.3f, 0.3f, 0.3f, 0.3f });
+                ImGui::PushStyleColor(ImGuiCol_PlotHistogram, ImGui::GetStyleColorVec4(ImGuiCol_TextDisabled));
+                ImGui::PlotHistogram("##plotSpectrumCurrent",
+                                     Funcs::Sample,
+                                     txAmplitudeDataCurrent.data(),
+                                     txAmplitudeDataCurrent.size(), 0,
+                                     (std::string("")).c_str(),
+                                     0.0f, FLT_MAX, wSize);
+                ImGui::PopStyleColor(2);
+
+                ImGui::SetCursorScreenPos(posSave);
+
+                ImGui::PushStyleColor(ImGuiCol_FrameBg, { 0.0f, 0.0f, 0.0f, 0.0f });
+                ImGui::PushStyleColor(ImGuiCol_PlotHistogram, { 0.0f, 1.0f, 0.0f, 1.0f });
+                ImGui::PlotHistogram("##plotSpectrumCurrent",
+                                     Funcs::SampleFrac,
+                                     txAmplitudeDataCurrent.data(),
+                                     txAmplitudeDataCurrent.size(), 0,
+                                     (std::string("")).c_str(),
+                                     0.0f, amax, wSize);
+                ImGui::PopStyleColor(2);
+            } else {
+                ImGui::TextDisabled("Listening for waves ...\n");
+            }
         }
 
         if (doInputFocus) {

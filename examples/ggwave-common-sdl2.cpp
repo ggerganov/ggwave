@@ -120,7 +120,7 @@ bool GGWave_init(
         playbackSpec.freq = ::kBaseSampleRate;
         playbackSpec.format = AUDIO_S16SYS;
         playbackSpec.channels = 1;
-        playbackSpec.samples = 16*1024;
+        playbackSpec.samples = 1024;
         playbackSpec.callback = NULL;
 
         SDL_zero(g_obtainedSpecOut);

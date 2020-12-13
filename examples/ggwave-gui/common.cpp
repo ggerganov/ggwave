@@ -231,6 +231,8 @@ void renderMain() {
     static WindowId windowId = WindowId::Messages;
     static Settings settings;
 
+    const double tHoldContextPopup = 0.5f;
+
     const int kMaxInputSize = 140;
     static char inputBuf[kMaxInputSize];
 
@@ -260,7 +262,7 @@ void renderMain() {
         if (stateCurrent.flags.newTxAmplitudeData) {
             txAmplitudeDataCurrent = std::move(stateCurrent.txAmplitudeData);
 
-            tStartTx = ImGui::GetTime();
+            tStartTx = ImGui::GetTime() + (16.0f*1024.0f)/g_ggWave->getSampleRateOut();
             tLengthTx = txAmplitudeDataCurrent.size()/g_ggWave->getSampleRateOut();
             {
                 auto & ampl = txAmplitudeDataCurrent;
@@ -329,7 +331,7 @@ void renderMain() {
         ImGui::BeginChild("Settings:main", ImGui::GetContentRegionAvail(), true);
         ImGui::Text("%s", "");
         ImGui::Text("%s", "");
-        ImGui::Text("Waver v1.1");
+        ImGui::Text("Waver v1.2.0");
         ImGui::Separator();
 
         ImGui::Text("%s", "");
@@ -449,6 +451,11 @@ void renderMain() {
 
         ImGui::BeginChild("Messages:history", wSize, true, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
 
+        static bool isHoldingMessage = false;
+        static bool isHoldingInput = false;
+        static int messageIdHolding = 0;
+
+        const auto & mouse_delta = ImGui::GetIO().MouseDelta;
         const float tMessageFlyIn = 0.3f;
 
         // we need this because we push messages in the next loop
@@ -489,29 +496,15 @@ void renderMain() {
                 p1.x = p00.x + ImGui::GetContentRegionAvailWidth();
 
                 if (xoffset == 0.0f) {
-                    ImGui::SetCursorScreenPos(p00);
-                    ImGui::InvisibleButton("##messageFrame", { p1.x - p00.x, p1.y - p00.y });
-
-                    if (ImGui::IsItemHovered()) {
+                    if (ImGui::IsMouseHoveringRect(p00, p1, true)) {
                         auto col = ImGui::GetStyleColorVec4(ImGuiCol_TextDisabled);
-                        col.w *= 0.25f;
-                        ImGui::GetWindowDrawList()->AddRectFilled(
-                                p0, p1, ImGui::ColorConvertFloat4ToU32(col), 12.0f);
-                    }
+                        col.w *= ImGui::GetIO().MouseDownDuration[0] > tHoldContextPopup ? 0.25f : 0.10f;
+                        ImGui::GetWindowDrawList()->AddRectFilled(p0, p1, ImGui::ColorConvertFloat4ToU32(col), 12.0f);
 
-                    if (ImGui::BeginPopupContextItem("Message options", 0)) {
-                        if (ImGui::MenuItem("Resend")) {
-                            g_buffer.inputUI.update = true;
-                            g_buffer.inputUI.message = { false, std::chrono::system_clock::now(), message.data, message.protocolId, settings.volume };
-
-                            messageHistory.push_back(g_buffer.inputUI.message);
+                        if (ImGui::GetIO().MouseDownDuration[0] > tHoldContextPopup) {
+                            isHoldingMessage = true;
+                            messageIdHolding = i;
                         }
-
-                        if (ImGui::MenuItem("Copy")) {
-                            SDL_SetClipboardText(message.data.c_str());
-                        }
-
-                        ImGui::EndPopup();
                     }
                 }
             }
@@ -521,6 +514,39 @@ void renderMain() {
             }
             ImGui::Text("%s", "");
             ImGui::PopID();
+        }
+
+        if (ImGui::IsMouseReleased(0) && isHoldingMessage) {
+            auto pos = ImGui::GetMousePos();
+            pos.x -= 1.0f*ImGui::CalcTextSize("Resend | Copy").x;
+            pos.y -= 1.0f*ImGui::GetTextLineHeightWithSpacing();
+            ImGui::SetNextWindowPos(pos);
+
+            ImGui::OpenPopup("Message options");
+            isHoldingMessage = false;
+        }
+
+        if (ImGui::BeginPopup("Message options")) {
+            const auto & messageSelected = messageHistory[messageIdHolding];
+
+            if (ImGui::Button("Resend")) {
+                g_buffer.inputUI.update = true;
+                g_buffer.inputUI.message = { false, std::chrono::system_clock::now(), messageSelected.data, messageSelected.protocolId, settings.volume };
+
+                messageHistory.push_back(g_buffer.inputUI.message);
+                ImGui::CloseCurrentPopup();
+            }
+
+            ImGui::SameLine();
+            ImGui::TextDisabled("|");
+
+            ImGui::SameLine();
+            if (ImGui::Button("Copy")) {
+                SDL_SetClipboardText(messageSelected.data.c_str());
+                ImGui::CloseCurrentPopup();
+            }
+
+            ImGui::EndPopup();
         }
 
         if (scrollMessagesToBottom) {
@@ -542,7 +568,6 @@ void renderMain() {
             ImGui::SetCursorScreenPos(posSave);
         }
 
-        ImVec2 mouse_delta = ImGui::GetIO().MouseDelta;
         ScrollWhenDraggingOnVoid(ImVec2(0.0f, -mouse_delta.y), ImGuiMouseButton_Left);
         ImGui::EndChild();
 
@@ -616,12 +641,6 @@ void renderMain() {
             doInputFocus = false;
         }
 
-        //if (ImGui::Button(ICON_FA_PASTE)) {
-        //    for (int i = 0; i < kMaxInputSize; ++i) inputBuf[i] = 0;
-        //    strncpy(inputBuf, SDL_GetClipboardText(), kMaxInputSize - 1);
-        //}
-        //ImGui::SameLine();
-
         ImGui::PushItemWidth(ImGui::GetContentRegionAvailWidth() - ImGui::CalcTextSize(sendButtonText).x - 2*style.ItemSpacing.x);
         ImGui::InputText("##Messages:Input", inputBuf, kMaxInputSize, ImGuiInputTextFlags_EnterReturnsTrue);
         ImGui::PopItemWidth();
@@ -634,16 +653,33 @@ void renderMain() {
         if (ImGui::IsItemDeactivated()) {
             requestStopTextInput = true;
         }
-        if (isTextInput) {
-            if (ImGui::BeginPopupContextItem("Input options", 0)) {
-                if (ImGui::MenuItem("Paste")) {
-                    for (int i = 0; i < kMaxInputSize; ++i) inputBuf[i] = 0;
-                    strncpy(inputBuf, SDL_GetClipboardText(), kMaxInputSize - 1);
-                }
 
-                ImGui::EndPopup();
+        if (isTextInput) {
+            if (ImGui::IsItemHovered() && ImGui::GetIO().MouseDownDuration[0] > tHoldContextPopup) {
+                isHoldingInput = true;
             }
         }
+
+        if (ImGui::IsMouseReleased(0) && isHoldingInput) {
+            auto pos = ImGui::GetMousePos();
+            pos.x -= 2.0f*ImGui::CalcTextSize("Paste").x;
+            pos.y -= 1.0f*ImGui::GetTextLineHeightWithSpacing();
+            ImGui::SetNextWindowPos(pos);
+
+            ImGui::OpenPopup("Input options");
+            isHoldingInput = false;
+        }
+
+        if (ImGui::BeginPopup("Input options")) {
+            if (ImGui::Button("Paste")) {
+                for (int i = 0; i < kMaxInputSize; ++i) inputBuf[i] = 0;
+                strncpy(inputBuf, SDL_GetClipboardText(), kMaxInputSize - 1);
+                ImGui::CloseCurrentPopup();
+            }
+
+            ImGui::EndPopup();
+        }
+
         ImGui::SameLine();
         if (ImGui::Button(sendButtonText) && inputBuf[0] != 0) {
             g_buffer.inputUI.update = true;

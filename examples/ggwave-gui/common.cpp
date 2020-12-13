@@ -10,6 +10,7 @@
 #include <SDL.h>
 
 #include <atomic>
+#include <cmath>
 #include <cstdio>
 #include <string>
 #include <ctime>

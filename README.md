@@ -7,6 +7,8 @@
 Tiny data-over-sound library.
 
 
+<img src="media/ggwave0.gif"></img>
+
 
 ## Details
 

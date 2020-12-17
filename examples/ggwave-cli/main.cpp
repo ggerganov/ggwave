@@ -56,7 +56,7 @@ int main(int argc, char** argv) {
             }
             {
                 std::lock_guard<std::mutex> lock(mutex);
-                ggWave->init(input.size(), input.data(), ggWave->getTxProtocols()[txProtocol], 50);
+                ggWave->init(input.size(), input.data(), ggWave->getTxProtocols()[txProtocol], 10);
             }
             inputOld = input;
         }

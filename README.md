@@ -6,7 +6,7 @@
 
 Tiny data-over-sound library.
 
-<a href="https://twitter.com/ggerganov/status/1339645860913803270"><img src="media/ggwave0.gif"></img></a>
+<a href="https://youtu.be/S2YdGefZiy4"><img src="media/ggwave0.gif"></img></a>
 
 
 ## Details

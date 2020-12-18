@@ -4,7 +4,7 @@
 [![ggwave v0.0.1 badge][changelog-badge]][changelog]
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 
-Tiny data-over-sound library.
+Tiny data-over-sound library. Click on the gif to hear how it sounds:
 
 <a href="https://youtu.be/S2YdGefZiy4"><img src="media/ggwave0.gif"></img></a>
 

@@ -6,10 +6,11 @@
 
 Tiny data-over-sound library.
 
-Click on the gif to hear how it sounds:
+Click on the gifs to hear what it sounds like:
 
-<a href="https://youtu.be/S2YdGefZiy4"><img src="media/ggwave0.gif"></img></a>
+<a href="https://youtu.be/S2YdGefZiy4"><img width="100%" src="media/ggwave0.gif"></img></a>
 
+<a href="https://youtu.be/KWlcgZHJhGQ"><img width="100%" src="media/ggwave-gui0-fast.gif"></img></a>
 
 ## Details
 

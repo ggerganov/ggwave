@@ -73,5 +73,6 @@ if (GGWAVE_SUPPORT_SDL2)
 
         add_subdirectory(ggwave-cli)
         add_subdirectory(ggwave-gui)
+        add_subdirectory(simple-rx)
     endif()
 endif()

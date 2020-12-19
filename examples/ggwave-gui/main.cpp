@@ -4,6 +4,7 @@
 
 #include <imgui-extra/imgui_impl.h>
 
+#include <SDL.h>
 #include <SDL_opengl.h>
 
 // ImGui helpers
@@ -107,9 +108,6 @@ bool ImGui_SetStyle() {
     return true;
 }
 
-static SDL_Window * g_window;
-static void * g_gl_context;
-
 int main(int argc, char** argv) {
     auto argm = parseCmdArguments(argc, argv);
     int captureId = argm["c"].empty() ? 0 : std::stoi(argm["c"]);
@@ -130,28 +128,28 @@ int main(int argc, char** argv) {
     const char * windowTitle = "ggwave-gui";
 
     SDL_WindowFlags window_flags = (SDL_WindowFlags)(SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI);
-    g_window = SDL_CreateWindow(windowTitle, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, windowX, windowY, window_flags);
+    SDL_Window * window = SDL_CreateWindow(windowTitle, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, windowX, windowY, window_flags);
 
-    g_gl_context = SDL_GL_CreateContext(g_window);
-    SDL_GL_MakeCurrent(g_window, g_gl_context);
+    void * gl_context = SDL_GL_CreateContext(window);
+    SDL_GL_MakeCurrent(window, gl_context);
     SDL_GL_SetSwapInterval(1); // Enable vsync
 
-    ImGui_Init(g_window, g_gl_context);
+    ImGui_Init(window, gl_context);
     ImGui_SetStyle();
 
-    ImGui_NewFrame(g_window);
+    ImGui_NewFrame(window);
     ImGui::Render();
 
     auto worker = initMain();
 
     while (true) {
-        if (ImGui_BeginFrame(g_window) == false) {
+        if (ImGui_BeginFrame(window) == false) {
             break;
         }
 
         renderMain();
 
-        ImGui_EndFrame(g_window);
+        ImGui_EndFrame(window);
     }
 
     deinitMain(worker);
@@ -161,8 +159,8 @@ int main(int argc, char** argv) {
     ImGui_Shutdown();
     ImGui::DestroyContext();
 
-    SDL_GL_DeleteContext(g_gl_context);
-    SDL_DestroyWindow(g_window);
+    SDL_GL_DeleteContext(gl_context);
+    SDL_DestroyWindow(window);
     SDL_Quit();
 
     return 0;

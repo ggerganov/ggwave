@@ -6,6 +6,7 @@
 
 class GGWave {
 public:
+    static constexpr auto kBaseSampleRate = 48000.0;
     static constexpr auto kMaxSamplesPerFrame = 1024;
     static constexpr auto kMaxDataBits = 256;
     static constexpr auto kMaxDataSize = 256;

@@ -1,8 +1,7 @@
-#include "ggwave/ggwave.h"
+#include "build_timestamp.h"
 
 #include "ggwave-common-sdl2.h"
 
-#include "build_timestamp.h"
 #include "emscripten/emscripten.h"
 
 void update() {

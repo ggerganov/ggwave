@@ -1,9 +1,10 @@
 #include "ggwave-common-sdl2.h"
 
-#include "ggwave/ggwave.h"
-
 #include "ggwave-common.h"
 
+#include "ggwave/ggwave.h"
+
+#include <SDL.h>
 #include <SDL_opengl.h>
 
 #include <chrono>
@@ -13,8 +14,6 @@
 #else
 #define EMSCRIPTEN_KEEPALIVE
 #endif
-
-constexpr double kBaseSampleRate = 48000.0;
 
 namespace {
 
@@ -31,6 +30,7 @@ GGWave *g_ggWave = nullptr;
 }
 
 // JS interface
+
 extern "C" {
     EMSCRIPTEN_KEEPALIVE
         int sendData(int textLength, const char * text, int protocolId, int volume) {
@@ -117,7 +117,7 @@ bool GGWave_init(
         SDL_AudioSpec playbackSpec;
         SDL_zero(playbackSpec);
 
-        playbackSpec.freq = ::kBaseSampleRate;
+        playbackSpec.freq = GGWave::kBaseSampleRate;
         playbackSpec.format = AUDIO_S16SYS;
         playbackSpec.channels = 1;
         playbackSpec.samples = 16*1024;
@@ -160,7 +160,7 @@ bool GGWave_init(
     if (g_devIdIn == 0) {
         SDL_AudioSpec captureSpec;
         captureSpec = g_obtainedSpecOut;
-        captureSpec.freq = ::kBaseSampleRate;
+        captureSpec.freq = GGWave::kBaseSampleRate;
         captureSpec.format = AUDIO_F32SYS;
         captureSpec.samples = 4096;
 

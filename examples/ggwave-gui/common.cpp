@@ -241,6 +241,7 @@ void renderMain() {
     static char inputBuf[kMaxInputSize];
 
     static bool doInputFocus = false;
+    static bool doSendMessage = false;
     static bool lastMouseButtonLeft = 0;
     static bool isTextInput = false;
     static bool scrollMessagesToBottom = true;
@@ -645,8 +646,12 @@ void renderMain() {
             doInputFocus = false;
         }
 
+        doSendMessage = false;
         ImGui::PushItemWidth(ImGui::GetContentRegionAvailWidth() - ImGui::CalcTextSize(sendButtonText).x - 2*style.ItemSpacing.x);
-        ImGui::InputText("##Messages:Input", inputBuf, kMaxInputSize, ImGuiInputTextFlags_EnterReturnsTrue);
+        if (ImGui::InputText("##Messages:Input", inputBuf, kMaxInputSize, ImGuiInputTextFlags_EnterReturnsTrue)) {
+            doSendMessage = true;
+        }
+
         ImGui::PopItemWidth();
         if (ImGui::IsItemActive() && isTextInput == false) {
             SDL_StartTextInput();
@@ -685,7 +690,7 @@ void renderMain() {
         }
 
         ImGui::SameLine();
-        if (ImGui::Button(sendButtonText) && inputBuf[0] != 0) {
+        if ((ImGui::Button(sendButtonText) || doSendMessage) && inputBuf[0] != 0) {
             g_buffer.inputUI.update = true;
             g_buffer.inputUI.message = { false, std::chrono::system_clock::now(), std::string(inputBuf), settings.protocolId, settings.volume };
 

@@ -26,18 +26,18 @@ endif()
 
 # options
 
-option(USE_FINDSDL2                   "wave-share: use the FindSDL2.cmake script" OFF)
+option(USE_FINDSDL2                   "ggwave: use the FindSDL2.cmake script" OFF)
 
-option(GGWAVE_ALL_WARNINGS            "wave-share: enable all compiler warnings" ON)
-option(GGWAVE_ALL_WARNINGS_3RD_PARTY  "wave-share: enable all compiler warnings in 3rd party libs" ON)
+option(GGWAVE_ALL_WARNINGS            "ggwave: enable all compiler warnings" ON)
+option(GGWAVE_ALL_WARNINGS_3RD_PARTY  "ggwave: enable all compiler warnings in 3rd party libs" ON)
 
-option(GGWAVE_SANITIZE_THREAD         "wave-share: enable thread sanitizer" OFF)
-option(GGWAVE_SANITIZE_ADDRESS        "wave-share: enable address sanitizer" OFF)
-option(GGWAVE_SANITIZE_UNDEFINED      "wave-share: enable undefined sanitizer" OFF)
+option(GGWAVE_SANITIZE_THREAD         "ggwave: enable thread sanitizer" OFF)
+option(GGWAVE_SANITIZE_ADDRESS        "ggwave: enable address sanitizer" OFF)
+option(GGWAVE_SANITIZE_UNDEFINED      "ggwave: enable undefined sanitizer" OFF)
 
-option(GGWAVE_SUPPORT_SDL2            "wave-share: support for libSDL2" ${GGWAVE_SUPPORT_SDL2_DEFAULT})
+option(GGWAVE_SUPPORT_SDL2            "ggwave: support for libSDL2" ${GGWAVE_SUPPORT_SDL2_DEFAULT})
 
-option(GGWAVE_BUILD_EXAMPLES          "wave-share: build examples" ${GGWAVE_STANDALONE})
+option(GGWAVE_BUILD_EXAMPLES          "ggwave: build examples" ${GGWAVE_STANDALONE})
 
 # sanitizers
 

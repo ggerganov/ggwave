@@ -660,7 +660,7 @@ int GGWave::takeRxData(TxRxData & dst) {
 int GGWave::takeTxAmplitudeData16(AmplitudeData16 & dst) {
     if (m_txAmplitudeData16.size() == 0) return 0;
 
-    auto res = m_txAmplitudeData16.size();
+    int res = (int) m_txAmplitudeData16.size();
     dst = std::move(m_txAmplitudeData16);
 
     return res;

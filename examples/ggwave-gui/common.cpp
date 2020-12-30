@@ -341,7 +341,7 @@ std::string generateFileBroadcastMessage() {
     // todo : to binary
     std::string result;
 
-    int plen = strlen(kFileBroadcastPrefix);
+    int plen = (int) strlen(kFileBroadcastPrefix);
     result.resize(plen + 4 + 2 + 2);
 
     char *p = &result[0];
@@ -667,7 +667,7 @@ void renderMain() {
             {
                 auto & ampl = txAmplitudeDataCurrent;
                 int nBins = 512;
-                int nspb = ampl.size()/nBins;
+                int nspb = (int) ampl.size()/nBins;
                 for (int i = 0; i < nBins; ++i) {
                     double sum = 0.0;
                     for (int j = 0; j < nspb; ++j) {
@@ -1058,7 +1058,7 @@ void renderMain() {
                 ImGui::PlotHistogram("##plotSpectrumCurrent",
                                      Funcs::Sample,
                                      txAmplitudeDataCurrent.data(),
-                                     txAmplitudeDataCurrent.size(), 0,
+                                     (int) txAmplitudeDataCurrent.size(), 0,
                                      (std::string("")).c_str(),
                                      0.0f, FLT_MAX, wSize);
                 ImGui::PopStyleColor(2);
@@ -1070,7 +1070,7 @@ void renderMain() {
                 ImGui::PlotHistogram("##plotSpectrumCurrent",
                                      Funcs::SampleFrac,
                                      txAmplitudeDataCurrent.data(),
-                                     txAmplitudeDataCurrent.size(), 0,
+                                     (int) txAmplitudeDataCurrent.size(), 0,
                                      (std::string("")).c_str(),
                                      0.0f, amax, wSize);
                 ImGui::PopStyleColor(2);

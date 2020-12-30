@@ -1,4 +1,4 @@
-#include "common.h"
+#include "interface.h"
 
 #include "ggwave-common.h"
 
@@ -12,24 +12,17 @@
 #include <iterator>
 
 std::vector<char> readFile(const char* filename) {
-    // open the file:
     std::ifstream file(filename, std::ios::binary);
-
-    // Stop eating new lines in binary mode!!!
     file.unsetf(std::ios::skipws);
-
-    // get its size:
     std::streampos fileSize;
 
     file.seekg(0, std::ios::end);
     fileSize = file.tellg();
     file.seekg(0, std::ios::beg);
 
-    // reserve capacity
     std::vector<char> vec;
     vec.reserve(fileSize);
 
-    // read the data:
     vec.insert(vec.begin(),
                std::istream_iterator<char>(file),
                std::istream_iterator<char>());
@@ -49,7 +42,9 @@ bool ImGui_BeginFrame(SDL_Window * window) {
         if (event.type == SDL_DROPFILE) {
             printf("Dropped file: '%s'\n", event.drop.file);
             auto data = readFile(event.drop.file);
-            addFile(event.drop.file, event.drop.file, std::move(data));
+            std::string uri = event.drop.file;
+            auto filename = uri.substr(uri.find_last_of("/\\") + 1);
+            addFile(uri.c_str(), filename.c_str(), std::move(data));
             break;
         }
     }
@@ -179,12 +174,18 @@ int main(int argc, char** argv) {
 
     auto worker = initMain();
 
+    // tmp
+    addFile("test0.raw", "test0.raw", std::vector<char>(1024));
+    addFile("test1.jpg", "test0.jpg", std::vector<char>(1024*1024 + 624));
+    addFile("test2.mpv", "test0.mov", std::vector<char>(1024*1024*234 + 53827));
+
     while (true) {
         if (ImGui_BeginFrame(window) == false) {
             break;
         }
 
         renderMain();
+        updateMain();
 
         ImGui_EndFrame(window);
     }

@@ -1,8 +1,8 @@
 #include "common.h"
 
-#include "ggwave/ggwave.h"
-
 #include "ggwave-common.h"
+
+#include "ggwave/ggwave.h"
 
 #include "ggsock/communicator.h"
 #include "ggsock/file-server.h"
@@ -63,6 +63,7 @@ void ScrollWhenDraggingOnVoid(const ImVec2& delta, ImGuiMouseButton mouse_button
 }
 
 static const char * kFileBroadcastPrefix = "\xbc";
+static const int kMaxSimultaneousChunkRequests = 4;
 
 struct Message {
     enum Type {
@@ -155,24 +156,41 @@ GGWave * g_ggWave;
 Buffer g_buffer;
 std::atomic<bool> g_isRunning;
 
+// file send data
 bool g_focusFileSend = false;
 GGSock::FileServer g_fileServer;
 
-bool g_hasFileInfos = false;
-bool g_hasRequestedFiles = false;
-GGSock::FileServer::TFileInfos g_fileInfos;
-std::map<GGSock::FileServer::TURI, GGSock::FileServer::FileData> g_receivedFiles;
+// file received data
+struct FileInfoExtended {
+    bool isReceiving = false;
+    bool readyToShare = false;
+    bool requestToShare = false;
+    int nReceivedChunks = 0;
+    int nRequestedChunks = 0;
+    std::vector<bool> isChunkRequested;
+    std::vector<bool> isChunkReceived;
+};
 
+bool g_hasRemoteInfo = false;
 int g_remotePort = 23045;
 std::string g_remoteIP = "127.0.0.1";
 
+bool g_hasReceivedFileInfos = false;
+bool g_hasRequestedFileInfos = false;
+bool g_hasReceivedFiles = false;
+GGSock::FileServer::TFileInfos g_receivedFileInfos;
+std::map<GGSock::FileServer::TURI, GGSock::FileServer::FileData> g_receivedFiles;
+std::map<GGSock::FileServer::TURI, FileInfoExtended> g_receivedFileInfosExtended;
+
 GGSock::Communicator g_fileClient(false);
 
+// external api
+
 int g_shareId = 0;
-std::string g_shareFilename;
+ShareInfo g_shareInfo;
 
 int g_deleteId = 0;
-std::string g_deleteFilename;
+DeleteInfo g_deleteInfo;
 
 int g_receivedId = 0;
 
@@ -180,54 +198,58 @@ int getShareId() {
     return g_shareId;
 }
 
-const char * getShareFilename() {
-    return g_shareFilename.data();
+ShareInfo getShareInfo() {
+    return g_shareInfo;
 }
 
 int getDeleteId() {
     return g_deleteId;
 }
 
-const char * getDeleteFilename() {
-    return g_deleteFilename.data();
+DeleteInfo getDeleteInfo() {
+    return g_deleteInfo;
 }
 
 int getReceivedId() {
     return g_receivedId;
 }
 
-std::vector<const char*> getReceivedFilename() {
-    std::vector<const char*> result;
-    
+std::vector<ReceiveInfo> getReceiveInfos() {
+    std::vector<ReceiveInfo> result;
+
     for (const auto & file : g_receivedFiles) {
-        result.push_back(file.second.info.filename.c_str());
+        if (g_receivedFileInfosExtended[file.second.info.uri].requestToShare == false ||
+            g_receivedFileInfosExtended[file.second.info.uri].readyToShare == true) {
+            continue;
+        }
+        result.push_back({
+            file.second.info.uri.c_str(),
+            file.second.info.filename.c_str(),
+            file.second.data.data(),
+            file.second.data.size(),
+        });
     }
 
     return result;
 }
 
-std::vector<const char *> getReceivedDataBuffer() {
-    std::vector<const char*> result;
-    
-    for (const auto & file : g_receivedFiles) {
-        result.push_back(file.second.data.data());
+bool confirmReceive(const char * uri) {
+    if (g_receivedFiles.find(uri) == g_receivedFiles.end()) {
+        return false;
     }
 
-    return result;
+    g_receivedFiles.erase(uri);
+    g_receivedFileInfosExtended[uri].readyToShare = true;
+
+    return true;
 }
 
-std::vector<size_t> getReceivedDataSize() {
-    std::vector<size_t> result;
-    
-    for (const auto & file : g_receivedFiles) {
-        result.push_back(file.second.data.size());
-    }
-
-    return result;
-}
-
-void clearFiles() {
+void clearAllFiles() {
     g_fileServer.clearAllFiles();
+}
+
+void clearFile(const char * uri) {
+    g_fileServer.clearFile(uri);
 }
 
 void addFile(
@@ -294,24 +316,30 @@ std::thread initMain() {
     g_ggWave = GGWave_instance();
 
     g_fileServer.init({});
-    
+
     g_fileClient.setErrorCallback([](GGSock::Communicator::TErrorCode code) {
         printf("Disconnected with code = %d\n", code);
+
+        g_hasReceivedFileInfos = false;
+        g_hasRequestedFileInfos = false;
+        g_hasReceivedFiles = false;
     });
 
     g_fileClient.setMessageCallback(GGSock::FileServer::MsgFileInfosResponse, [&](const char * dataBuffer, size_t dataSize) {
         printf("Received message %d, size = %d\n", GGSock::FileServer::MsgFileInfosResponse, (int) dataSize);
 
         size_t offset = 0;
-        GGSock::Unserialize()(g_fileInfos, dataBuffer, dataSize, offset);
+        GGSock::Unserialize()(g_receivedFileInfos, dataBuffer, dataSize, offset);
 
-        for (const auto & info : g_fileInfos) {
+        for (const auto & info : g_receivedFileInfos) {
             printf("    - %s : %s (size = %d, chunks = %d)\n", info.second.uri.c_str(), info.second.filename.c_str(), (int) info.second.filesize, (int) info.second.nChunks);
             g_receivedFiles[info.second.uri].info = info.second;
             g_receivedFiles[info.second.uri].data.resize(info.second.filesize);
+
+            g_receivedFileInfosExtended[info.second.uri] = {};
         }
 
-        g_hasFileInfos = true;
+        g_hasReceivedFileInfos = true;
 
         return 0;
     });
@@ -324,6 +352,10 @@ std::thread initMain() {
 
         //printf("Received chunk %d for file '%s', size = %d\n", data.chunkId, data.uri.c_str(), (int) data.data.size());
         std::memcpy(g_receivedFiles[data.uri].data.data() + data.pStart, data.data.data(), data.pLen);
+
+        g_receivedFileInfosExtended[data.uri].nReceivedChunks++;
+        g_receivedFileInfosExtended[data.uri].nRequestedChunks--;
+        g_receivedFileInfosExtended[data.uri].isChunkReceived[data.chunkId] = true;
 
         return 0;
     });
@@ -405,31 +437,73 @@ void renderMain() {
     g_fileServer.update();
 
     if (g_fileClient.isConnected()) {
-        if (!g_hasFileInfos) {
+        if (!g_hasRequestedFileInfos) {
+            g_receivedFileInfos.clear();
+            g_receivedFiles.clear();
+            g_receivedFileInfosExtended.clear();
+
             g_fileClient.send(GGSock::FileServer::MsgFileInfosRequest);
-        } else if (g_hasRequestedFiles == false) {
-            printf("Requesting files ...\n");
-            for (const auto & fileInfo : g_fileInfos) {
-                for (int i = 0; i < fileInfo.second.nChunks; ++i) {
+            g_hasRequestedFileInfos = true;
+        } else {
+            for (const auto & fileInfo : g_receivedFileInfos) {
+                const auto & uri = fileInfo.second.uri;
+                auto & fileInfoExtended = g_receivedFileInfosExtended[uri];
+
+                if (fileInfoExtended.isReceiving == false) {
+                    continue;
+                }
+
+                if (fileInfoExtended.nReceivedChunks == fileInfo.second.nChunks) {
+                    continue;
+                }
+
+                int nextChunkId = 0;
+                while (fileInfoExtended.nRequestedChunks < kMaxSimultaneousChunkRequests) {
+                    if (fileInfoExtended.nReceivedChunks + fileInfoExtended.nRequestedChunks == fileInfo.second.nChunks) {
+                        break;
+                    }
+
+                    while (fileInfoExtended.isChunkRequested[nextChunkId] == true) {
+                        ++nextChunkId;
+                    }
+                    fileInfoExtended.isChunkRequested[nextChunkId] = true;
+
                     GGSock::FileServer::FileChunkRequestData data;
                     data.uri = fileInfo.second.uri;
-                    data.chunkId = i;
+                    data.chunkId = nextChunkId;
                     data.nChunksHave = 0;
                     data.nChunksExpected = fileInfo.second.nChunks;
-                    
+
                     GGSock::SerializationBuffer buffer;
                     GGSock::Serialize()(data, buffer);
                     g_fileClient.send(GGSock::FileServer::MsgFileChunkRequest, buffer.data(), (int32_t) buffer.size());
                     g_fileClient.update();
+
+                    ++fileInfoExtended.nRequestedChunks;
                 }
             }
-            g_hasRequestedFiles = true;
-            g_receivedId++;
+
+            //for (const auto & fileInfo : g_receivedFileInfos) {
+            //    for (int i = 0; i < fileInfo.second.nChunks; ++i) {
+            //        GGSock::FileServer::FileChunkRequestData data;
+            //        data.uri = fileInfo.second.uri;
+            //        data.chunkId = i;
+            //        data.nChunksHave = 0;
+            //        data.nChunksExpected = fileInfo.second.nChunks;
+
+            //        GGSock::SerializationBuffer buffer;
+            //        GGSock::Serialize()(data, buffer);
+            //        g_fileClient.send(GGSock::FileServer::MsgFileChunkRequest, buffer.data(), (int32_t) buffer.size());
+            //        g_fileClient.update();
+            //    }
+            //}
+            //g_hasReceivedFiles = true;
+            //g_receivedId++;
         }
     }
-    
+
     g_fileClient.update();
-    
+
     static State stateCurrent;
 
     {
@@ -554,17 +628,17 @@ void renderMain() {
         windowId = WindowId::Settings;
     }
     ImGui::SameLine();
-    
+
     if (ImGui::Button(ICON_FA_COMMENT_ALT "  Messages", { 0.35f*ImGui::GetContentRegionAvailWidth(), menuButtonHeight })) {
         windowId = WindowId::Messages;
     }
     ImGui::SameLine();
-    
+
     if (ImGui::Button(ICON_FA_FILE "  Files", { 0.40f*ImGui::GetContentRegionAvailWidth(), menuButtonHeight })) {
         windowId = WindowId::Files;
     }
     ImGui::SameLine();
-    
+
     if (ImGui::Button(ICON_FA_SIGNAL "  Spectrum", { 1.0f*ImGui::GetContentRegionAvailWidth(), menuButtonHeight })) {
         windowId = WindowId::Spectrum;
     }
@@ -803,13 +877,19 @@ void renderMain() {
                 if (ImGui::Button("Receive")) {
                     std::string tmp = messageSelected.data.data() + strlen(kFileBroadcastPrefix);
                     std::stringstream ss(tmp);
-                    
+
                     ss >> g_remoteIP;
                     ss >> g_remotePort;
-                    
+                    g_hasRemoteInfo = true;
+
                     g_fileClient.disconnect();
-                    g_hasFileInfos = false;
-                    g_hasRequestedFiles = false;
+                    g_hasReceivedFileInfos = false;
+                    g_hasRequestedFileInfos = false;
+                    g_hasReceivedFiles = false;
+
+                    windowId = WindowId::Files;
+                    subWindowId = SubWindowId::Receive;
+
                     ImGui::CloseCurrentPopup();
                 }
             }
@@ -996,16 +1076,21 @@ void renderMain() {
                             ImGui::PushID(fileInfo.first);
                             ImGui::Text("File: '%s' (%4.2f MB)\n", fileInfo.second.filename.c_str(), float(fileInfo.second.filesize)/1024.0f/1024.0f);
                             if (ImGui::Button("Save")) {
-                                g_shareFilename = fileInfo.second.filename;
+                                g_shareInfo.uri = fileInfo.second.uri.data();
+                                g_shareInfo.filename = fileInfo.second.filename.data();
+                                const auto & fileData = g_fileServer.getFileData(g_shareInfo.uri);
+                                g_shareInfo.dataBuffer = fileData.data.data();
+                                g_shareInfo.dataSize = fileData.data.size();
                                 g_shareId++;
                             }
                             ImGui::SameLine();
-                            
+
                             if (ImGui::Button("Clear")) {
-                                g_deleteFilename = fileInfo.second.filename;
+                                g_deleteInfo.uri = fileInfo.second.uri.data();
+                                g_deleteInfo.filename = fileInfo.second.filename.data();
                                 g_deleteId++;
                             }
-                            
+
                             ImGui::PopID();
                         }
                         //ImGui::PopTextWrapPos();
@@ -1029,14 +1114,15 @@ void renderMain() {
                             g_fileServer.startListening();
                         }
                         ImGui::SameLine();
-                        
+
                         if (ImGui::Button("Stop", { 0.50f*ImGui::GetContentRegionAvailWidth(), subWindowButtonHeight })) {
                             g_fileServer.stopListening();
                         }
                         ImGui::SameLine();
 
                         if (ImGui::Button("Clear", { 1.0f*ImGui::GetContentRegionAvailWidth(), subWindowButtonHeight })) {
-                            g_deleteFilename = "###ALL-FILES###";
+                            g_deleteInfo.uri = "###ALL-FILES###";
+                            g_deleteInfo.filename = "";
                             g_deleteId++;
                         }
                     }
@@ -1051,7 +1137,7 @@ void renderMain() {
                             ImGui::TextColored({ 0.0f, 1.0f, 0.0f, 1.0f }, "Accepting new connections at %s:%d",
                                                GGSock::Communicator::getLocalAddress().c_str(), g_fileServer.getParameters().listenPort);
                         }
-                        
+
                         auto clientInfos = g_fileServer.getClientInfos();
                         if (clientInfos.empty()) {
                             ImGui::Text("No peers currently connected ..");
@@ -1068,28 +1154,116 @@ void renderMain() {
                 break;
             case SubWindowId::Receive:
                 {
-                    const auto wSize = ImGui::GetContentRegionAvail();
+                    const float statusWindowHeight = 2*style.ItemInnerSpacing.y + 4*ImGui::GetTextLineHeightWithSpacing();
+                    {
+                        const auto wSize = ImVec2 { ImGui::GetContentRegionAvailWidth(), ImGui::GetContentRegionAvail().y - subWindowButtonHeight - statusWindowHeight - 2*style.ItemInnerSpacing.y };
 
-                    ImGui::BeginChild("Files:Receive:main", wSize, true, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
-                    
-                    ImGui::Text("Remote IP:   %s", g_remoteIP.c_str());
-                    ImGui::Text("Remote Port: %d", g_remotePort);
-                    
-                    if (ImGui::Button("Connect", { 0.50f*ImGui::GetContentRegionAvailWidth(), subWindowButtonHeight })) {
-                        if (g_fileClient.connect(g_remoteIP, g_remotePort, 0)) {
-                            printf("Started connecting ...\n");
+                        ImGui::BeginChild("Files:Receive:fileInfos", wSize, true, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
+
+                        int toErase = -1;
+
+                        auto fileInfos = g_receivedFileInfos;
+                        for (const auto & fileInfo : fileInfos) {
+                            ImGui::PushID(fileInfo.first);
+                            ImGui::Text("File: '%s' (%4.2f MB)\n", fileInfo.second.filename.c_str(), float(fileInfo.second.filesize)/1024.0f/1024.0f);
+
+                            const auto & uri = fileInfo.second.uri;
+                            auto & fileInfoExtended = g_receivedFileInfosExtended[uri];
+
+                            const bool isReceived = fileInfo.second.nChunks == fileInfoExtended.nReceivedChunks;
+
+                            if (isReceived) {
+                                if (fileInfoExtended.requestToShare == false) {
+                                    if (ImGui::Button("To Send")) {
+                                        fileInfoExtended.requestToShare = true;
+                                        g_receivedId++;
+                                    }
+                                }
+
+                                if (fileInfoExtended.readyToShare) {
+                                    ImGui::TextColored({ 0.0f, 1.0f, 0.0f, 1.0f }, "Ready to share!");
+                                }
+                            } else if (fileInfoExtended.isReceiving || fileInfoExtended.nReceivedChunks > 0) {
+                                if (fileInfoExtended.isReceiving) {
+                                    if (ImGui::Button("Pause")) {
+                                        fileInfoExtended.isReceiving = false;
+                                    }
+                                } else {
+                                    if (ImGui::Button("Resume")) {
+                                        fileInfoExtended.isReceiving = true;
+                                    }
+                                }
+
+                                ImGui::SameLine();
+                                ImGui::ProgressBar(float(fileInfoExtended.nReceivedChunks)/fileInfo.second.nChunks);
+                            } else {
+                                if (ImGui::Button("Receive")) {
+                                    fileInfoExtended.isReceiving = true;
+                                    fileInfoExtended.isChunkReceived.resize(fileInfo.second.nChunks);
+                                    fileInfoExtended.isChunkRequested.resize(fileInfo.second.nChunks);
+                                }
+                            }
+
+                            if ((fileInfoExtended.isReceiving == false || isReceived) && fileInfoExtended.requestToShare == false) {
+                                ImGui::SameLine();
+                                if (ImGui::Button("Clear")) {
+                                    toErase = fileInfo.first;
+                                }
+                            }
+
+                            ImGui::PopID();
+                        }
+
+                        if (toErase != -1) {
+                            g_receivedFiles.erase(g_receivedFileInfos[toErase].uri);
+                            g_receivedFileInfosExtended.erase(g_receivedFileInfos[toErase].uri);
+                            g_receivedFileInfos.erase(toErase);
+                        }
+
+                        ImGui::EndChild();
+                    }
+
+                    {
+                        const auto wSize = ImVec2 { ImGui::GetContentRegionAvailWidth(), ImGui::GetContentRegionAvail().y - subWindowButtonHeight - style.ItemInnerSpacing.y };
+                        ImGui::BeginChild("Files:Receive:status", wSize, true, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
+
+                        ImGui::PushTextWrapPos();
+                        if (g_hasRemoteInfo == false) {
+                            ImGui::TextColored({ 1.0f, 0.0f, 0.0f, 1.0f }, "There is no broadcast offer selected yet.");
+                            ImGui::TextColored({ 1.0f, 0.0f, 0.0f, 1.0f }, "Wait for a broadcast message to be received first.");
+                        } else {
+                            if (g_fileClient.isConnected()) {
+                                ImGui::TextColored({ 0.0f, 1.0f, 0.0f, 1.0f }, "Successfully connected to peer:");
+                            } else {
+                                ImGui::TextColored({ 1.0f, 1.0f, 0.0f, 1.0f }, "Broadcast offer from the following peer:");
+                            }
+                            ImGui::Text("Remote IP:   %s", g_remoteIP.c_str());
+                            ImGui::Text("Remote Port: %d", g_remotePort);
+                            if (g_fileClient.isConnecting()) {
+                                ImGui::TextColored({ 1.0f, 1.0f, 0.0f, 1.0f }, "Attempting to connect ...");
+                            }
                         }
                     }
-                    ImGui::SameLine();
-                    
-                    if (ImGui::Button("Disconnect", { 1.00f*ImGui::GetContentRegionAvailWidth(), subWindowButtonHeight })) {
-                        if (g_fileClient.disconnect()) {
-                            printf("Stopped connecting\n");
-                        }
-                    }
+
+                    ImGui::PopTextWrapPos();
 
                     ScrollWhenDraggingOnVoid(ImVec2(-mouse_delta.x, -mouse_delta.y), ImGuiMouseButton_Left);
                     ImGui::EndChild();
+
+                    if (g_hasRemoteInfo && g_fileClient.isConnecting() == false && g_fileClient.isConnected() == false) {
+                        if (ImGui::Button("Connect", { 1.00f*ImGui::GetContentRegionAvailWidth(), subWindowButtonHeight })) {
+                            g_fileClient.connect(g_remoteIP, g_remotePort, 0);
+                        }
+                    }
+
+                    if (g_fileClient.isConnecting() || g_fileClient.isConnected()) {
+                        if (ImGui::Button("Disconnect", { 1.00f*ImGui::GetContentRegionAvailWidth(), subWindowButtonHeight })) {
+                            g_fileClient.disconnect();
+                            g_hasReceivedFileInfos = false;
+                            g_hasRequestedFileInfos = false;
+                            g_hasReceivedFiles = false;
+                        }
+                    }
                 }
                 break;
         };

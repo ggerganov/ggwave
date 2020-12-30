@@ -9,18 +9,45 @@ std::thread initMain();
 void renderMain();
 void deinitMain(std::thread & worker);
 
+// share info
+
+struct ShareInfo {
+    const char * uri;
+    const char * filename;
+    const char * dataBuffer;
+    size_t dataSize;
+};
+
 int getShareId();
-const char * getShareFilename();
+ShareInfo getShareInfo();
+
+// delete file
+
+struct DeleteInfo {
+    std::string uri;
+    std::string filename;
+};
 
 int getDeleteId();
-const char * getDeleteFilename();
+DeleteInfo getDeleteInfo();
+
+// receive
+
+struct ReceiveInfo {
+    const char * uri;
+    const char * filename;
+    const char * dataBuffer;
+    size_t dataSize;
+};
 
 int getReceivedId();
-std::vector<const char *> getReceivedFilename();
-std::vector<const char *> getReceivedDataBuffer();
-std::vector<size_t>       getReceivedDataSize();
+std::vector<ReceiveInfo> getReceiveInfos();
+bool confirmReceive(const char * uri);
 
-void clearFiles();
+// input
+
+void clearAllFiles();
+void clearFile(const char * uri);
 
 void addFile(
         const char * uri,

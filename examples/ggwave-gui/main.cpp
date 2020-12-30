@@ -43,7 +43,10 @@ bool ImGui_BeginFrame(SDL_Window * window) {
             printf("Dropped file: '%s'\n", event.drop.file);
             auto data = readFile(event.drop.file);
             std::string uri = event.drop.file;
-            auto filename = uri.substr(uri.find_last_of("/\\") + 1);
+            std::string filename = event.drop.file;
+            if (uri.find("/") || uri.find("\\")) {
+                filename = uri.substr(uri.find_last_of("/\\") + 1);
+            }
             addFile(uri.c_str(), filename.c_str(), std::move(data));
             break;
         }
@@ -175,9 +178,9 @@ int main(int argc, char** argv) {
     auto worker = initMain();
 
     // tmp
-    addFile("test0.raw", "test0.raw", std::vector<char>(1024));
-    addFile("test1.jpg", "test0.jpg", std::vector<char>(1024*1024 + 624));
-    addFile("test2.mpv", "test0.mov", std::vector<char>(1024*1024*234 + 53827));
+    //addFile("test0.raw", "test0.raw", std::vector<char>(1024));
+    //addFile("test1.jpg", "test0.jpg", std::vector<char>(1024*1024 + 624));
+    //addFile("test2.mpv", "test0.mov", std::vector<char>(1024*1024*234 + 53827));
 
     while (true) {
         if (ImGui_BeginFrame(window) == false) {

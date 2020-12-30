@@ -14,6 +14,7 @@ struct SDL_Window;
 typedef void * SDL_GLContext;
 typedef union SDL_Event SDL_Event;
 
+IMGUI_API bool ImGui_PreInit();
 IMGUI_API ImGuiContext* ImGui_Init(SDL_Window* window, SDL_GLContext gl_context);
 
 void IMGUI_API ImGui_Shutdown();

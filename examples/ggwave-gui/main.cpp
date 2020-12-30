@@ -1,4 +1,4 @@
-#include "common.h"
+#include "interface.h"
 
 #include "ggwave-common.h"
 
@@ -7,10 +7,30 @@
 #include <SDL.h>
 #include <SDL_opengl.h>
 
-// ImGui helpers
+#include <fstream>
+#include <vector>
+#include <iterator>
 
-bool ImGui_BeginFrame(SDL_Window * window);
-bool ImGui_EndFrame(SDL_Window * window);
+std::vector<char> readFile(const char* filename) {
+    std::ifstream file(filename, std::ios::binary);
+    file.unsetf(std::ios::skipws);
+    std::streampos fileSize;
+
+    file.seekg(0, std::ios::end);
+    fileSize = file.tellg();
+    file.seekg(0, std::ios::beg);
+
+    std::vector<char> vec;
+    vec.reserve(fileSize);
+
+    vec.insert(vec.begin(),
+               std::istream_iterator<char>(file),
+               std::istream_iterator<char>());
+
+    return vec;
+}
+
+// ImGui helpers
 
 bool ImGui_BeginFrame(SDL_Window * window) {
     SDL_Event event;
@@ -19,6 +39,17 @@ bool ImGui_BeginFrame(SDL_Window * window) {
         ImGui_ProcessEvent(&event);
         if (event.type == SDL_QUIT) return false;
         if (event.type == SDL_WINDOWEVENT && event.window.event == SDL_WINDOWEVENT_CLOSE && event.window.windowID == SDL_GetWindowID(window)) return false;
+        if (event.type == SDL_DROPFILE) {
+            printf("Dropped file: '%s'\n", event.drop.file);
+            auto data = readFile(event.drop.file);
+            std::string uri = event.drop.file;
+            std::string filename = event.drop.file;
+            if (uri.find("/") || uri.find("\\")) {
+                filename = uri.substr(uri.find_last_of("/\\") + 1);
+            }
+            addFile(uri.c_str(), filename.c_str(), std::move(data));
+            break;
+        }
     }
 
     ImGui_NewFrame(window);
@@ -123,24 +154,33 @@ int main(int argc, char** argv) {
         return -1;
     }
 
+    ImGui_PreInit();
+
     int windowX = 400;
     int windowY = 600;
     const char * windowTitle = "ggwave-gui";
 
     SDL_WindowFlags window_flags = (SDL_WindowFlags)(SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI);
     SDL_Window * window = SDL_CreateWindow(windowTitle, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, windowX, windowY, window_flags);
-
     void * gl_context = SDL_GL_CreateContext(window);
+
     SDL_GL_MakeCurrent(window, gl_context);
     SDL_GL_SetSwapInterval(1); // Enable vsync
 
     ImGui_Init(window, gl_context);
     ImGui_SetStyle();
 
+    SDL_EventState(SDL_DROPFILE, SDL_ENABLE);
+
     ImGui_NewFrame(window);
     ImGui::Render();
 
     auto worker = initMain();
+
+    // tmp
+    //addFile("test0.raw", "test0.raw", std::vector<char>(1024));
+    //addFile("test1.jpg", "test0.jpg", std::vector<char>(1024*1024 + 624));
+    //addFile("test2.mpv", "test0.mov", std::vector<char>(1024*1024*234 + 53827));
 
     while (true) {
         if (ImGui_BeginFrame(window) == false) {
@@ -148,6 +188,7 @@ int main(int argc, char** argv) {
         }
 
         renderMain();
+        updateMain();
 
         ImGui_EndFrame(window);
     }

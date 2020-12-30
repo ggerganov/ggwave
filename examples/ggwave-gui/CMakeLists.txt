@@ -9,6 +9,7 @@ target_link_libraries(ggwave-gui PRIVATE
     ggwave
     ggwave-common
     ggwave-common-sdl2
+    ggsock
     imgui-sdl2
     ${CMAKE_THREAD_LIBS_INIT}
     )

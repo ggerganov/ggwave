@@ -4,8 +4,6 @@
 #include <string>
 #include <map>
 
-// some basic helper methods for the examples
-
 template <class T>
 float getTime_ms(const T & tStart, const T & tEnd) {
     return ((float)(std::chrono::duration_cast<std::chrono::microseconds>(tEnd - tStart).count()))/1000.0;

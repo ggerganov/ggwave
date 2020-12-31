@@ -328,7 +328,10 @@ void addFile(
     std::memcpy(file.data.data(), dataBuffer, dataSize);
 
     g_fileServer.addFile(std::move(file));
-    //g_focusFileSend = true;
+
+#ifndef IOS
+    g_focusFileSend = true;
+#endif
 }
 
 void addFile(
@@ -341,7 +344,10 @@ void addFile(
     file.data = std::move(data);
 
     g_fileServer.addFile(std::move(file));
-    //g_focusFileSend = true;
+
+#ifndef IOS
+    g_focusFileSend = true;
+#endif
 }
 
 std::string generateFileBroadcastMessage() {

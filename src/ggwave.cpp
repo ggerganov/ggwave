@@ -556,6 +556,7 @@ void GGWave::receive(const CBDequeueAudio & CBDequeueAudio) {
 
                 if (isValid == false) {
                     printf("Failed to capture sound data. Please try again\n");
+                    m_lastRxDataLength = -1;
                     m_framesToRecord = -1;
                 }
 
@@ -652,7 +653,10 @@ int GGWave::takeRxData(TxRxData & dst) {
 
     auto res = m_lastRxDataLength;
     m_lastRxDataLength = 0;
-    dst = m_rxData;
+
+    if (res != -1) {
+        dst = m_rxData;
+    }
 
     return res;
 }

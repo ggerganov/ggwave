@@ -29,16 +29,20 @@
 #include "imgui-wrapper/icons_font_awesome.h"
 #endif
 
-#ifndef ICON_FA_COGS
+#define ICON_FA_ARROW_CIRCLE_DOWN "V"
 #define ICON_FA_COGS "#"
 #define ICON_FA_COMMENT_ALT ""
-#define ICON_FA_SIGNAL ""
-#define ICON_FA_PLAY_CIRCLE ""
-#define ICON_FA_ARROW_CIRCLE_DOWN "V"
-#define ICON_FA_PASTE "P"
+#define ICON_FA_DOWNLOAD ""
 #define ICON_FA_FILE ""
+#define ICON_FA_FOLDER ""
+#define ICON_FA_PASTE "P"
+#define ICON_FA_PAUSE ""
+#define ICON_FA_PLAY ""
+#define ICON_FA_PLAY_CIRCLE ""
 #define ICON_FA_SHARE_ALT ""
+#define ICON_FA_SIGNAL ""
 #define ICON_FA_TRASH ""
+#ifndef ICON_FA_COGS
 #endif
 
 namespace {
@@ -119,6 +123,7 @@ static const float kBroadcastTime_sec = 60.0f;
 
 struct Message {
     enum Type {
+        Error,
         Text,
         FileBroadcast,
     };
@@ -499,7 +504,18 @@ std::thread initMain() {
             GGWave_mainLoop();
 
             lastRxDataLength = g_ggWave->takeRxData(lastRxData);
-            if (lastRxDataLength > 0) {
+            if (lastRxDataLength == -1) {
+                g_buffer.stateCore.update = true;
+                g_buffer.stateCore.flags.newMessage = true;
+                g_buffer.stateCore.message = {
+                    true,
+                    std::chrono::system_clock::now(),
+                    "",
+                    g_ggWave->getRxProtocolId(),
+                    0,
+                    Message::Error,
+                };
+            } else if (lastRxDataLength > 0) {
                 auto message = std::string((char *) lastRxData.data(), lastRxDataLength);
                 const Message::Type type = isFileBroadcastMessage(message) ? Message::FileBroadcast : Message::Text;
                 g_buffer.stateCore.update = true;
@@ -901,15 +917,29 @@ void renderMain() {
                 p0.x -= style.ItemSpacing.x;
                 p0.y -= 0.5f*style.ItemSpacing.y;
 
-                if (message.type == Message::FileBroadcast) {
-                    auto col = ImVec4 { 0.0f, 1.0f, 1.0f, 1.0f };
-                    col.w = interp;
-                    auto broadcastInfo = parseBroadcastInfo(message.data);
-                    ImGui::TextColored(col, "-=[ File Broadcast from %s:%d ]=-", broadcastInfo.ip.c_str(), broadcastInfo.port);
-                } else {
-                    auto col = style.Colors[ImGuiCol_Text];
-                    col.w = interp;
-                    ImGui::TextColored(col, "%s", message.data.c_str());
+                switch (message.type) {
+                    case Message::Error:
+                        {
+                            auto col = ImVec4 { 1.0f, 0.0f, 0.0f, 1.0f };
+                            col.w = interp;
+                            ImGui::TextColored(col, "Failed to received");
+                        }
+                        break;
+                    case Message::Text:
+                        {
+                            auto col = style.Colors[ImGuiCol_Text];
+                            col.w = interp;
+                            ImGui::TextColored(col, "%s", message.data.c_str());
+                        }
+                        break;
+                    case Message::FileBroadcast:
+                        {
+                            auto col = ImVec4 { 0.0f, 1.0f, 1.0f, 1.0f };
+                            col.w = interp;
+                            auto broadcastInfo = parseBroadcastInfo(message.data);
+                            ImGui::TextColored(col, "-=[ File Broadcast from %s:%d ]=-", broadcastInfo.ip.c_str(), broadcastInfo.port);
+                        }
+                        break;
                 }
 
                 auto p1 = ImGui::GetCursorScreenPos();

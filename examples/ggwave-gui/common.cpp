@@ -591,7 +591,6 @@ void renderMain() {
                     GGSock::SerializationBuffer buffer;
                     GGSock::Serialize()(data, buffer);
                     g_fileClient.send(GGSock::FileServer::MsgFileChunkRequest, buffer.data(), (int32_t) buffer.size());
-                    g_fileClient.update();
 
                     ++fileInfoExtended.nRequestedChunks;
                 }

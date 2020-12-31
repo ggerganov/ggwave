@@ -53,9 +53,11 @@ void addFile(
         const char * uri,
         const char * filename,
         const char * dataBuffer,
-        size_t dataSize);
+        size_t dataSize,
+        bool focus);
 
 void addFile(
         const char * uri,
         const char * filename,
-        std::vector<char> && data);
+        std::vector<char> && data,
+        bool focus);

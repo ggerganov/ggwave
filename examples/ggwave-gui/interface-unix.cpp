@@ -41,7 +41,7 @@ void interface_receiveFile(
         const char * filename,
         const char * dataBuffer,
         size_t dataSize) {
-    addFile(uri, filename, dataBuffer, dataSize);
+    addFile(uri, filename, dataBuffer, dataSize, false);
 }
 
 bool interface_needReloadFiles() {

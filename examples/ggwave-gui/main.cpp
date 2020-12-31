@@ -47,7 +47,7 @@ bool ImGui_BeginFrame(SDL_Window * window) {
             if (uri.find("/") || uri.find("\\")) {
                 filename = uri.substr(uri.find_last_of("/\\") + 1);
             }
-            addFile(uri.c_str(), filename.c_str(), std::move(data));
+            addFile(uri.c_str(), filename.c_str(), std::move(data), true);
             break;
         }
     }

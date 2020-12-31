@@ -320,7 +320,8 @@ void addFile(
         const char * uri,
         const char * filename,
         const char * dataBuffer,
-        size_t dataSize) {
+        size_t dataSize,
+        bool focus) {
     GGSock::FileServer::FileData file;
     file.info.uri = uri;
     file.info.filename = filename;
@@ -329,15 +330,16 @@ void addFile(
 
     g_fileServer.addFile(std::move(file));
 
-#ifndef IOS
-    g_focusFileSend = true;
-#endif
+    if (focus) {
+        g_focusFileSend = true;
+    }
 }
 
 void addFile(
         const char * uri,
         const char * filename,
-        std::vector<char> && data) {
+        std::vector<char> && data,
+        bool focus) {
     GGSock::FileServer::FileData file;
     file.info.uri = uri;
     file.info.filename = filename;
@@ -345,9 +347,9 @@ void addFile(
 
     g_fileServer.addFile(std::move(file));
 
-#ifndef IOS
-    g_focusFileSend = true;
-#endif
+    if (focus) {
+        g_focusFileSend = true;
+    }
 }
 
 std::string generateFileBroadcastMessage() {

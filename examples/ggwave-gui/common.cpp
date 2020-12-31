@@ -29,6 +29,7 @@
 #include "imgui-wrapper/icons_font_awesome.h"
 #endif
 
+#ifndef ICON_FA_COGS
 #define ICON_FA_ARROW_CIRCLE_DOWN "V"
 #define ICON_FA_COGS "#"
 #define ICON_FA_COMMENT_ALT ""
@@ -42,7 +43,6 @@
 #define ICON_FA_SHARE_ALT ""
 #define ICON_FA_SIGNAL ""
 #define ICON_FA_TRASH ""
-#ifndef ICON_FA_COGS
 #endif
 
 namespace {

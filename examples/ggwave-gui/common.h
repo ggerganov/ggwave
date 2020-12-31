@@ -12,8 +12,8 @@ void deinitMain(std::thread & worker);
 // share info
 
 struct ShareInfo {
-    const char * uri;
-    const char * filename;
+    std::string uri;
+    std::string filename;
     const char * dataBuffer;
     size_t dataSize;
 };

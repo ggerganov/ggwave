@@ -37,6 +37,8 @@
 #define ICON_FA_ARROW_CIRCLE_DOWN "V"
 #define ICON_FA_PASTE "P"
 #define ICON_FA_FILE ""
+#define ICON_FA_SHARE_ALT ""
+#define ICON_FA_TRASH ""
 #endif
 
 namespace {
@@ -1172,9 +1174,9 @@ void renderMain() {
                             hasAtLeastOneFile = true;
                             ImGui::PushID(fileInfo.first);
                             ImGui::Text("File: '%s' (%4.2f MB)\n", fileInfo.second.filename.c_str(), float(fileInfo.second.filesize)/1024.0f/1024.0f);
-                            if (ImGui::Button("Save")) {
-                                g_shareInfo.uri = fileInfo.second.uri.data();
-                                g_shareInfo.filename = fileInfo.second.filename.data();
+                            if (ImGui::Button(ICON_FA_SHARE_ALT "  Share")) {
+                                g_shareInfo.uri = fileInfo.second.uri;
+                                g_shareInfo.filename = fileInfo.second.filename;
                                 const auto & fileData = g_fileServer.getFileData(g_shareInfo.uri);
                                 g_shareInfo.dataBuffer = fileData.data.data();
                                 g_shareInfo.dataSize = fileData.data.size();
@@ -1182,7 +1184,7 @@ void renderMain() {
                             }
                             ImGui::SameLine();
 
-                            if (ImGui::Button("Clear")) {
+                            if (ImGui::Button(ICON_FA_TRASH "  Clear")) {
                                 g_deleteInfo.uri = fileInfo.second.uri.data();
                                 g_deleteInfo.filename = fileInfo.second.filename.data();
                                 g_deleteId++;
@@ -1285,7 +1287,7 @@ void renderMain() {
 
                             if (isReceived) {
                                 if (fileInfoExtended.requestToShare == false) {
-                                    if (ImGui::Button("To Send")) {
+                                    if (ImGui::Button(ICON_FA_FOLDER "  To Send")) {
                                         fileInfoExtended.requestToShare = true;
                                         g_receivedId++;
                                     }
@@ -1296,11 +1298,11 @@ void renderMain() {
                                 }
                             } else if (g_fileClient.isConnected() && (fileInfoExtended.isReceiving || fileInfoExtended.nReceivedChunks > 0)) {
                                 if (fileInfoExtended.isReceiving) {
-                                    if (ImGui::Button("Pause")) {
+                                    if (ImGui::Button(ICON_FA_PAUSE "  Pause")) {
                                         fileInfoExtended.isReceiving = false;
                                     }
                                 } else {
-                                    if (ImGui::Button("Resume")) {
+                                    if (ImGui::Button(ICON_FA_PLAY "  Resume")) {
                                         fileInfoExtended.isReceiving = true;
                                     }
                                 }
@@ -1308,7 +1310,7 @@ void renderMain() {
                                 ImGui::SameLine();
                                 ImGui::ProgressBar(float(fileInfoExtended.nReceivedChunks)/fileInfo.second.nChunks);
                             } else if (g_fileClient.isConnected()) {
-                                if (ImGui::Button("Receive")) {
+                                if (ImGui::Button(ICON_FA_DOWNLOAD "  Receive")) {
                                     fileInfoExtended.isReceiving = true;
                                     fileInfoExtended.isChunkReceived.resize(fileInfo.second.nChunks);
                                     fileInfoExtended.isChunkRequested.resize(fileInfo.second.nChunks);
@@ -1319,7 +1321,7 @@ void renderMain() {
 
                             if ((fileInfoExtended.isReceiving == false || isReceived) && fileInfoExtended.requestToShare == false) {
                                 ImGui::SameLine();
-                                if (ImGui::Button("Clear")) {
+                                if (ImGui::Button(ICON_FA_TRASH "  Clear")) {
                                     toErase = fileInfo.first;
                                 }
                             }

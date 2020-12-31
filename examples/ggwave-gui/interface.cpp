@@ -10,8 +10,8 @@ void updateMain() {
     if (curShareId != g_lastShareId) {
         auto shareInfo = getShareInfo();
         interface_shareFile(
-                shareInfo.uri,
-                shareInfo.filename,
+                shareInfo.uri.data(),
+                shareInfo.filename.data(),
                 shareInfo.dataBuffer,
                 shareInfo.dataSize);
 

@@ -727,7 +727,7 @@ void renderMain() {
     const auto sendButtonText = ICON_FA_PLAY_CIRCLE " Send";
     const double tShowKeyboard = 0.2f;
 #if defined(IOS) || defined(ANDROID)
-    const float statusBarHeight = displaySize.x < displaySize.y ? 10.0f + 2.0f*style.ItemSpacing.y : 0.1f;
+    const float statusBarHeight = displaySize.x < displaySize.y ? 2.0f*style.ItemSpacing.y : 0.1f;
 #else
     const float statusBarHeight = 0.1f;
 #endif
@@ -1473,6 +1473,4 @@ void renderMain() {
 void deinitMain(std::thread & worker) {
     g_isRunning = false;
     worker.join();
-
-    GGWave_deinit();
 }

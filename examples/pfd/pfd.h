@@ -343,7 +343,7 @@ public:
 #if defined(__has_cpp_attribute)
 #if __has_cpp_attribute(deprecated)
     // Backwards compatibility
-    [[deprecated("Use pfd::opt::multiselect instead of allow_multiselect")]]
+    //[[deprecated("Use pfd::opt::multiselect instead of allow_multiselect")]]
 #endif
 #endif
     open_file(std::string const &title,
@@ -365,7 +365,7 @@ public:
 #if defined(__has_cpp_attribute)
 #if __has_cpp_attribute(deprecated)
     // Backwards compatibility
-    [[deprecated("Use pfd::opt::force_overwrite instead of confirm_overwrite")]]
+    //[[deprecated("Use pfd::opt::force_overwrite instead of confirm_overwrite")]]
 #endif
 #endif
     save_file(std::string const &title,

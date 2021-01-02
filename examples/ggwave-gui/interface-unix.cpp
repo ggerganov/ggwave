@@ -31,6 +31,13 @@ void interface_shareFile(
     }
 }
 
+void interface_openFile(
+        const char * ,
+        const char * ,
+        const char * ,
+        size_t ) {
+}
+
 void interface_deleteFile(
         const char * ,
         const char * ) {

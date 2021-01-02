@@ -21,6 +21,12 @@ void interface_shareFile(
         const char * dataBuffer,
         size_t dataSize);
 
+void interface_openFile(
+        const char * uri,
+        const char * filename,
+        const char * dataBuffer,
+        size_t dataSize);
+
 void interface_deleteFile(
         const char * uri,
         const char * filename);

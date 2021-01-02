@@ -253,6 +253,9 @@ GGSock::Communicator g_fileClient(false);
 int g_shareId = 0;
 ShareInfo g_shareInfo;
 
+int g_openId = 0;
+OpenInfo g_openInfo;
+
 int g_deleteId = 0;
 DeleteInfo g_deleteInfo;
 
@@ -264,6 +267,14 @@ int getShareId() {
 
 ShareInfo getShareInfo() {
     return g_shareInfo;
+}
+
+int getOpenId() {
+    return g_openId;
+}
+
+OpenInfo getOpenInfo() {
+    return g_openInfo;
 }
 
 int getDeleteId() {
@@ -726,7 +737,7 @@ void renderMain() {
 
     const auto sendButtonText = ICON_FA_PLAY_CIRCLE " Send";
     const double tShowKeyboard = 0.2f;
-#if defined(IOS) || defined(ANDROID)
+#if defined(IOS)
     const float statusBarHeight = displaySize.x < displaySize.y ? 2.0f*style.ItemSpacing.y : 0.1f;
 #else
     const float statusBarHeight = 0.1f;
@@ -1221,6 +1232,18 @@ void renderMain() {
                                 g_shareId++;
                             }
                             ImGui::SameLine();
+
+#ifdef ANDROID
+                            if (ImGui::Button(ICON_FA_EYE "  VIEW")) {
+                                g_openInfo.uri = fileInfo.second.uri;
+                                g_openInfo.filename = fileInfo.second.filename;
+                                const auto & fileData = g_fileServer.getFileData(g_openInfo.uri);
+                                g_openInfo.dataBuffer = fileData.data.data();
+                                g_openInfo.dataSize = fileData.data.size();
+                                g_openId++;
+                            }
+                            ImGui::SameLine();
+#endif
 
                             if (ImGui::Button(ICON_FA_TRASH "  Clear")) {
                                 g_deleteInfo.uri = fileInfo.second.uri.data();

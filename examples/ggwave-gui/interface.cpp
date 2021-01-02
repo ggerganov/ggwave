@@ -1,6 +1,7 @@
 #include "interface.h"
 
 int g_lastShareId = 0;
+int g_lastOpenId = 0;
 int g_lastDeleteId = 0;
 int g_lastReceivedId = 0;
 int g_frameCount = 0;
@@ -16,6 +17,18 @@ void updateMain() {
                 shareInfo.dataSize);
 
         g_lastShareId = curShareId;
+    }
+
+    auto curOpenId = getOpenId();
+    if (curOpenId != g_lastOpenId) {
+        auto openInfo = getOpenInfo();
+        interface_openFile(
+                openInfo.uri.data(),
+                openInfo.filename.data(),
+                openInfo.dataBuffer,
+                openInfo.dataSize);
+
+        g_lastOpenId = curOpenId;
     }
 
     auto curDeleteId = getDeleteId();

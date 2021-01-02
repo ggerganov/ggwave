@@ -21,6 +21,18 @@ struct ShareInfo {
 int getShareId();
 ShareInfo getShareInfo();
 
+// open info
+
+struct OpenInfo {
+    std::string uri;
+    std::string filename;
+    const char * dataBuffer;
+    size_t dataSize;
+};
+
+int getOpenId();
+OpenInfo getOpenInfo();
+
 // delete file
 
 struct DeleteInfo {

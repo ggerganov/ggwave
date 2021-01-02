@@ -170,6 +170,16 @@ int main(int argc, char** argv) {
     ImGui_Init(window, gl_context);
     ImGui_SetStyle();
 
+    ImGui::GetIO().Fonts->AddFontFromFileTTF("../examples/assets/fonts/DroidSans.ttf", 14.0f);
+
+    static ImWchar ranges[] = { 0xf000, 0xf3ff, 0 };
+
+    ImFontConfig config;
+    config.MergeMode = true;
+    config.GlyphOffset = { 0.0f, 0.0f };
+
+    ImGui::GetIO().Fonts->AddFontFromFileTTF("../examples/assets/fonts/fontawesome-webfont.ttf", 14.0f, &config, ranges);
+
     SDL_EventState(SDL_DROPFILE, SDL_ENABLE);
 
     ImGui_NewFrame(window);

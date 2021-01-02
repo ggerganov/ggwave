@@ -30,19 +30,7 @@
 #endif
 
 #ifndef ICON_FA_COGS
-#define ICON_FA_ARROW_CIRCLE_DOWN "V"
-#define ICON_FA_COGS "#"
-#define ICON_FA_COMMENT_ALT ""
-#define ICON_FA_DOWNLOAD ""
-#define ICON_FA_FILE ""
-#define ICON_FA_FOLDER ""
-#define ICON_FA_PASTE "P"
-#define ICON_FA_PAUSE ""
-#define ICON_FA_PLAY ""
-#define ICON_FA_PLAY_CIRCLE ""
-#define ICON_FA_SHARE_ALT ""
-#define ICON_FA_SIGNAL ""
-#define ICON_FA_TRASH ""
+#include "icons_font_awesome.h"
 #endif
 
 namespace {

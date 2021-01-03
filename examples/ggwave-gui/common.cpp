@@ -768,7 +768,7 @@ void renderMain() {
         ImGui::BeginChild("Settings:main", ImGui::GetContentRegionAvail(), true);
         ImGui::Text("%s", "");
         ImGui::Text("%s", "");
-        ImGui::Text("Waver v1.3.0");
+        ImGui::Text("Waver v1.3.1");
         ImGui::Separator();
 
         ImGui::Text("%s", "");

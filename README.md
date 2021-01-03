@@ -81,7 +81,7 @@ cmake ..
 make
 
 # running
-./bin/wave-share-cli
+./bin/ggwave-cli
 ```
 
 ### Emscripten:

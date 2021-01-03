@@ -32,7 +32,55 @@ target_link_libraries(imgui PRIVATE
     )
 
 if (GGWAVE_SUPPORT_SDL2)
-    if (NOT EMSCRIPTEN)
+    if (MINGW)
+	find_package(PkgConfig REQUIRED)
+	pkg_search_module(SDL2 REQUIRED sdl2)
+
+        add_library(imgui-sdl2 ${GGWAVE_LIBRARY_TYPE}
+            imgui/examples/libs/gl3w/GL/gl3w.c
+            imgui-extra/imgui_impl.cpp
+            imgui-extra/imgui_impl_sdl.cpp
+            imgui-extra/imgui_impl_opengl3.cpp
+            )
+
+        target_include_directories(imgui-sdl2 PUBLIC
+            imgui/examples/libs/gl3w
+            ${SDL2_INCLUDE_DIRS}
+            )
+
+        target_include_directories(imgui-sdl2 PRIVATE
+            imgui
+            imgui-extra
+            )
+
+        target_link_libraries(imgui-sdl2 PUBLIC
+            imgui
+	    opengl32
+            ${SDL2_LIBRARIES}
+	    stdc++
+            )
+
+        target_link_libraries(imgui-sdl2 PRIVATE
+            ${CMAKE_DL_LIBS}
+            ${CMAKE_THREAD_LIBS_INIT}
+            ${ADDITIONAL_LIBRARIES}
+            )
+    elseif (EMSCRIPTEN)
+        add_library(imgui-sdl2 ${GGWAVE_LIBRARY_TYPE}
+            imgui-extra/imgui_impl.cpp
+            imgui-extra/imgui_impl_sdl.cpp
+            imgui-extra/imgui_impl_opengl3.cpp
+            )
+
+        target_include_directories(imgui-sdl2 PRIVATE
+            imgui
+            imgui-extra
+            )
+
+        target_link_libraries(imgui-sdl2 PUBLIC
+            imgui
+            )
+    else()
         find_package(OpenGL REQUIRED)
 
         add_library(imgui-sdl2 ${GGWAVE_LIBRARY_TYPE}
@@ -62,21 +110,6 @@ if (GGWAVE_SUPPORT_SDL2)
             ${CMAKE_DL_LIBS}
             ${CMAKE_THREAD_LIBS_INIT}
             ${ADDITIONAL_LIBRARIES}
-            )
-    else()
-        add_library(imgui-sdl2 ${GGWAVE_LIBRARY_TYPE}
-            imgui-extra/imgui_impl.cpp
-            imgui-extra/imgui_impl_sdl.cpp
-            imgui-extra/imgui_impl_opengl3.cpp
-            )
-
-        target_include_directories(imgui-sdl2 PRIVATE
-            imgui
-            imgui-extra
-            )
-
-        target_link_libraries(imgui-sdl2 PUBLIC
-            imgui
             )
     endif()
 endif()

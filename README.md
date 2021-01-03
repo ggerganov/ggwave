@@ -71,7 +71,18 @@ Other projects using **ggwave** or one of its prototypes:
 
 ## Building
 
-### Linux and Mac:
+### Dependencies for SDL-based examples
+
+    [Ubuntu]
+    $ sudo apt install libsdl2-dev
+    
+    [Mac OS with brew]
+    $ brew install sdl2
+    
+    [MSYS2]
+    $ pacman -S git cmake make mingw-w64-x86_64-dlfcn mingw-w64-x86_64-gcc mingw-w64-x86_64-SDL2
+
+### Linux, Mac, Windows (MSYS2):
 
 ```bash
 # build

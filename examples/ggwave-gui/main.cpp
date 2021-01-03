@@ -158,6 +158,13 @@ int main(int argc, char** argv) {
 
     int windowX = 400;
     int windowY = 600;
+
+    // Waver video settings
+    //float scale = 0.65;
+
+    //int windowX = scale*570;
+    //int windowY = scale*917;
+
     const char * windowTitle = "ggwave-gui";
 
     SDL_WindowFlags window_flags = (SDL_WindowFlags)(SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI);

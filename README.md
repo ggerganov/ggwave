@@ -12,6 +12,8 @@ Click on the gifs to hear what it sounds like:
 
 <a href="https://youtu.be/KWlcgZHJhGQ"><img width="100%" src="media/ggwave-gui0-fast.gif"></img></a>
 
+<a href="https://youtu.be/Zcgf77T71QM"><img width="100%" src="media/waver-preview0.png"></img></a>
+
 ## Details
 
 This library allows you to communicate small amounts of data between air-gapped devices using sound. It implements a simple FSK-based transmission protocol that can be easily integrated in various projects. The bandwidth rate is between 8-16 bytes/sec depending on the protocol parameters. Error correction codes (ECC) are used to improve demodulation robustness.

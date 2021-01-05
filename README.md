@@ -20,10 +20,13 @@ This library allows you to communicate small amounts of data between air-gapped 
 
 This library is used only to generate and analyze the RAW waveforms that are played and captured from your audio devices (speakers, microphones, etc.). You are free to use any audio backend (e.g. PulseAudio, ALSA, etc.) as long as you provide callbacks for queuing and dequeuing audio samples.
 
-You can easily test the library on your phone with these free mobile apps:
+You can easily test the library using the `Waver: Data Over Sound` application:
 
 <a href="https://apps.apple.com/us/app/waver-data-over-sound/id1543607865?itsct=apps_box&amp;itscg=30200&ign-itsct=apps_box#?platform=iphone" style="display: inline-block; overflow: hidden; border-radius: 13px; width: 250px; height: 83px;"><img height="60px" src="https://tools.applemediaservices.com/api/badges/download-on-the-app-store/white/en-US?size=250x83&amp;releaseDate=1607558400&h=8e5fafc57929918f684abc83ff8311ef" alt="Download on the App Store"></a>
 <a href='https://play.google.com/store/apps/details?id=com.ggerganov.Waver&pcampaignid=pcampaignidMKT-Other-global-all-co-prtnr-py-PartBadge-Mar2515-1'><img alt='Get it on Google Play' src='https://i.imgur.com/BKDCbKv.png' height="60px"/></a>
+<a href="https://snapcraft.io/waver">
+<img alt="Get it from the Snap Store" src="https://snapcraft.io/static/images/badges/en/snap-store-black.svg" height="60px"/>
+</a>
 
 **Browser demo:** https://ggwave.ggerganov.com
 
@@ -104,6 +107,19 @@ mkdir build && cd build
 emcmake cmake ..
 make
 ```
+
+
+## Installing the Waver application
+
+[![Get it from the Snap Store](https://snapcraft.io/static/images/badges/en/snap-store-black.svg)](https://snapcraft.io/waver)
+
+### Linux
+
+```bash
+sudo snap install waver
+sudo snap connect waver:audio-record :audio-record
+```
+
 
 ## Todo
 

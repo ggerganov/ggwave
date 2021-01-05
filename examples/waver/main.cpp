@@ -216,6 +216,7 @@ int main(int argc, char** argv) {
 
     ImGui_Init(window, gl_context);
     ImGui::GetIO().IniFilename = nullptr;
+    ImGui::GetIO().Fonts->AddFontFromFileTTF((getBinaryPath() + "../examples/assets/fonts/DroidSans.ttf").c_str(), 14.0f);
     ImGui::GetIO().Fonts->AddFontFromFileTTF((getBinaryPath() + "../../examples/assets/fonts/DroidSans.ttf").c_str(), 14.0f);
 
     {
@@ -225,6 +226,7 @@ int main(int argc, char** argv) {
         config.MergeMode = true;
         config.GlyphOffset = { 0.0f, 0.0f };
 
+        ImGui::GetIO().Fonts->AddFontFromFileTTF((getBinaryPath() + "../examples/assets/fonts/fontawesome-webfont.ttf").c_str(), 14.0f, &config, ranges);
         ImGui::GetIO().Fonts->AddFontFromFileTTF((getBinaryPath() + "../../examples/assets/fonts/fontawesome-webfont.ttf").c_str(), 14.0f, &config, ranges);
     }
 

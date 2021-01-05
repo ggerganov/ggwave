@@ -5,6 +5,27 @@
   description: |
     Waver allows you to send and receive text messages from nearby devices through sound waves.
 
+    This application can be useful for communicating with multiple nearby devices at once.
+    Both audible and ultrasound communication protocols are available.
+    The app does not connect to the internet and all information is transmitted only through sound.
+    In order to receive incoming messages you only need to allow access to your device's microphone so that it can record nearby sounds.
+
+    How to use:
+    - Before starting - make sure the speaker of your device is enabled and disconnect/unplug any headphones. The app uses your device's speaker to emit sounds when sending a text message
+    - To send a message - tap on "Messages", enter some text at the bottom of the screen and click "Send"
+    - Any nearby device that is also running this application can capture the emitted sound and display the received message
+    - In the settings menu, you can adjust the volume and the transmission protocol that will be used when sending messages. Make sure to adjust the volume level high enough, so the sounds can be picked up by other devices
+    - Tap on "Spectrum" to see a real-time frequency spectrum of the currently captured audio by your device's microphone
+
+    File sharing in a local network:
+
+    As of v1.3.0 Waver supports file sharing. It works like this:
+    - Add files that you would like to transmit by drag and dropping them in Waver
+    - In the "Files" menu, click on "Broadcast". This plays an audio message that contains a file broadcast offer
+    - Nearby devices in the same local network can receive this offer and initiate a TCP/IP connection to your device
+    - The files are transmitted over TCP/IP. The sound message is used only to initiate the network connections between the devices
+    - Waver allows sharing multiple files to multiple devices at once
+
   base: core18
   grade: stable
   confinement: strict
@@ -22,8 +43,8 @@
         - yad
 
     waver:
-      source: https://github.com/ggerganov/ggwave
-      source-type: git
+      source: .
+      source-type: local
       plugin: cmake
       build-packages:
         - g++
@@ -37,11 +58,19 @@
         - libgl1-mesa-dri
       after: [alsa-mixin]
 
+    waver-fonts:
+      plugin: dump
+      source: ./examples/assets/fonts/
+      organize:
+        '*.ttf' : examples/assets/fonts/
+      stage:
+        - examples/assets/fonts/
+
   apps:
     waver:
       command-chain: ["snap/command-chain/alsa-launch"]
       command: bin/waver
-      plugs: [unity7, opengl, alsa, audio-playback, audio-record, network, network-bind]
+      plugs: [unity7, opengl, alsa, audio-playback, audio-record, network, network-bind, waver-fonts]
 
   environment:
     ALWAYS_USE_PULSEAUDIO: '1'

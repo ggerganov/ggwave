@@ -34,8 +34,6 @@ As of v1.3.0 Waver supports file sharing. It works like this:
 
 [![Get it from the Snap Store](https://snapcraft.io/static/images/badges/en/snap-store-black.svg)](https://snapcraft.io/waver)
 
-### Linux
-
 ```bash
 sudo snap install waver
 sudo snap connect waver:audio-record :audio-record

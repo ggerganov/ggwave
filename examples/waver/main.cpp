@@ -7,12 +7,48 @@
 #include <SDL.h>
 #include <SDL_opengl.h>
 
+#include <dlfcn.h>
+#include <unistd.h>
+
 #include <fstream>
 #include <vector>
 #include <iterator>
 
+namespace {
+void dummy() {}
+}
+
+std::string getBinaryPath() {
+    std::string result;
+    void* p = reinterpret_cast<void*>(dummy);
+
+    Dl_info info;
+    dladdr(p, &info);
+
+    if (*info.dli_fname == '/') {
+        result = info.dli_fname;
+    } else {
+        char buff[2048];
+        auto len = readlink("/proc/self/exe", buff, sizeof(buff) - 1);
+        if (len > 0) {
+            buff[len] = 0;
+            result = buff;
+        }
+    }
+
+    auto slash = result.rfind('/');
+    if (slash != std::string::npos) {
+        result.erase(slash + 1);
+    }
+
+    return result;
+}
+
+
 std::vector<char> readFile(const char* filename) {
     std::ifstream file(filename, std::ios::binary);
+    if (!file.is_open() || !file.good()) return {};
+
     file.unsetf(std::ios::skipws);
     std::streampos fileSize;
 
@@ -42,13 +78,17 @@ bool ImGui_BeginFrame(SDL_Window * window) {
         if (event.type == SDL_DROPFILE) {
             printf("Dropped file: '%s'\n", event.drop.file);
             auto data = readFile(event.drop.file);
+            if (data.empty()) {
+                fprintf(stderr, "Unable to access file. Probably missing permissions\n");
+                continue;
+            }
+
             std::string uri = event.drop.file;
             std::string filename = event.drop.file;
             if (uri.find("/") || uri.find("\\")) {
                 filename = uri.substr(uri.find_last_of("/\\") + 1);
             }
             addFile(uri.c_str(), filename.c_str(), std::move(data), true);
-            break;
         }
     }
 
@@ -149,7 +189,7 @@ int main(int argc, char** argv) {
         return -1;
     }
 
-    if (SDL_Init(SDL_INIT_VIDEO | SDL_INIT_TIMER | SDL_INIT_GAMECONTROLLER) != 0) {
+    if (SDL_Init(SDL_INIT_VIDEO) != 0) {
         fprintf(stderr, "Error: %s\n", SDL_GetError());
         return -1;
     }
@@ -175,17 +215,20 @@ int main(int argc, char** argv) {
     SDL_GL_SetSwapInterval(1); // Enable vsync
 
     ImGui_Init(window, gl_context);
+    ImGui::GetIO().IniFilename = nullptr;
+    ImGui::GetIO().Fonts->AddFontFromFileTTF((getBinaryPath() + "../../examples/assets/fonts/DroidSans.ttf").c_str(), 14.0f);
+
+    {
+        ImWchar ranges[] = { 0xf000, 0xf3ff, 0 };
+
+        ImFontConfig config;
+        config.MergeMode = true;
+        config.GlyphOffset = { 0.0f, 0.0f };
+
+        ImGui::GetIO().Fonts->AddFontFromFileTTF((getBinaryPath() + "../../examples/assets/fonts/fontawesome-webfont.ttf").c_str(), 14.0f, &config, ranges);
+    }
+
     ImGui_SetStyle();
-
-    ImGui::GetIO().Fonts->AddFontFromFileTTF("../examples/assets/fonts/DroidSans.ttf", 14.0f);
-
-    static ImWchar ranges[] = { 0xf000, 0xf3ff, 0 };
-
-    ImFontConfig config;
-    config.MergeMode = true;
-    config.GlyphOffset = { 0.0f, 0.0f };
-
-    ImGui::GetIO().Fonts->AddFontFromFileTTF("../examples/assets/fonts/fontawesome-webfont.ttf", 14.0f, &config, ranges);
 
     SDL_EventState(SDL_DROPFILE, SDL_ENABLE);
 

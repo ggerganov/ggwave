@@ -13,3 +13,5 @@ target_link_libraries(waver PRIVATE
     imgui-sdl2
     ${CMAKE_THREAD_LIBS_INIT}
     )
+
+install(TARGETS waver RUNTIME DESTINATION bin)

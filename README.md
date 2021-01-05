@@ -12,7 +12,7 @@ Click on the images below to hear what it sounds like:
 
 <a href="https://youtu.be/S2YdGefZiy4"><img width="100%" src="media/ggwave0.gif"></img></a>
 
-<a href="https://youtu.be/KWlcgZHJhGQ"><img width="100%" src="media/ggwave-gui0-fast.gif"></img></a>
+<a href="https://youtu.be/KWlcgZHJhGQ"><img width="100%" src="media/waver-0-fast.gif"></img></a>
 
 ## Details
 
@@ -60,8 +60,8 @@ The [examples](https://github.com/ggerganov/ggwave/blob/master/examples/) folder
 | ------- | ----------- |
 | [simple-rx](https://github.com/ggerganov/ggwave/blob/master/examples/simple-rx) | A very basic receive-only program |
 | [ggwave-cli](https://github.com/ggerganov/ggwave/blob/master/examples/ggwave-cli) | A command line tool for sending/receiving data through sound |
-| [ggwave-gui](https://github.com/ggerganov/ggwave/blob/master/examples/ggwave-gui) | A GUI tool for sending/receiving data through sound |
 | [ggwave-wasm](https://github.com/ggerganov/ggwave/blob/master/examples/ggwave-wasm) | a WebAssembly module for web applications |
+| [waver](https://github.com/ggerganov/ggwave/blob/master/examples/waver) | A GUI tool for sending/receiving data through sound |
 
 Other projects using **ggwave** or one of its prototypes:
 
@@ -75,10 +75,10 @@ Other projects using **ggwave** or one of its prototypes:
 
     [Ubuntu]
     $ sudo apt install libsdl2-dev
-    
+
     [Mac OS with brew]
     $ brew install sdl2
-    
+
     [MSYS2]
     $ pacman -S git cmake make mingw-w64-x86_64-dlfcn mingw-w64-x86_64-gcc mingw-w64-x86_64-SDL2
 

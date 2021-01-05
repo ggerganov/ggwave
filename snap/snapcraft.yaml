@@ -44,8 +44,8 @@
         - yad
 
     waver:
-      source: .
-      source-type: local
+      source: https://github.com/ggerganov/ggwave
+      source-type: git
       plugin: cmake
       plugin: dump
       build-packages:

@@ -63,7 +63,7 @@
   apps:
     waver:
       command-chain: ["snap/command-chain/alsa-launch"]
-      command: bin/waver
+      command: build/bin/waver
       plugs: [unity7, opengl, alsa, audio-playback, audio-record, network, network-bind]
 
   environment:

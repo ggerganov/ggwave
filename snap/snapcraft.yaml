@@ -25,8 +25,6 @@
       source: https://github.com/ggerganov/ggwave
       source-type: git
       plugin: cmake
-      plugin: dump
-      source: .
       build-packages:
         - g++
         - make
@@ -42,7 +40,7 @@
   apps:
     waver:
       command-chain: ["snap/command-chain/alsa-launch"]
-      command: build/bin/waver
+      command: bin/waver
       plugs: [unity7, opengl, alsa, audio-playback, audio-record, network, network-bind]
 
   environment:

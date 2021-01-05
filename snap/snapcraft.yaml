@@ -43,8 +43,8 @@
         - yad
 
     waver:
-      source: .
-      source-type: local
+      source: https://github.com/ggerganov/ggwave
+      source-type: git
       plugin: cmake
       build-packages:
         - g++
@@ -70,7 +70,7 @@
     waver:
       command-chain: ["snap/command-chain/alsa-launch"]
       command: bin/waver
-      plugs: [unity7, opengl, alsa, audio-playback, audio-record, network, network-bind, waver-fonts]
+      plugs: [unity7, opengl, alsa, audio-playback, audio-record, network, network-bind]
 
   environment:
     ALWAYS_USE_PULSEAUDIO: '1'

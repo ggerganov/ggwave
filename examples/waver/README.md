@@ -4,6 +4,8 @@ Waver allows you to send and receive text messages from nearby devices through s
 
 This application can be useful for communicating with multiple nearby devices at once. Both audible and ultrasound communication protocols are available. The app does not connect to the internet and all information is transmitted only through sound. In order to receive incoming messages you only need to allow access to your device's microphone so that it can record nearby sounds.
 
+### Install 
+
 <a href="https://apps.apple.com/us/app/waver-data-over-sound/id1543607865?itsct=apps_box&amp;itscg=30200&ign-itsct=apps_box#?platform=iphone" style="display: inline-block; overflow: hidden; border-radius: 13px; width: 250px; height: 83px;"><img height="60px" src="https://tools.applemediaservices.com/api/badges/download-on-the-app-store/white/en-US?size=250x83&amp;releaseDate=1607558400&h=8e5fafc57929918f684abc83ff8311ef" alt="Download on the App Store"></a>
 <a href='https://play.google.com/store/apps/details?id=com.ggerganov.Waver&pcampaignid=pcampaignidMKT-Other-global-all-co-prtnr-py-PartBadge-Mar2515-1'><img alt='Get it on Google Play' src='https://i.imgur.com/BKDCbKv.png' height="60px"/></a>
 <a href="https://snapcraft.io/waver">
@@ -15,7 +17,7 @@ sudo snap install waver
 sudo snap connect waver:audio-record :audio-record
 ```
 
-## How to use:
+## How to use
 
 <a href="https://youtu.be/Zcgf77T71QM"><img width="100%" src="../../media/waver-preview0.png"></img></a>
 
@@ -26,7 +28,7 @@ sudo snap connect waver:audio-record :audio-record
 - Tap on "Spectrum" to see a real-time frequency spectrum of the currently captured audio by your device's microphone
 
 
-## File sharing in a local network:
+## File sharing in a local network
 
 As of v1.3.0 Waver supports file sharing. It works like this:
 

@@ -2,7 +2,7 @@
 
 Waver allows you to send and receive text messages from nearby devices through sound waves.
 
-This application can be useful for communicating with multiple nearby devices at once. Both audible and ultrasound communication protocols are available. The app does not connect to the internet and all information is transmitted only through sound. In order to receive incoming messages you only need to allow access to your device's microphone so that it can record nearby sounds.
+This application can be used to communicate with multiple nearby devices at once. Both audible and ultrasound communication protocols are available. The app does not connect to the internet and all information is transmitted only through sound. In order to receive incoming messages you only need to allow access to your device's microphone so that it can record nearby sounds.
 
 ### Install 
 

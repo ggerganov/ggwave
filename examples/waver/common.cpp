@@ -666,6 +666,11 @@ void renderMain() {
     static bool scrollMessagesToBottom = true;
     static bool hasAudioCaptureData = false;
     static bool hasNewMessages = false;
+#ifdef __EMSCRIPTEN__
+    static bool hasFileSharingSupport = false;
+#else
+    static bool hasFileSharingSupport = true;
+#endif
 
     static double tStartInput = 0.0f;
     static double tEndInput = -100.0f;
@@ -768,7 +773,14 @@ void renderMain() {
     }
     ImGui::SameLine();
 
-    if (ImGui::ButtonSelectable(ICON_FA_FILE "  Files", { 0.40f*ImGui::GetContentRegionAvailWidth(), menuButtonHeight }, windowId == WindowId::Files)) {
+    if (!hasFileSharingSupport) {
+        ImGui::ButtonDisabled(ICON_FA_FILE "  Files", { 0.40f*ImGui::GetContentRegionAvailWidth(), menuButtonHeight });
+        if (ImGui::IsItemHovered()) {
+            ImGui::BeginTooltip();
+            ImGui::Text("File sharing is not supported on this platform!");
+            ImGui::EndTooltip();
+        }
+    } else if (ImGui::ButtonSelectable(ICON_FA_FILE "  Files", { 0.40f*ImGui::GetContentRegionAvailWidth(), menuButtonHeight }, windowId == WindowId::Files)) {
         windowId = WindowId::Files;
     }
     ImGui::SameLine();
@@ -1030,7 +1042,7 @@ void renderMain() {
                 ImGui::TextDisabled("|");
 
                 ImGui::SameLine();
-                if (ImGui::ButtonDisablable("Receive", {}, !messageSelected.received || messageSelected.type != Message::FileBroadcast)) {
+                if (ImGui::ButtonDisablable("Receive", {}, !messageSelected.received || messageSelected.type != Message::FileBroadcast || !hasFileSharingSupport)) {
                     auto broadcastInfo = parseBroadcastInfo(messageSelected.data);
 
                     g_remoteIP = broadcastInfo.ip;

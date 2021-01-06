@@ -68,6 +68,7 @@ if (GGWAVE_SUPPORT_SDL2)
         # emscripten sdl2 examples
 
         add_subdirectory(ggwave-wasm)
+        add_subdirectory(waver)
     else()
         # non-emscripten sdl2 examples
 

@@ -37,6 +37,10 @@
                 <h2>Waver: Data Over Sound</h2>
 
                 <div id="container_status" align="center">
+                    Loading WebAssembly module - please wait ...
+                </div>
+                <div id="container_button" align="center">
+                    <br>
                     <button onClick="doInit()" id="butInit" style="width:60px;height:30px;" disabled>Init</button>
                 </div>
             </div>
@@ -102,6 +106,9 @@
             }
 
             function init() {
+                document.getElementById('container_status').innerHTML = "WebAssembly module initialized successfully! Press the Init button to start:"
+                document.getElementById('container_status').style.color = "#00ff00";
+
                 document.getElementById("butInit").disabled = false;
 
                 window.addEventListener('keydown', onkeydown, true);
@@ -123,10 +130,10 @@
 
                 if (isInitialized == false) {
                     Module._do_init();
-                    var but = document.getElementById("butInit");
-                    but.disabled = true;
-                    //but.hidden = true;
-                    but.parentNode.removeChild(but);
+                    var el = document.getElementById("container_status");
+                    el.parentNode.removeChild(el);
+                    el = document.getElementById("container_button");
+                    el.parentNode.removeChild(el);
                     isInitialized = true;
                 }
 
@@ -174,6 +181,7 @@
                 if (checkSharedArrayBuffer() == false) {
                     document.getElementById('container_status').innerHTML = "It seems your browser does not have SharedArrayBuffer support enabled.<br><br>Try openning this page on a PC with latest Chrome browser.";
                     document.getElementById('container_status').style.color = "#ff0000";
+                    document.getElementById('container_button').hidden = true;
                 }
             };
 

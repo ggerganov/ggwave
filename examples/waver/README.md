@@ -17,6 +17,8 @@ sudo snap install waver
 sudo snap connect waver:audio-record :audio-record
 ```
 
+Run in the browser: https://waver.ggerganov.com
+
 ## How to use
 
 <a href="https://youtu.be/Zcgf77T71QM"><img width="100%" src="../../media/waver-preview0.png"></img></a>

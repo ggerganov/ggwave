@@ -434,7 +434,7 @@ bool isFileBroadcastMessage(const std::string & message) {
     return result;
 }
 
-std::thread initMain() {
+void initMain() {
     g_isRunning = true;
     g_ggWave = GGWave_instance();
 
@@ -488,86 +488,94 @@ std::thread initMain() {
 
         return 0;
     });
+}
+
+void updateCore() {
+    static Input inputCurrent;
+
+    static int lastRxDataLength = 0;
+    static GGWave::TxRxData lastRxData;
+
+    {
+        std::lock_guard<std::mutex> lock(g_buffer.mutex);
+        if (g_buffer.inputCore.update) {
+            inputCurrent = std::move(g_buffer.inputCore);
+            g_buffer.inputCore.update = false;
+        }
+    }
+
+    if (inputCurrent.update) {
+        g_ggWave->init(
+                (int) inputCurrent.message.data.size(),
+                inputCurrent.message.data.data(),
+                g_ggWave->getTxProtocols()[inputCurrent.message.protocolId],
+                100*inputCurrent.message.volume);
+
+        inputCurrent.update = false;
+    }
+
+    GGWave_mainLoop();
+
+    lastRxDataLength = g_ggWave->takeRxData(lastRxData);
+    if (lastRxDataLength == -1) {
+        g_buffer.stateCore.update = true;
+        g_buffer.stateCore.flags.newMessage = true;
+        g_buffer.stateCore.message = {
+            true,
+            std::chrono::system_clock::now(),
+            "",
+            g_ggWave->getRxProtocolId(),
+            0,
+            Message::Error,
+        };
+    } else if (lastRxDataLength > 0) {
+        auto message = std::string((char *) lastRxData.data(), lastRxDataLength);
+        const Message::Type type = isFileBroadcastMessage(message) ? Message::FileBroadcast : Message::Text;
+        g_buffer.stateCore.update = true;
+        g_buffer.stateCore.flags.newMessage = true;
+        g_buffer.stateCore.message = {
+            true,
+            std::chrono::system_clock::now(),
+            std::move(message),
+            g_ggWave->getRxProtocolId(),
+            0,
+            type,
+        };
+    }
+
+    if (g_ggWave->takeSpectrum(g_buffer.stateCore.spectrum)) {
+        g_buffer.stateCore.update = true;
+        g_buffer.stateCore.flags.newSpectrum = true;
+    }
+
+    if (g_ggWave->takeTxAmplitudeData16(g_buffer.stateCore.txAmplitudeData)) {
+        g_buffer.stateCore.update = true;
+        g_buffer.stateCore.flags.newTxAmplitudeData = true;
+    }
+
+    if (true) {
+        g_buffer.stateCore.update = true;
+        g_buffer.stateCore.flags.newStats = true;
+        g_buffer.stateCore.stats.isReceiving = g_ggWave->isReceiving();
+        g_buffer.stateCore.stats.isAnalyzing = g_ggWave->isAnalyzing();
+        g_buffer.stateCore.stats.framesToRecord = g_ggWave->getFramesToRecord();
+        g_buffer.stateCore.stats.framesLeftToRecord = g_ggWave->getFramesLeftToRecord();
+        g_buffer.stateCore.stats.framesToAnalyze = g_ggWave->getFramesToAnalyze();
+        g_buffer.stateCore.stats.framesLeftToAnalyze = g_ggWave->getFramesLeftToAnalyze();
+    }
+
+    {
+        std::lock_guard<std::mutex> lock(g_buffer.mutex);
+        g_buffer.stateCore.apply(g_buffer.stateUI);
+    }
+}
+
+std::thread initMainAndRunCore() {
+    initMain();
 
     return std::thread([&]() {
-        Input inputCurrent;
-
-        int lastRxDataLength = 0;
-        GGWave::TxRxData lastRxData;
-
         while (g_isRunning) {
-            {
-                std::lock_guard<std::mutex> lock(g_buffer.mutex);
-                if (g_buffer.inputCore.update) {
-                    inputCurrent = std::move(g_buffer.inputCore);
-                    g_buffer.inputCore.update = false;
-                }
-            }
-
-            if (inputCurrent.update) {
-                g_ggWave->init(
-                        (int) inputCurrent.message.data.size(),
-                        inputCurrent.message.data.data(),
-                        g_ggWave->getTxProtocols()[inputCurrent.message.protocolId],
-                        100*inputCurrent.message.volume);
-
-                inputCurrent.update = false;
-            }
-
-            GGWave_mainLoop();
-
-            lastRxDataLength = g_ggWave->takeRxData(lastRxData);
-            if (lastRxDataLength == -1) {
-                g_buffer.stateCore.update = true;
-                g_buffer.stateCore.flags.newMessage = true;
-                g_buffer.stateCore.message = {
-                    true,
-                    std::chrono::system_clock::now(),
-                    "",
-                    g_ggWave->getRxProtocolId(),
-                    0,
-                    Message::Error,
-                };
-            } else if (lastRxDataLength > 0) {
-                auto message = std::string((char *) lastRxData.data(), lastRxDataLength);
-                const Message::Type type = isFileBroadcastMessage(message) ? Message::FileBroadcast : Message::Text;
-                g_buffer.stateCore.update = true;
-                g_buffer.stateCore.flags.newMessage = true;
-                g_buffer.stateCore.message = {
-                    true,
-                    std::chrono::system_clock::now(),
-                    std::move(message),
-                    g_ggWave->getRxProtocolId(),
-                    0,
-                    type,
-                };
-            }
-
-            if (g_ggWave->takeSpectrum(g_buffer.stateCore.spectrum)) {
-                g_buffer.stateCore.update = true;
-                g_buffer.stateCore.flags.newSpectrum = true;
-            }
-
-            if (g_ggWave->takeTxAmplitudeData16(g_buffer.stateCore.txAmplitudeData)) {
-                g_buffer.stateCore.update = true;
-                g_buffer.stateCore.flags.newTxAmplitudeData = true;
-            }
-
-            if (true) {
-                g_buffer.stateCore.update = true;
-                g_buffer.stateCore.flags.newStats = true;
-                g_buffer.stateCore.stats.isReceiving = g_ggWave->isReceiving();
-                g_buffer.stateCore.stats.isAnalyzing = g_ggWave->isAnalyzing();
-                g_buffer.stateCore.stats.framesToRecord = g_ggWave->getFramesToRecord();
-                g_buffer.stateCore.stats.framesLeftToRecord = g_ggWave->getFramesLeftToRecord();
-                g_buffer.stateCore.stats.framesToAnalyze = g_ggWave->getFramesToAnalyze();
-                g_buffer.stateCore.stats.framesLeftToAnalyze = g_ggWave->getFramesLeftToAnalyze();
-            }
-
-            {
-                std::lock_guard<std::mutex> lock(g_buffer.mutex);
-                g_buffer.stateCore.apply(g_buffer.stateUI);
-            }
+            updateCore();
 
             std::this_thread::sleep_for(std::chrono::milliseconds(1));
         }

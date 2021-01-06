@@ -5,7 +5,9 @@
 #include <thread>
 #include <vector>
 
-std::thread initMain();
+std::thread initMainAndRunCore();
+void initMain();
+void updateCore();
 void renderMain();
 void deinitMain(std::thread & worker);
 

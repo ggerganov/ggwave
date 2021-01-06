@@ -297,7 +297,11 @@ int main(int argc, char** argv) {
             return false;
         }
 
-        worker = initMain();
+#ifdef __EMSCRIPTEN__
+        initMain();
+#else
+        worker = initMainAndRunCore();
+#endif
 
         isInitialized = true;
 
@@ -319,6 +323,9 @@ int main(int argc, char** argv) {
 
         renderMain();
         updateMain();
+#ifdef __EMSCRIPTEN__
+        updateCore();
+#endif
 
         ImGui_EndFrame(window);
 

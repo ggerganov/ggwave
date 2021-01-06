@@ -28,7 +28,9 @@ You can easily test the library using the `waver` application:
 <img alt="Get it from the Snap Store" src="https://snapcraft.io/static/images/badges/en/snap-store-black.svg" height="60px"/>
 </a>
 
-**Browser demo:** https://ggwave.ggerganov.com
+**Browser demos:**
+ - https://waver.ggerganov.com
+ - https://ggwave.ggerganov.com
 
 ### Modulation (Tx)
 

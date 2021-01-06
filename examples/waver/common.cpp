@@ -438,7 +438,13 @@ std::thread initMain() {
     g_isRunning = true;
     g_ggWave = GGWave_instance();
 
+#ifdef __EMSCRIPTEN__
+    GGSock::FileServer::Parameters p;
+    p.nWorkerThreads = 0;
+    g_fileServer.init(p);
+#else
     g_fileServer.init({});
+#endif
 
     g_fileClient.setErrorCallback([](GGSock::Communicator::TErrorCode code) {
         printf("Disconnected with code = %d\n", code);
@@ -664,6 +670,13 @@ void renderMain() {
     static bool lastMouseButtonLeft = 0;
     static bool isTextInput = false;
     static bool scrollMessagesToBottom = true;
+    static bool hasAudioCaptureData = false;
+    static bool hasNewMessages = false;
+#ifdef __EMSCRIPTEN__
+    static bool hasFileSharingSupport = false;
+#else
+    static bool hasFileSharingSupport = true;
+#endif
 
     static double tStartInput = 0.0f;
     static double tEndInput = -100.0f;
@@ -679,9 +692,11 @@ void renderMain() {
         if (stateCurrent.flags.newMessage) {
             scrollMessagesToBottom = true;
             messageHistory.push_back(std::move(stateCurrent.message));
+            hasNewMessages = true;
         }
         if (stateCurrent.flags.newSpectrum) {
             spectrumCurrent = std::move(stateCurrent.spectrum);
+            hasAudioCaptureData = !spectrumCurrent.empty();
         }
         if (stateCurrent.flags.newTxAmplitudeData) {
             txAmplitudeDataCurrent = std::move(stateCurrent.txAmplitudeData);
@@ -750,18 +765,41 @@ void renderMain() {
     }
     ImGui::SameLine();
 
-    if (ImGui::ButtonSelectable(ICON_FA_COMMENT_ALT "  Messages", { 0.35f*ImGui::GetContentRegionAvailWidth(), menuButtonHeight }, windowId == WindowId::Messages)) {
-        windowId = WindowId::Messages;
+    {
+        auto posSave = ImGui::GetCursorScreenPos();
+        if (ImGui::ButtonSelectable(ICON_FA_COMMENT_ALT "  Messages", { 0.35f*ImGui::GetContentRegionAvailWidth(), menuButtonHeight }, windowId == WindowId::Messages)) {
+            windowId = WindowId::Messages;
+        }
+        auto radius = 0.3f*ImGui::GetTextLineHeight();
+        posSave.x += 2.0f*radius;
+        posSave.y += 2.0f*radius;
+        if (hasNewMessages) {
+            ImGui::GetWindowDrawList()->AddCircleFilled(posSave, radius, ImGui::ColorConvertFloat4ToU32({ 1.0f, 0.0f, 0.0f, 1.0f }), 16);
+        }
     }
     ImGui::SameLine();
 
-    if (ImGui::ButtonSelectable(ICON_FA_FILE "  Files", { 0.40f*ImGui::GetContentRegionAvailWidth(), menuButtonHeight }, windowId == WindowId::Files)) {
+    if (!hasFileSharingSupport) {
+        ImGui::ButtonDisabled(ICON_FA_FILE "  Files", { 0.40f*ImGui::GetContentRegionAvailWidth(), menuButtonHeight });
+        if (ImGui::IsItemHovered()) {
+            ImGui::BeginTooltip();
+            ImGui::Text("File sharing is not supported on this platform!");
+            ImGui::EndTooltip();
+        }
+    } else if (ImGui::ButtonSelectable(ICON_FA_FILE "  Files", { 0.40f*ImGui::GetContentRegionAvailWidth(), menuButtonHeight }, windowId == WindowId::Files)) {
         windowId = WindowId::Files;
     }
     ImGui::SameLine();
 
-    if (ImGui::ButtonSelectable(ICON_FA_SIGNAL "  Spectrum", { 1.0f*ImGui::GetContentRegionAvailWidth(), menuButtonHeight }, windowId == WindowId::Spectrum)) {
-        windowId = WindowId::Spectrum;
+    {
+        auto posSave = ImGui::GetCursorScreenPos();
+        if (ImGui::ButtonSelectable(ICON_FA_SIGNAL "  Spectrum", { 1.0f*ImGui::GetContentRegionAvailWidth(), menuButtonHeight }, windowId == WindowId::Spectrum)) {
+            windowId = WindowId::Spectrum;
+        }
+        auto radius = 0.3f*ImGui::GetTextLineHeight();
+        posSave.x += 2.0f*radius;
+        posSave.y += 2.0f*radius;
+        ImGui::GetWindowDrawList()->AddCircleFilled(posSave, radius, hasAudioCaptureData ? ImGui::ColorConvertFloat4ToU32({ 0.0f, 1.0f, 0.0f, 1.0f }) : ImGui::ColorConvertFloat4ToU32({ 1.0f, 0.0f, 0.0f, 1.0f }), 16);
     }
 
     if (windowId == WindowId::Settings) {
@@ -864,6 +902,8 @@ void renderMain() {
         const float messagesInputHeight = 2*ImGui::GetTextLineHeightWithSpacing();
         const float messagesHistoryHeigthMax = ImGui::GetContentRegionAvail().y - messagesInputHeight - 2.0f*style.ItemSpacing.x;
         float messagesHistoryHeigth = messagesHistoryHeigthMax;
+
+        hasNewMessages = false;
 
         // no automatic screen resize support for iOS
 #if defined(IOS) || defined(ANDROID)
@@ -1008,7 +1048,7 @@ void renderMain() {
                 ImGui::TextDisabled("|");
 
                 ImGui::SameLine();
-                if (ImGui::ButtonDisablable("Receive", {}, !messageSelected.received || messageSelected.type != Message::FileBroadcast)) {
+                if (ImGui::ButtonDisablable("Receive", {}, !messageSelected.received || messageSelected.type != Message::FileBroadcast || !hasFileSharingSupport)) {
                     auto broadcastInfo = parseBroadcastInfo(messageSelected.data);
 
                     g_remoteIP = broadcastInfo.ip;
@@ -1444,7 +1484,7 @@ void renderMain() {
             ImGui::Text("FPS: %4.2f\n", ImGui::GetIO().Framerate);
             ImGui::SetCursorScreenPos(posSave);
         }
-        if (spectrumCurrent.empty() == false) {
+        if (hasAudioCaptureData) {
             auto wSize = ImGui::GetContentRegionAvail();
             ImGui::PushStyleColor(ImGuiCol_FrameBg, { 0.3f, 0.3f, 0.3f, 0.3f });
             if (statsCurrent.isReceiving) {

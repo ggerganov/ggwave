@@ -2,6 +2,11 @@
 
 #include "ggwave-common.h"
 
+#ifdef __EMSCRIPTEN__
+#include "build_timestamp.h"
+#include "emscripten/emscripten.h"
+#endif
+
 #include <imgui-extra/imgui_impl.h>
 
 #include <SDL.h>
@@ -19,6 +24,9 @@ void dummy() {}
 }
 
 std::string getBinaryPath() {
+#ifdef __EMSCRIPTEN__
+    return "";
+#endif
     std::string result;
     void* p = reinterpret_cast<void*>(dummy);
 
@@ -116,8 +124,8 @@ bool ImGui_EndFrame(SDL_Window * window) {
 bool ImGui_SetStyle() {
     ImGuiStyle & style = ImGui::GetStyle();
 
-    style.AntiAliasedFill = false;
-    style.AntiAliasedLines = false;
+    style.AntiAliasedFill = true;
+    style.AntiAliasedLines = true;
     style.WindowRounding = 0.0f;
 
     style.WindowPadding = ImVec2(8, 8);
@@ -179,15 +187,41 @@ bool ImGui_SetStyle() {
     return true;
 }
 
+static std::function<bool()> g_doInit;
+static std::function<void(int, int)> g_setWindowSize;
+static std::function<bool()> g_mainUpdate;
+
+void mainUpdate(void *) {
+    g_mainUpdate();
+}
+
+// JS interface
+
+extern "C" {
+    EMSCRIPTEN_KEEPALIVE
+        int do_init() {
+            return g_doInit();
+        }
+
+    EMSCRIPTEN_KEEPALIVE
+        void set_window_size(int sizeX, int sizeY) {
+            g_setWindowSize(sizeX, sizeY);
+        }
+}
+
 int main(int argc, char** argv) {
+#ifdef __EMSCRIPTEN__
+    printf("Build time: %s\n", BUILD_TIMESTAMP);
+    printf("Press the Init button to start\n");
+
+    if (argv[1]) {
+        GGWave_setDefaultCaptureDeviceName(argv[1]);
+    }
+#endif
+
     auto argm = parseCmdArguments(argc, argv);
     int captureId = argm["c"].empty() ? 0 : std::stoi(argm["c"]);
     int playbackId = argm["p"].empty() ? 0 : std::stoi(argm["p"]);
-
-    if (GGWave_init(playbackId, captureId) == false) {
-        fprintf(stderr, "Failed to initialize GGWave\n");
-        return -1;
-    }
 
     if (SDL_Init(SDL_INIT_VIDEO) != 0) {
         fprintf(stderr, "Error: %s\n", SDL_GetError());
@@ -207,8 +241,15 @@ int main(int argc, char** argv) {
 
     const char * windowTitle = "Waver";
 
+#ifdef __EMSCRIPTEN__
+    SDL_Renderer * renderer;
+    SDL_Window * window;
+    SDL_CreateWindowAndRenderer(windowX, windowY, SDL_WINDOW_OPENGL, &window, &renderer);
+#else
     SDL_WindowFlags window_flags = (SDL_WindowFlags)(SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI);
     SDL_Window * window = SDL_CreateWindow(windowTitle, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, windowX, windowY, window_flags);
+#endif
+
     void * gl_context = SDL_GL_CreateContext(window);
 
     SDL_GL_MakeCurrent(window, gl_context);
@@ -216,6 +257,7 @@ int main(int argc, char** argv) {
 
     ImGui_Init(window, gl_context);
     ImGui::GetIO().IniFilename = nullptr;
+    ImGui::GetIO().Fonts->AddFontFromFileTTF((getBinaryPath() + "DroidSans.ttf").c_str(), 14.0f);
     ImGui::GetIO().Fonts->AddFontFromFileTTF((getBinaryPath() + "../examples/assets/fonts/DroidSans.ttf").c_str(), 14.0f);
     ImGui::GetIO().Fonts->AddFontFromFileTTF((getBinaryPath() + "../../examples/assets/fonts/DroidSans.ttf").c_str(), 14.0f);
 
@@ -226,6 +268,7 @@ int main(int argc, char** argv) {
         config.MergeMode = true;
         config.GlyphOffset = { 0.0f, 0.0f };
 
+        ImGui::GetIO().Fonts->AddFontFromFileTTF((getBinaryPath() + "fontawesome-webfont.ttf").c_str(), 14.0f, &config, ranges);
         ImGui::GetIO().Fonts->AddFontFromFileTTF((getBinaryPath() + "../examples/assets/fonts/fontawesome-webfont.ttf").c_str(), 14.0f, &config, ranges);
         ImGui::GetIO().Fonts->AddFontFromFileTTF((getBinaryPath() + "../../examples/assets/fonts/fontawesome-webfont.ttf").c_str(), 14.0f, &config, ranges);
     }
@@ -237,22 +280,58 @@ int main(int argc, char** argv) {
     ImGui_NewFrame(window);
     ImGui::Render();
 
-    auto worker = initMain();
-
     // tmp
     //addFile("test0.raw", "test0.raw", std::vector<char>(1024));
     //addFile("test1.jpg", "test0.jpg", std::vector<char>(1024*1024 + 624));
     //addFile("test2.mpv", "test0.mov", std::vector<char>(1024*1024*234 + 53827));
 
-    while (true) {
+    bool isInitialized = false;
+    std::thread worker;
+
+    g_doInit = [&]() {
+        if (GGWave_init(playbackId, captureId) == false) {
+            fprintf(stderr, "Failed to initialize GGWave\n");
+            return false;
+        }
+
+        worker = initMain();
+
+        isInitialized = true;
+
+        return true;
+    };
+
+    g_setWindowSize = [&](int sizeX, int sizeY) {
+        SDL_SetWindowSize(window, sizeX, sizeY);
+    };
+
+    g_mainUpdate = [&]() {
+        if (isInitialized == false) {
+            return true;
+        }
+
         if (ImGui_BeginFrame(window) == false) {
-            break;
+            return false;
         }
 
         renderMain();
         updateMain();
 
         ImGui_EndFrame(window);
+
+        return true;
+    };
+
+#ifdef __EMSCRIPTEN__
+    emscripten_set_main_loop_arg(mainUpdate, NULL, 0, true);
+#else
+    if (g_doInit() == false) {
+        printf("Error: failed to initialize audio\n");
+        return -2;
+    }
+
+    while (true) {
+        if (g_mainUpdate() == false) break;
     }
 
     deinitMain(worker);
@@ -265,6 +344,7 @@ int main(int argc, char** argv) {
     SDL_GL_DeleteContext(gl_context);
     SDL_DestroyWindow(window);
     SDL_Quit();
+#endif
 
     return 0;
 }

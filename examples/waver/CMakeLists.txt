@@ -18,9 +18,15 @@ if (EMSCRIPTEN)
         ${CMAKE_THREAD_LIBS_INIT}
         )
 
+    set_target_properties(${TARGET} PROPERTIES LINK_FLAGS " \
+    -s FORCE_FILESYSTEM=1 \
+    --preload-file ${CMAKE_CURRENT_SOURCE_DIR}/../assets/fonts@/ \
+    ")
+
+    configure_file(${CMAKE_CURRENT_SOURCE_DIR}/build_timestamp.h.tmpl ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${TARGET}/build_timestamp.h @ONLY)
     configure_file(${CMAKE_CURRENT_SOURCE_DIR}/index-tmpl.html ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${TARGET}/index.html @ONLY)
     configure_file(${CMAKE_CURRENT_SOURCE_DIR}/style.css ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${TARGET}/style.css COPYONLY)
-    configure_file(${CMAKE_CURRENT_SOURCE_DIR}/main.js ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${TARGET}/main.js COPYONLY)
+    configure_file(${CMAKE_CURRENT_SOURCE_DIR}/background-0.png ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${TARGET}/background-0.png COPYONLY)
 else()
     add_executable(${TARGET} main.cpp common.cpp interface.cpp interface-unix.cpp)
 

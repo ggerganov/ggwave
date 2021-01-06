@@ -1,4 +1,5 @@
 body {
+    background-image: url('background-0.png');
     margin: 0; background-color: white;
     -webkit-font-smoothing: subpixel-antialiased;
     font-smoothing: subpixel-antialiased;
@@ -43,7 +44,7 @@ body {
 
 #main-container {
 	font-size:12px;
-	font-family: monospace;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
 }
 
 textarea {
@@ -52,10 +53,13 @@ textarea {
 }
 
 .emscripten { padding-right: 0; margin-left: auto; margin-right: auto; display: block; }
-div.emscripten { text-align: center; }
 div.emscripten_border { border: 1px solid black; }
 
-canvas.emscripten { border: 0px none; background-color: black; }
+canvas.emscripten {
+    border: 0px none;
+    background-color: black;
+    text-shadow: 4px 4px #1f1f1fb4;
+}
 
 .spinner {
 	height: 30px;
@@ -276,4 +280,45 @@ table {
 table {
     border-collapse: separate;
     border-spacing: 2px;
+}
+
+#description {
+    margin: 10px;
+    padding: 10px;
+    color: rgba(255, 255, 255, 1.00);
+    text-shadow: 2px 2px #1f1f1fb4;
+}
+.text-body {
+    color: rgba(255, 255, 255, 1.00);
+    text-shadow: 2px 2px #1f1f1fb4;
+}
+.cell-version {
+    padding-left: 4px;
+    padding-top: 0.5em;
+    text-align: left;
+    display: inline-block;
+    float: left;
+    color: rgba(255, 255, 255, 0.75);
+    text-shadow: 2px 2px #1f1f1fb4;
+}
+.cell-about {
+    padding-right: 24px;
+    padding-top: 0.5em;
+    text-align: right;
+    display: inline-block;
+    float: right;
+}
+.nav-link {
+    text-decoration: none;
+    color: rgba(255, 255, 255, 1.0);
+    text-shadow: 2px 2px #1f1f1fb4;
+}
+.nav-link2 {
+    text-decoration: none;
+    color: rgba(0, 255, 0, 1.0);
+    text-shadow: 2px 2px #1f1f1fb4;
+}
+svg {
+    -webkit-filter: invert(100%); /* safari 6.0 - 9.0 */
+    filter: invert(100%);
 }

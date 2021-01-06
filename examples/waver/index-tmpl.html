@@ -2,14 +2,14 @@
 <html lang="en-us">
     <head>
         <meta charset="utf-8">
-        <title>keytap2</title>
+        <title>Waver</title>
 
         <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no"/>
 
         <meta name="twitter:card" content="summary_large_image">
-        <meta name="twitter:title" content="keytap2" />
-        <meta name="twitter:description" content="Emscripten port of keytap2" />
-        <meta name="twitter:image" content="https://keytap2.ggerganov.com/keytap2.png" />
+        <meta name="twitter:title" content="waver" />
+        <meta name="twitter:description" content="Emscripten port of Waver" />
+        <meta name="twitter:image" content="https://waver.ggerganov.com/waver.png" />
 
         <link rel="apple-touch-icon" sizes="57x57" href="/apple-icon-57x57.png">
         <link rel="apple-touch-icon" sizes="60x60" href="/apple-icon-60x60.png">
@@ -33,48 +33,28 @@
     </head>
     <body>
         <div id="main-controls">
-            <div id="description">
-                <h2> Keytap2 - acoustic keyboard eavesdropping based on language n-gram frequencies</h2>
+            <div id="description" align="center">
+                <h2>Waver: Data Over Sound</h2>
 
-                <span class="text-body">
-                    This is a proof-of-concept of an attack for recovering the contents of an unknown text just by analyzing the audio from the keyboard strokes.<br>
-                    No prior training is required.
-
-                    <br><br>
-
-                    Assumptions and requirements:
-                    <ul>
-                        <li>The text is in English</li>
-                        <li>At least 100 characters of meaningful text are typed</li>
-                        <li>Only letters ("a" - "z") and the "Space" keys are pressed (i.e. no Backspace, Shift, numbers, etc.)</li>
-                        <li>Noisy mechanical keyboard</li>
-                        <li>Microphone in the nearby vicinity of the keyboard</li>
-                    </ul>
-
-                    <br>
-
-                    To run this program in the browser you will need support for pthreads with WebAssembly (i.e. Chrome or Firefox Nightly).<br>
-                    To enable WebAssembly pthreads and SharedArrayBuffer support, check this <a href="https://github.com/kripken/emscripten/wiki/Pthreads-with-WebAssembly/">page</a>.<br>
-                    <br>
-                    Press the "Init" button to start:
-                </span>
-
-                <div align="center">
+                <div id="container_status" align="center">
                     <button onClick="doInit()" id="butInit" style="width:60px;height:30px;" disabled>Init</button>
                 </div>
             </div>
-            <canvas class="emscripten" id="canvas" oncontextmenu="event.preventDefault()" hidden></canvas>
+            <div id="container_canvas" hidden>
+                <canvas class="emscripten" id="canvas" oncontextmenu="event.preventDefault()"></canvas>
+            </div>
+            <br>
         </div>
 
         <div id="footer" class="cell-version">
             <span>
                 Build time: <span class="nav-link">@GIT_DATE@</span> |
-                Commit hash: <a class="nav-link" href="https://github.com/ggerganov/kbd-audio/commit/@GIT_SHA1@">@GIT_SHA1@</a> |
+                Commit hash: <a class="nav-link" href="https://github.com/ggerganov/ggwave/commit/@GIT_SHA1@">@GIT_SHA1@</a> |
                 Commit subject: <span class="nav-link">@GIT_COMMIT_SUBJECT@</span> |
             </span>
         </div>
         <div class="cell-about">
-            <a class="nav-link" href="https://github.com/ggerganov/kbd-audio"><span class="d-none d-sm-inline">View on GitHub </span>
+            <a class="nav-link" href="https://github.com/ggerganov/ggwave/tree/master/examples/waver"><span class="d-none d-sm-inline">View on GitHub </span>
                 <svg version="1.1" width="16" height="16" viewBox="0 0 16 16" class="octicon octicon-mark-github" aria-hidden="true"><path fill-rule="evenodd" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0 0 16 8c0-4.42-3.58-8-8-8z"></path></svg>
             </a>
         </div>
@@ -89,44 +69,42 @@
             var isMobile = mobilecheck();
             var isInitialized = false;
 
-            var screenX = -1;
-            var screenY = -1;
-
-            var oldOutputId = 0;
-
             window.setInterval(function(){
                     if (isInitialized == false) return;
-                    var w = window,
-                        d = document,
-                        e = d.documentElement,
-                        g = d.getElementsByTagName('body')[0],
-                        x = w.innerWidth || e.clientWidth || g.clientWidth,
-                        y = w.innerHeight|| e.clientHeight|| g.clientHeight;
-                    Module._set_window_size(0.99*x, y - 1.40*document.getElementById('footer').clientHeight);
+                    //var w = window,
+                    //    d = document,
+                    //    e = d.documentElement,
+                    //    g = d.getElementsByTagName('body')[0],
+                    //    x = w.innerWidth || e.clientWidth || g.clientWidth,
+                    //    y = w.innerHeight|| e.clientHeight|| g.clientHeight;
+                    //Module._set_window_size(0.99*x, y - 1.40*document.getElementById('footer').clientHeight);
             }, 500);
 
             function checkLoop() {
-                var outputId = Module._get_output_id();
-                if (outputId != oldOutputId) {
-                    offerFileAsDownload('record.kbd', 'mime/type');
-                    oldOutputId = outputId;
+                setTimeout(checkLoop, 100);
+            }
+
+            function checkSharedArrayBuffer() {
+                try {
+                    var a = SharedArrayBuffer;
+                } catch (e) {
+                    console.log(e instanceof ReferenceError); // true
+                    return false;
                 }
 
-                setTimeout(checkLoop, 100);
+                return true;
+            }
+
+            function onkeydown(event) {
+                if (event.keyCode >= 112 && event.keyCode <= 123) {
+                    event.stopImmediatePropagation();
+                }
             }
 
             function init() {
                 document.getElementById("butInit").disabled = false;
 
-                document.getElementById("canvas").addEventListener("dragover", (event) => {
-                    event.preventDefault();
-                });
-
-                document.getElementById("canvas").addEventListener("drop", (event) => {
-                    event.preventDefault();
-
-                    dropHandler(event);
-                });
+                window.addEventListener('keydown', onkeydown, true);
 
                 setTimeout(checkLoop, 100);
                 //window.requestAnimationFrame(renderFrame);
@@ -143,16 +121,16 @@
                     }
                 };
 
-                let mediaInput = navigator.mediaDevices.getUserMedia( constraints );
-
                 if (isInitialized == false) {
                     Module._do_init();
-                    document.getElementById("butInit").disabled = true;
-                    document.getElementById("description").hidden = true;
+                    var but = document.getElementById("butInit");
+                    but.disabled = true;
+                    //but.hidden = true;
+                    but.parentNode.removeChild(but);
                     isInitialized = true;
                 }
 
-                var x = document.getElementById("canvas");
+                var x = document.getElementById("container_canvas");
                 x.hidden = false;
             }
 
@@ -160,60 +138,8 @@
             //    window.requestAnimationFrame(renderFrame);
             //}
 
-            function dropHandler(event) {
-                // Prevent default behavior (Prevent file from being opened)
-                event.preventDefault();
-
-                // fetch FileList object
-                var files = event.target.files || event.dataTransfer.files;
-
-                // process all File objects
-                for (var i = 0, f; f = files[i]; i++) {
-                    ParseFile(f);
-                }
-            }
-
-            function ParseFile(file) {
-                console.log(
-                        "<p>File information: <strong>" + file.name +
-                        "</strong> type: <strong>" + file.type +
-                        "</strong> size: <strong>" + file.size +
-                        "</strong> bytes</p>"
-                );
-
-                var reader = new FileReader();
-                reader.onload = function(event) {
-                    var buf = new Uint8Array(reader.result);
-                    var stream = FS.open("record.kbd", "w");
-                    FS.write(stream, buf, 0, buf.length, 0);
-                    FS.close(stream);
-
-                    Module._do_reload();
-                }
-                reader.readAsArrayBuffer(file);
-            }
-
-            function offerFileAsDownload(filename, mime) {
-                mime = mime || "application/octet-stream";
-
-                let content = FS.readFile(filename);
-                console.log(`Offering download of "${filename}", with ${content.length} bytes...`);
-
-                var a = document.createElement('a');
-                a.download = filename;
-                a.href = URL.createObjectURL(new Blob([content], {type: mime}));
-                a.style.display = 'none';
-
-                document.body.appendChild(a);
-                a.click();
-                setTimeout(() => {
-                    document.body.removeChild(a);
-                    URL.revokeObjectURL(a.href);
-                }, 2000);
-            }
-
             var Module = {
-                arguments: ["record.kbd", "./data"],
+                arguments: [],
                 preRun: [(function() {
                 }) ],
                 postRun: [(function () {
@@ -222,7 +148,6 @@
                 ],
                 canvas: (function() {
                     var canvas = document.getElementById('canvas');
-                    //canvas.style.marginLeft = "-230px";
                     canvas.addEventListener("webglcontextlost", function(e) { alert('WebGL context lost. You will need to reload the page.'); e.preventDefault(); }, false);
 
                     return canvas;
@@ -245,11 +170,15 @@
                 }
             };
             window.onerror = function() {
-                console.log("onerror: " + event);
+                console.log("onerror: " + JSON.stringify(event));
+                if (checkSharedArrayBuffer() == false) {
+                    document.getElementById('container_status').innerHTML = "It seems your browser does not have SharedArrayBuffer support enabled.<br><br>Try openning this page on a PC with latest Chrome browser.";
+                    document.getElementById('container_status').style.color = "#ff0000";
+                }
             };
 
         </script>
 
-        <script async type="text/javascript" src="keytap2-gui.js"></script>
+        <script async type="text/javascript" src="waver.js"></script>
     </body>
 </html>

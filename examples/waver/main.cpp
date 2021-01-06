@@ -116,8 +116,8 @@ bool ImGui_EndFrame(SDL_Window * window) {
 bool ImGui_SetStyle() {
     ImGuiStyle & style = ImGui::GetStyle();
 
-    style.AntiAliasedFill = false;
-    style.AntiAliasedLines = false;
+    style.AntiAliasedFill = true;
+    style.AntiAliasedLines = true;
     style.WindowRounding = 0.0f;
 
     style.WindowPadding = ImVec2(8, 8);

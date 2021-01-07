@@ -21,6 +21,8 @@ Run in the browser: https://waver.ggerganov.com
 
 ## How to use
 
+Click on the gif to watch a ~2 min Youtube video:
+
 <a href="https://youtu.be/Zcgf77T71QM"><img width="100%" src="../../media/waver-preview1.gif"></img></a>
 
 - Before starting - make sure the speaker of your device is enabled and disconnect/unplug any headphones. The app uses your device's speaker to emit sounds when sending a text message

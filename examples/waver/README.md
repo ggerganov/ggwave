@@ -1,4 +1,4 @@
-# waver
+# Waver
 
 Waver allows you to send and receive text messages from nearby devices through sound waves.
 

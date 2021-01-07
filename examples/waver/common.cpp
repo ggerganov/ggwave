@@ -438,13 +438,13 @@ void initMain() {
     g_isRunning = true;
     g_ggWave = GGWave_instance();
 
-#ifdef __EMSCRIPTEN__
     GGSock::FileServer::Parameters p;
+#ifdef __EMSCRIPTEN__
     p.nWorkerThreads = 0;
-    g_fileServer.init(p);
 #else
-    g_fileServer.init({});
+    p.nWorkerThreads = 2;
 #endif
+    g_fileServer.init(p);
 
     g_fileClient.setErrorCallback([](GGSock::Communicator::TErrorCode code) {
         printf("Disconnected with code = %d\n", code);

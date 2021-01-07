@@ -70,7 +70,7 @@
     waver:
       command-chain: ["snap/command-chain/alsa-launch"]
       command: bin/waver
-      plugs: [unity7, opengl, alsa, audio-playback, audio-record, network, network-bind]
+      plugs: [unity7, opengl, alsa, audio-playback, audio-record, network, network-bind, home, remote-media]
 
   environment:
     ALWAYS_USE_PULSEAUDIO: '1'

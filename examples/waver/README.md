@@ -39,3 +39,7 @@ As of v1.3.0 Waver supports file sharing. It works like this:
 - Nearby devices in the same local network can receive this offer and initiate a TCP/IP connection to your device
 - The files are transmitted over TCP/IP. The sound message is used only to initiate the network connections between the devices
 - Waver allows sharing multiple files to multiple devices at once
+
+## Known issues
+
+- The browser version does not support on-screen keyboard on mobile devices, so it is not possible to input messages. Use the mobile app instead

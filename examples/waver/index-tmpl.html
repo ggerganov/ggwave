@@ -180,7 +180,7 @@
             window.onerror = function() {
                 console.log("onerror: " + JSON.stringify(event));
                 if (checkSharedArrayBuffer() == false) {
-                    document.getElementById('container_status').innerHTML = "It seems your browser does not have SharedArrayBuffer support enabled.<br><br>Try openning this page on a PC with latest Chrome browser.";
+                    document.getElementById('container_status').innerHTML = "Failed to load the WebAssembly module.<br><br>Try openning this page on a PC with latest Chrome browser.";
                     document.getElementById('container_status').style.color = "#ff0000";
                     document.getElementById('container_button').hidden = true;
                 }

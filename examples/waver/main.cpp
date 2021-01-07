@@ -14,68 +14,8 @@
 #include <SDL.h>
 #include <SDL_opengl.h>
 
-#include <dlfcn.h>
-#include <unistd.h>
-
-#include <fstream>
 #include <vector>
-#include <iterator>
 #include <functional>
-
-namespace {
-void dummy() {}
-}
-
-std::string getBinaryPath() {
-#ifdef __EMSCRIPTEN__
-    return "";
-#endif
-    std::string result;
-    void* p = reinterpret_cast<void*>(dummy);
-
-    Dl_info info;
-    dladdr(p, &info);
-
-    if (*info.dli_fname == '/') {
-        result = info.dli_fname;
-    } else {
-        char buff[2048];
-        auto len = readlink("/proc/self/exe", buff, sizeof(buff) - 1);
-        if (len > 0) {
-            buff[len] = 0;
-            result = buff;
-        }
-    }
-
-    auto slash = result.rfind('/');
-    if (slash != std::string::npos) {
-        result.erase(slash + 1);
-    }
-
-    return result;
-}
-
-
-std::vector<char> readFile(const char* filename) {
-    std::ifstream file(filename, std::ios::binary);
-    if (!file.is_open() || !file.good()) return {};
-
-    file.unsetf(std::ios::skipws);
-    std::streampos fileSize;
-
-    file.seekg(0, std::ios::end);
-    fileSize = file.tellg();
-    file.seekg(0, std::ios::beg);
-
-    std::vector<char> vec;
-    vec.reserve(fileSize);
-
-    vec.insert(vec.begin(),
-               std::istream_iterator<char>(file),
-               std::istream_iterator<char>());
-
-    return vec;
-}
 
 // ImGui helpers
 
@@ -289,7 +229,6 @@ int main(int argc, char** argv) {
     //addFile("test2.mpv", "test0.mov", std::vector<char>(1024*1024*234 + 53827));
 
     bool isInitialized = false;
-    std::thread worker;
 
     g_doInit = [&]() {
         if (GGWave_init(playbackId, captureId) == false) {
@@ -297,11 +236,7 @@ int main(int argc, char** argv) {
             return false;
         }
 
-#ifdef __EMSCRIPTEN__
         initMain();
-#else
-        worker = initMainAndRunCore();
-#endif
 
         isInitialized = true;
 
@@ -323,9 +258,7 @@ int main(int argc, char** argv) {
 
         renderMain();
         updateMain();
-#ifdef __EMSCRIPTEN__
         updateCore();
-#endif
 
         ImGui_EndFrame(window);
 
@@ -344,7 +277,7 @@ int main(int argc, char** argv) {
         if (g_mainUpdate() == false) break;
     }
 
-    deinitMain(worker);
+    deinitMain();
     GGWave_deinit();
 
     // Cleanup

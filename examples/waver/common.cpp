@@ -14,12 +14,10 @@
 #include <SDL.h>
 
 #include <algorithm>
-#include <atomic>
 #include <cmath>
 #include <cstdio>
 #include <string>
 #include <ctime>
-#include <mutex>
 #include <thread>
 #include <vector>
 #include <sstream>
@@ -188,8 +186,6 @@ struct Input {
 };
 
 struct Buffer {
-    std::mutex mutex;
-
     State stateCore;
     Input inputCore;
 
@@ -197,9 +193,9 @@ struct Buffer {
     Input inputUI;
 };
 
+bool g_isRunning;
 GGWave * g_ggWave;
 Buffer g_buffer;
-std::atomic<bool> g_isRunning;
 
 // file send data
 struct BroadcastInfo {
@@ -497,7 +493,7 @@ void updateCore() {
     static GGWave::TxRxData lastRxData;
 
     {
-        std::lock_guard<std::mutex> lock(g_buffer.mutex);
+        //std::lock_guard<std::mutex> lock(g_buffer.mutex);
         if (g_buffer.inputCore.update) {
             inputCurrent = std::move(g_buffer.inputCore);
             g_buffer.inputCore.update = false;
@@ -565,21 +561,9 @@ void updateCore() {
     }
 
     {
-        std::lock_guard<std::mutex> lock(g_buffer.mutex);
+        //std::lock_guard<std::mutex> lock(g_buffer.mutex);
         g_buffer.stateCore.apply(g_buffer.stateUI);
     }
-}
-
-std::thread initMainAndRunCore() {
-    initMain();
-
-    return std::thread([&]() {
-        while (g_isRunning) {
-            updateCore();
-
-            std::this_thread::sleep_for(std::chrono::milliseconds(1));
-        }
-    });
 }
 
 void renderMain() {
@@ -642,7 +626,7 @@ void renderMain() {
     static State stateCurrent;
 
     {
-        std::lock_guard<std::mutex> lock(g_buffer.mutex);
+        //std::lock_guard<std::mutex> lock(g_buffer.mutex);
         g_buffer.stateUI.apply(stateCurrent);
     }
 
@@ -814,7 +798,7 @@ void renderMain() {
         ImGui::BeginChild("Settings:main", ImGui::GetContentRegionAvail(), true);
         ImGui::Text("%s", "");
         ImGui::Text("%s", "");
-        ImGui::Text("Waver v1.3.1");
+        ImGui::Text("Waver v1.3.2");
         ImGui::Separator();
 
         ImGui::Text("%s", "");
@@ -1521,7 +1505,7 @@ void renderMain() {
     ImGui::GetIO().KeysDown[ImGui::GetIO().KeyMap[ImGuiKey_Enter]] = false;
 
     {
-        std::lock_guard<std::mutex> lock(g_buffer.mutex);
+        //std::lock_guard<std::mutex> lock(g_buffer.mutex);
         if (g_buffer.inputUI.update) {
             g_buffer.inputCore = std::move(g_buffer.inputUI);
             g_buffer.inputUI.update = false;
@@ -1529,7 +1513,6 @@ void renderMain() {
     }
 }
 
-void deinitMain(std::thread & worker) {
+void deinitMain() {
     g_isRunning = false;
-    worker.join();
 }

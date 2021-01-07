@@ -21,7 +21,7 @@ Run in the browser: https://waver.ggerganov.com
 
 ## How to use
 
-<a href="https://youtu.be/Zcgf77T71QM"><img width="100%" src="../../media/waver-preview0.png"></img></a>
+<a href="https://youtu.be/Zcgf77T71QM"><img width="100%" src="../../media/waver-preview1.gif"></img></a>
 
 - Before starting - make sure the speaker of your device is enabled and disconnect/unplug any headphones. The app uses your device's speaker to emit sounds when sending a text message
 - To send a message - tap on "Messages", enter some text at the bottom of the screen and click "Send"

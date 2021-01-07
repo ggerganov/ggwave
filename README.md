@@ -8,7 +8,7 @@ Tiny data-over-sound library.
 
 Click on the images below to hear what it sounds like:
 
-<a href="https://youtu.be/Zcgf77T71QM"><img width="100%" src="media/waver-preview0.png"></img></a>
+<a href="https://youtu.be/Zcgf77T71QM"><img width="100%" src="media/waver-preview1.gif"></img></a>
 
 <a href="https://youtu.be/S2YdGefZiy4"><img width="100%" src="media/ggwave0.gif"></img></a>
 

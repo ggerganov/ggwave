@@ -21,14 +21,16 @@
 // ImGui helpers
 
 bool ImGui_tryLoadFont(const std::string & filename, float size = 14.0f, bool merge = false) {
-    std::ifstream f(filename.c_str());
+    std::ifstream f(filename);
     if (f.good() == false) {
+        printf("XXXXXXXXxxx\n");
         return false;
     }
     if (merge) {
-        ImWchar ranges[] = { 0xf000, 0xf3ff, 0 };
+        // todo : ugly static !!!
+        static ImWchar ranges[] = { 0xf000, 0xf3ff, 0 };
+        static ImFontConfig config;
 
-        ImFontConfig config;
         config.MergeMode = true;
         config.GlyphOffset = { 0.0f, 0.0f };
 

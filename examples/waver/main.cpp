@@ -14,10 +14,30 @@
 #include <SDL.h>
 #include <SDL_opengl.h>
 
+#include <fstream>
 #include <vector>
 #include <functional>
 
 // ImGui helpers
+
+bool ImGui_tryLoadFont(const std::string & filename, float size = 14.0f, bool merge = false) {
+    std::ifstream f(filename.c_str());
+    if (f.good() == false) {
+        return false;
+    }
+    if (merge) {
+        ImWchar ranges[] = { 0xf000, 0xf3ff, 0 };
+
+        ImFontConfig config;
+        config.MergeMode = true;
+        config.GlyphOffset = { 0.0f, 0.0f };
+
+        ImGui::GetIO().Fonts->AddFontFromFileTTF(filename.c_str(), size, &config, ranges);
+    } else {
+        ImGui::GetIO().Fonts->AddFontFromFileTTF(filename.c_str(), size);
+    }
+    return true;
+}
 
 bool ImGui_BeginFrame(SDL_Window * window) {
     SDL_Event event;
@@ -200,21 +220,14 @@ int main(int argc, char** argv) {
 
     ImGui_Init(window, gl_context);
     ImGui::GetIO().IniFilename = nullptr;
-    ImGui::GetIO().Fonts->AddFontFromFileTTF((getBinaryPath() + "DroidSans.ttf").c_str(), 14.0f);
-    ImGui::GetIO().Fonts->AddFontFromFileTTF((getBinaryPath() + "../examples/assets/fonts/DroidSans.ttf").c_str(), 14.0f);
-    ImGui::GetIO().Fonts->AddFontFromFileTTF((getBinaryPath() + "../../examples/assets/fonts/DroidSans.ttf").c_str(), 14.0f);
 
-    {
-        ImWchar ranges[] = { 0xf000, 0xf3ff, 0 };
+    ImGui_tryLoadFont(getBinaryPath() + "DroidSans.ttf", 14.0f, false);
+    ImGui_tryLoadFont(getBinaryPath() + "../examples/assets/fonts/DroidSans.ttf", 14.0f, false);
+    ImGui_tryLoadFont(getBinaryPath() + "../../examples/assets/fonts/DroidSans.ttf", 14.0f, false);
 
-        ImFontConfig config;
-        config.MergeMode = true;
-        config.GlyphOffset = { 0.0f, 0.0f };
-
-        ImGui::GetIO().Fonts->AddFontFromFileTTF((getBinaryPath() + "fontawesome-webfont.ttf").c_str(), 14.0f, &config, ranges);
-        ImGui::GetIO().Fonts->AddFontFromFileTTF((getBinaryPath() + "../examples/assets/fonts/fontawesome-webfont.ttf").c_str(), 14.0f, &config, ranges);
-        ImGui::GetIO().Fonts->AddFontFromFileTTF((getBinaryPath() + "../../examples/assets/fonts/fontawesome-webfont.ttf").c_str(), 14.0f, &config, ranges);
-    }
+    ImGui_tryLoadFont(getBinaryPath() + "fontawesome-webfont.ttf", 14.0f, true);
+    ImGui_tryLoadFont(getBinaryPath() + "../examples/assets/fonts/fontawesome-webfont.ttf", 14.0f, true);
+    ImGui_tryLoadFont(getBinaryPath() + "../../examples/assets/fonts/fontawesome-webfont.ttf", 14.0f, true);
 
     ImGui_SetStyle();
 
@@ -229,6 +242,7 @@ int main(int argc, char** argv) {
     //addFile("test2.mpv", "test0.mov", std::vector<char>(1024*1024*234 + 53827));
 
     bool isInitialized = false;
+    std::thread worker;
 
     g_doInit = [&]() {
         if (GGWave_init(playbackId, captureId) == false) {
@@ -236,7 +250,11 @@ int main(int argc, char** argv) {
             return false;
         }
 
+#ifdef __EMSCRIPTEN__
         initMain();
+#else
+        worker = initMainAndRunCore();
+#endif
 
         isInitialized = true;
 
@@ -258,7 +276,10 @@ int main(int argc, char** argv) {
 
         renderMain();
         updateMain();
+
+#ifdef __EMSCRIPTEN__
         updateCore();
+#endif
 
         ImGui_EndFrame(window);
 
@@ -279,6 +300,8 @@ int main(int argc, char** argv) {
 
     deinitMain();
     GGWave_deinit();
+
+    worker.join();
 
     // Cleanup
     ImGui_Shutdown();

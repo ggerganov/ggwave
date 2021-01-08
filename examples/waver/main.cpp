@@ -23,7 +23,6 @@
 bool ImGui_tryLoadFont(const std::string & filename, float size = 14.0f, bool merge = false) {
     std::ifstream f(filename);
     if (f.good() == false) {
-        printf("XXXXXXXXxxx\n");
         return false;
     }
     if (merge) {

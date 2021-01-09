@@ -69,11 +69,11 @@ The [examples](https://github.com/ggerganov/ggwave/blob/master/examples/) folder
 
 | Example | Description | Backend |
 | ------- | ----------- | ------- |
-| [ggwave-rx](https://github.com/ggerganov/ggwave/blob/master/examples/ggwave-rx) | A very basic receive-only program | SDL |
-| [ggwave-cli](https://github.com/ggerganov/ggwave/blob/master/examples/ggwave-cli) | A command line tool for sending/receiving data through sound | SDL |
-| [ggwave-wasm](https://github.com/ggerganov/ggwave/blob/master/examples/ggwave-wasm) | a WebAssembly module for web applications | SDL |
+| [ggwave-rx](https://github.com/ggerganov/ggwave/blob/master/examples/ggwave-rx) | Very basic receive-only program | SDL |
+| [ggwave-cli](https://github.com/ggerganov/ggwave/blob/master/examples/ggwave-cli) | Command line tool for sending/receiving data through sound | SDL |
+| [ggwave-wasm](https://github.com/ggerganov/ggwave/blob/master/examples/ggwave-wasm) | WebAssembly module for web applications | SDL |
 | [ggwave-to-file](https://github.com/ggerganov/ggwave/blob/master/examples/ggwave-to-file) | Output generated audio to a file | - | 
-| [waver](https://github.com/ggerganov/ggwave/blob/master/examples/waver) | A GUI tool for sending/receiving data through sound | SDL |
+| [waver](https://github.com/ggerganov/ggwave/blob/master/examples/waver) | GUI tool for sending/receiving data through sound | SDL |
 
 Other projects using **ggwave** or one of its prototypes:
 

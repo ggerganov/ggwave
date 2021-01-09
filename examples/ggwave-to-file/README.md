@@ -6,6 +6,8 @@ Output a generated waveform to an uncompressed WAV file.
 echo "Hello world!" | ./bin/ggwave-to-file > example.wav
 ```
 
+## HTTP service
+
 Based on this tool, there is an HTTP service available on the following link:
 
 https://ggwave-to-file.ggerganov.com/

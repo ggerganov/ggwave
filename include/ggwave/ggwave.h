@@ -26,14 +26,18 @@ public:
 
     using TxProtocols     = std::vector<TxProtocol>;
 
-    const TxProtocols kTxProtocols {
-        { "Normal",      40,  9, 3, },
-        { "Fast",        40,  6, 3, },
-        { "Fastest",     40,  3, 3, },
-        { "[U] Normal",  320, 9, 3, },
-        { "[U] Fast",    320, 6, 3, },
-        { "[U] Fastest", 320, 3, 3, },
-    };
+    static const TxProtocols & getTxProtocols() {
+        static TxProtocols kTxProtocols {
+            { "Normal",      40,  9, 3, },
+            { "Fast",        40,  6, 3, },
+            { "Fastest",     40,  3, 3, },
+            { "[U] Normal",  320, 9, 3, },
+            { "[U] Fast",    320, 6, 3, },
+            { "[U] Fastest", 320, 3, 3, },
+        };
+
+        return kTxProtocols;
+    }
 
     using AmplitudeData   = std::vector<float>;
     using AmplitudeData16 = std::vector<int16_t>;
@@ -71,8 +75,7 @@ public:
     const float & getSampleRateIn() const { return m_sampleRateIn; }
     const float & getSampleRateOut() const { return m_sampleRateOut; }
 
-    const TxProtocol & getDefultTxProtocol() const { return kTxProtocols[1]; }
-    const TxProtocols & getTxProtocols() const { return kTxProtocols; }
+    const TxProtocol & getDefultTxProtocol() const { return getTxProtocols()[1]; }
 
     const TxRxData & getRxData() const { return m_rxData; }
     const TxProtocol & getRxProtocol() const { return m_rxProtocol; }

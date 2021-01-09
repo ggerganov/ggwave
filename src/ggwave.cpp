@@ -444,8 +444,8 @@ void GGWave::receive(const CBDequeueAudio & CBDequeueAudio) {
                 const int step = m_samplesPerFrame/stepsPerFrame;
 
                 bool isValid = false;
-                for (int rxProtocolId = 0; rxProtocolId < (int) kTxProtocols.size(); ++rxProtocolId) {
-                    const auto & rxProtocol = kTxProtocols[rxProtocolId];
+                for (int rxProtocolId = 0; rxProtocolId < (int) getTxProtocols().size(); ++rxProtocolId) {
+                    const auto & rxProtocol = getTxProtocols()[rxProtocolId];
 
                     // skip Rx protocol if start frequency is different from detected one
                     if (rxProtocol.freqStart != m_markerFreqStart) {
@@ -576,7 +576,7 @@ void GGWave::receive(const CBDequeueAudio & CBDequeueAudio) {
             if (m_receivingData == false) {
                 bool isReceiving = false;
 
-                for (const auto & rxProtocol : kTxProtocols) {
+                for (const auto & rxProtocol : getTxProtocols()) {
                     int nDetectedMarkerBits = m_nBitsInMarker;
 
                     for (int i = 0; i < m_nBitsInMarker; ++i) {
@@ -615,7 +615,7 @@ void GGWave::receive(const CBDequeueAudio & CBDequeueAudio) {
             } else {
                 bool isEnded = false;
 
-                for (const auto & rxProtocol : kTxProtocols) {
+                for (const auto & rxProtocol : getTxProtocols()) {
                     int nDetectedMarkerBits = m_nBitsInMarker;
 
                     for (int i = 0; i < m_nBitsInMarker; ++i) {
@@ -681,15 +681,15 @@ bool GGWave::takeSpectrum(SpectrumData & dst) {
 
 int GGWave::maxFramesPerTx() const {
     int res = 0;
-    for (const auto & protocol : kTxProtocols) {
+    for (const auto & protocol : getTxProtocols()) {
         res = std::max(res, protocol.framesPerTx);
     }
     return res;
 }
 
 int GGWave::minBytesPerTx() const {
-    int res = kTxProtocols.front().framesPerTx;
-    for (const auto & protocol : kTxProtocols) {
+    int res = getTxProtocols().front().framesPerTx;
+    for (const auto & protocol : getTxProtocols()) {
         res = std::min(res, protocol.bytesPerTx);
     }
     return res;

@@ -1,6 +1,6 @@
 ## ggwave-to-file
 
-Output a generated waveform to a file.
+Output a generated waveform to an uncompressed WAV file.
 
 ```bash
 echo "Hello World!" | ./bin/ggwave-to-file > example.wav

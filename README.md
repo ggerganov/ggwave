@@ -30,11 +30,11 @@ You can easily test the library using the free `Waver` application which is avai
 <img alt="Get it from the Snap Store" src="https://snapcraft.io/static/images/badges/en/snap-store-black.svg" height="60px"/>
 </a>
 
-**Browser demos:**
+**Browser demos**
  - https://waver.ggerganov.com
  - https://ggwave.ggerganov.com
 
-**[REST service](https://github.com/ggerganov/ggwave/blob/master/examples/ggwave-to-file):**
+**[REST service](https://github.com/ggerganov/ggwave/blob/master/examples/ggwave-to-file)**
  ```bash
  curl https://ggwave.ggerganov.com/ggwave-to-file.php?m=Hello\ World! --output hello.wav
  ```

@@ -1,7 +1,7 @@
 ## ggwave-to-file
 
-Output generated audio to a file.
+Output generated waveform to a file.
 
 ```bash
-./bin/ggwave-to-file "Hello World!" > example.wav
+echo "Hello World!" | ./bin/ggwave-to-file > example.wav
 ```

@@ -7,9 +7,10 @@
 
 #include <cstdio>
 #include <cstring>
+#include <iostream>
 
 int main(int argc, char** argv) {
-    fprintf(stderr, "Usage: %s \"message\" output.wav [-pN]\n", argv[0]);
+    fprintf(stderr, "Usage: %s [-pN]\n", argv[0]);
     fprintf(stderr, "    -pN - select the transmission protocol\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "    Available protocols:\n");
@@ -20,11 +21,14 @@ int main(int argc, char** argv) {
     }
     fprintf(stderr, "\n");
 
-    if (argc < 2) {
+    if (argc < 1) {
         return -1;
     }
 
-    std::string message = argv[1];
+    fprintf(stderr, "Enter a text message:\n");
+
+    std::string message;
+    std::getline(std::cin, message);
 
     if (message.size() == 0) {
         fprintf(stderr, "Invalid message: size = 0\n");
@@ -41,6 +45,8 @@ int main(int argc, char** argv) {
     int volume = argm["v"].empty() ? 50 : std::stoi(argm["v"]);
 
     auto sampleRateOut = GGWave::kBaseSampleRate;
+
+    fprintf(stderr, "Generating waveform for message '%s' ...\n", message.c_str());
 
     GGWave ggWave(GGWave::kBaseSampleRate, sampleRateOut, 1024, 4, 2);
     ggWave.init(message.size(), message.data(), ggWave.getTxProtocols()[protocolId], volume);

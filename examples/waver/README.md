@@ -4,6 +4,8 @@ Waver allows you to send and receive text messages from nearby devices through s
 
 This application can be used to communicate with multiple nearby devices at once. Both audible and ultrasound communication protocols are available. The app does not connect to the internet and all information is transmitted only through sound. In order to receive incoming messages you only need to allow access to your device's microphone so that it can record nearby sounds.
 
+The main purpose of this app is to showcase the capabilities of the [ggwave](https://github.com/ggerganov/ggwave/) library. It is a convenient way to quickly test the transmission performance on virtually any device with speakers and a microphone.
+
 ### Install 
 
 <a href="https://apps.apple.com/us/app/waver-data-over-sound/id1543607865?itsct=apps_box&amp;itscg=30200&ign-itsct=apps_box#?platform=iphone" style="display: inline-block; overflow: hidden; border-radius: 13px; width: 250px; height: 83px;"><img height="60px" src="https://tools.applemediaservices.com/api/badges/download-on-the-app-store/white/en-US?size=250x83&amp;releaseDate=1607558400&h=8e5fafc57929918f684abc83ff8311ef" alt="Download on the App Store"></a>
@@ -45,3 +47,4 @@ As of v1.3.0 Waver supports file sharing. It works like this:
 ## Known issues
 
 - The browser version does not support on-screen keyboard on mobile devices, so it is not possible to input messages. Use the mobile app instead
+- In some cases utlrasound transmission is not supported (see [#5](https://github.com/ggerganov/ggwave/issues/5))

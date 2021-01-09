@@ -6,14 +6,16 @@ Output a generated waveform to an uncompressed WAV file.
 echo "Hello World!" | ./bin/ggwave-to-file > example.wav
 ```
 
-Based on this tool, there is a REST service available on the following link: https://ggwave.ggerganov.com/ggwave-to-file.php
+Based on this tool, there is a REST service available on the following link:
+
+  https://ggwave.ggerganov.com/ggwave-to-file.php
 
 You can use it to query audio waveforms for different text messages.
 
 ### curl:
 
 ```bash
-curl https://ggwave.ggerganov.com/ggwave-to-file.php?m=Hello --output hello.wav
+curl https://ggwave.ggerganov.com/ggwave-to-file.php?m=Hello\ World! --output hello.wav
 ```
 
 ### python

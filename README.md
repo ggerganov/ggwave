@@ -26,6 +26,7 @@ Applications:
 - Serverless, one-to-many broadcast
 - Pairing devices
 - Authorization
+- Internet of Things
 
 ## Try it out
 

@@ -22,11 +22,11 @@ This library is used only to generate and analyze the RAW waveforms that are pla
 
 Possible applications:
 
-- Encoding and decoding audio QR codes
 - Serverless, one-to-many broadcast
 - Device pairing
 - Authorization
 - Internet of Things
+- Audio QR codes
 
 ## Try it out
 

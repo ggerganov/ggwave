@@ -3,19 +3,19 @@
 Output a generated waveform to an uncompressed WAV file.
 
 ```bash
-echo "Hello World!" | ./bin/ggwave-to-file > example.wav
+echo "Hello world!" | ./bin/ggwave-to-file > example.wav
 ```
 
-Based on this tool, there is a REST service available on the following link:
+Based on this tool, there is an HTTP service available on the following link:
 
-  https://ggwave.ggerganov.com/ggwave-to-file.php
+https://ggwave-to-file.ggerganov.com/
 
 You can use it to query audio waveforms for different text messages.
 
 ### curl:
 
 ```bash
-curl https://ggwave.ggerganov.com/ggwave-to-file.php?m=Hello\ World! --output hello.wav
+curl https://ggwave-to-file.ggerganov.com/?m=Hello\ world! --output hello.wav
 ```
 
 ### python
@@ -26,7 +26,7 @@ import requests
 
 def ggwave(message: str, protocolId: int = 1):
 
-    url = 'https://ggwave.ggerganov.com/ggwave-to-file.php'
+    url = 'https://ggwave-to-file.ggerganov.com/'
 
     params = {
         'm': message,       # message to encode

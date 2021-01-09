@@ -3,7 +3,7 @@ import requests
 
 def ggwave(message: str, protocolId: int = 1):
 
-    url = 'https://ggwave.ggerganov.com/ggwave-to-file.php'
+    url = 'https://ggwave-to-file.ggerganov.com/'
 
     params = {
         'm': message,       # message to encode

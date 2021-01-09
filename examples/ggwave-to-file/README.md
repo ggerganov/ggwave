@@ -12,7 +12,7 @@ https://ggwave-to-file.ggerganov.com/
 
 You can use it to query audio waveforms for different text messages.
 
-### curl:
+### curl
 
 ```bash
 curl https://ggwave-to-file.ggerganov.com/?m=Hello\ world! --output hello.wav

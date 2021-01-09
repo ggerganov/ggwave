@@ -64,6 +64,8 @@ endif()
 
 # examples
 
+add_subdirectory(ggwave-to-file)
+
 if (GGWAVE_SUPPORT_SDL2)
     if (EMSCRIPTEN)
         # emscripten sdl2 examples

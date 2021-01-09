@@ -9,23 +9,22 @@
 #include <cstring>
 
 int main(int argc, char** argv) {
-    printf("Usage: %s \"message\" output.wav [-pN]\n", argv[0]);
-    printf("    -pN - select the transmission protocol\n");
-    printf("\n");
-    printf("    Available protocols:\n");
+    fprintf(stderr, "Usage: %s \"message\" output.wav [-pN]\n", argv[0]);
+    fprintf(stderr, "    -pN - select the transmission protocol\n");
+    fprintf(stderr, "\n");
+    fprintf(stderr, "    Available protocols:\n");
 
     const auto & protocols = GGWave::getTxProtocols();
     for (int i = 0; i < (int) protocols.size(); ++i) {
-        printf("      %d - %s\n", i, protocols[i].name);
+        fprintf(stderr, "      %d - %s\n", i, protocols[i].name);
     }
-    printf("\n");
+    fprintf(stderr, "\n");
 
-    if (argc < 3) {
+    if (argc < 2) {
         return -1;
     }
 
     std::string message = argv[1];
-    std::string fnameOut = argv[2];
 
     if (message.size() == 0) {
         fprintf(stderr, "Invalid message: size = 0\n");
@@ -35,11 +34,6 @@ int main(int argc, char** argv) {
     if (message.size() > 140) {
         fprintf(stderr, "Invalid message: size > 140\n");
         return -3;
-    }
-
-    if (fnameOut.rfind(".wav") != fnameOut.size() - 4) {
-        fprintf(stderr, "Invalid output filename\n");
-        return -4;
     }
 
     auto argm = parseCmdArguments(argc, argv);
@@ -59,7 +53,7 @@ int main(int argc, char** argv) {
 
     ggWave.send(cbQueueAudio);
 
-    printf("Output size = %d bytes\n", (int) bufferPCM.size());
+    fprintf(stderr, "Output size = %d bytes\n", (int) bufferPCM.size());
 
     drwav_data_format format;
     format.container = drwav_container_riff;
@@ -68,13 +62,13 @@ int main(int argc, char** argv) {
     format.sampleRate = sampleRateOut;
     format.bitsPerSample = 16;
 
-    printf("Writing WAV file '%s' ...\n", fnameOut.c_str());
+    fprintf(stderr, "Writing WAV data ...\n");
 
     drwav wav;
-    drwav_init_file_write(&wav, fnameOut.c_str(), &format, NULL);
+    drwav_init_file_write(&wav, "/dev/stdout", &format, NULL);
     drwav_uint64 framesWritten = drwav_write_pcm_frames(&wav, bufferPCM.size()/2, bufferPCM.data());
 
-    printf("WAV frames written = %d\n", (int) framesWritten);
+    fprintf(stderr, "WAV frames written = %d\n", (int) framesWritten);
 
     return 0;
 }

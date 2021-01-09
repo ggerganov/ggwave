@@ -14,11 +14,15 @@ https://ggwave-to-file.ggerganov.com/
 
 You can use it to query audio waveforms by specifying the text message as a GET parameter to the HTTP request. Here are a few examples:
 
-### curl
+### terminal
 
 ```bash
 curl https://ggwave-to-file.ggerganov.com/?m=Hello\ world! --output hello.wav
 ```
+
+### browser
+
+https://ggwave-to-file.ggerganov.com/?m=Hello%20world%21
 
 ### python
 

@@ -34,6 +34,11 @@ You can easily test the library using the free `Waver` application which is avai
  - https://waver.ggerganov.com
  - https://ggwave.ggerganov.com
 
+**[REST service](https://github.com/ggerganov/ggwave/blob/master/examples/ggwave-to-file):**
+ ```bash
+ curl https://ggwave.ggerganov.com/ggwave-to-file.php?m=Hello\ World! --output hello.wav
+ ```
+
 ## Technical details
 
 Below is a short summary of the modulation and demodulation algorithm used in `ggwave` for encoding and decoding data into sound.

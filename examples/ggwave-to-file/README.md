@@ -12,7 +12,7 @@ Based on this tool, there is an HTTP service available on the following link:
 
 https://ggwave-to-file.ggerganov.com/
 
-You can use it to query audio waveforms for different text messages.
+You can use it to query audio waveforms by specifying the text message as a GET parameter to the HTTP request. Here are a few examples:
 
 ### curl
 

@@ -20,11 +20,11 @@ This library allows you to communicate small amounts of data between air-gapped 
 
 This library is used only to generate and analyze the RAW waveforms that are played and captured from your audio devices (speakers, microphones, etc.). You are free to use any audio backend (e.g. PulseAudio, ALSA, etc.) as long as you provide callbacks for queuing and dequeuing audio samples.
 
-Applications:
+Possible applications:
 
 - Encoding and decoding audio QR codes
 - Serverless, one-to-many broadcast
-- Pairing devices
+- Device pairing
 - Authorization
 - Internet of Things
 

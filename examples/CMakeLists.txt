@@ -73,7 +73,7 @@ if (GGWAVE_SUPPORT_SDL2)
     else()
         # non-emscripten sdl2 examples
 
-        add_subdirectory(simple-rx)
+        add_subdirectory(ggwave-rx)
         add_subdirectory(ggwave-cli)
         add_subdirectory(waver)
     endif()

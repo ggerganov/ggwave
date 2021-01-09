@@ -69,7 +69,7 @@ The [examples](https://github.com/ggerganov/ggwave/blob/master/examples/) folder
 
 | Example | Description |
 | ------- | ----------- |
-| [simple-rx](https://github.com/ggerganov/ggwave/blob/master/examples/simple-rx) | A very basic receive-only program |
+| [ggwave-rx](https://github.com/ggerganov/ggwave/blob/master/examples/ggwave-rx) | A very basic receive-only program |
 | [ggwave-cli](https://github.com/ggerganov/ggwave/blob/master/examples/ggwave-cli) | A command line tool for sending/receiving data through sound |
 | [ggwave-wasm](https://github.com/ggerganov/ggwave/blob/master/examples/ggwave-wasm) | a WebAssembly module for web applications |
 | [waver](https://github.com/ggerganov/ggwave/blob/master/examples/waver) | A GUI tool for sending/receiving data through sound |

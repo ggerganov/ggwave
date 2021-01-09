@@ -20,6 +20,13 @@ This library allows you to communicate small amounts of data between air-gapped 
 
 This library is used only to generate and analyze the RAW waveforms that are played and captured from your audio devices (speakers, microphones, etc.). You are free to use any audio backend (e.g. PulseAudio, ALSA, etc.) as long as you provide callbacks for queuing and dequeuing audio samples.
 
+Applications:
+
+- Encoding and decoding audio QR codes
+- Serverless, one-to-many broadcast
+- Pairing devices
+- Authorization
+
 ## Try it out
 
 You can easily test the library using the free `Waver` application which is available on the following platforms:
@@ -78,7 +85,7 @@ The [examples](https://github.com/ggerganov/ggwave/blob/master/examples/) folder
 | [ggwave-cli](https://github.com/ggerganov/ggwave/blob/master/examples/ggwave-cli) | Command line tool for sending/receiving data through sound | SDL |
 | [ggwave-wasm](https://github.com/ggerganov/ggwave/blob/master/examples/ggwave-wasm) | WebAssembly module for web applications | SDL |
 | [ggwave-to-file](https://github.com/ggerganov/ggwave/blob/master/examples/ggwave-to-file) | Output a generated waveform to an uncompressed WAV file | - | 
-| [waver](https://github.com/ggerganov/ggwave/blob/master/examples/waver) | GUI tool for sending/receiving data through sound | SDL |
+| [waver](https://github.com/ggerganov/ggwave/blob/master/examples/waver) | GUI application for sending/receiving data through sound | SDL |
 
 Other projects using **ggwave** or one of its prototypes:
 

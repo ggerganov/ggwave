@@ -21,7 +21,6 @@ curl https://ggwave-to-file.ggerganov.com/?m=Hello\ world! --output hello.wav
 ### python
 
 ```python
-import sys
 import requests
 
 def ggwave(message: str, protocolId: int = 1):
@@ -40,7 +39,12 @@ def ggwave(message: str, protocolId: int = 1):
 
     return response
 
+```
+
 ...
+
+```python
+import sys
 
 # query waveform from server
 result = ggwave("Hello world!")

@@ -10,8 +10,10 @@
 #include <iostream>
 
 int main(int argc, char** argv) {
-    fprintf(stderr, "Usage: %s [-pN]\n", argv[0]);
-    fprintf(stderr, "    -pN - select the transmission protocol\n");
+    fprintf(stderr, "Usage: %s [-vN] [-sN] [-pN]\n", argv[0]);
+    fprintf(stderr, "    -vN - output volume, N in (0, 100], (default: 50)\n");
+    fprintf(stderr, "    -sN - output sample rate, N in [1024, %d], (default: %d)\n", (int) GGWave::kBaseSampleRate, (int) GGWave::kBaseSampleRate);
+    fprintf(stderr, "    -pN - select the transmission protocol (default: 1)\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "    Available protocols:\n");
 
@@ -24,6 +26,16 @@ int main(int argc, char** argv) {
     if (argc < 1) {
         return -1;
     }
+
+    auto argm = parseCmdArguments(argc, argv);
+
+    if (argm.find("h") != argm.end()) {
+        return 0;
+    }
+
+    int protocolId = argm["p"].empty() ? 1 : std::stoi(argm["p"]);
+    int volume = argm["v"].empty() ? 50 : std::stoi(argm["v"]);
+    int sampleRateOut = argm["s"].empty() ? GGWave::kBaseSampleRate : std::stoi(argm["s"]);
 
     fprintf(stderr, "Enter a text message:\n");
 
@@ -40,11 +52,6 @@ int main(int argc, char** argv) {
         return -3;
     }
 
-    auto argm = parseCmdArguments(argc, argv);
-    int protocolId = argm["p"].empty() ? 1 : std::stoi(argm["p"]);
-    int volume = argm["v"].empty() ? 50 : std::stoi(argm["v"]);
-
-    auto sampleRateOut = GGWave::kBaseSampleRate;
 
     fprintf(stderr, "Generating waveform for message '%s' ...\n", message.c_str());
 
@@ -57,7 +64,10 @@ int main(int argc, char** argv) {
         std::memcpy(bufferPCM.data(), data, nBytes);
     };
 
-    ggWave.send(cbQueueAudio);
+    if (ggWave.send(cbQueueAudio) == false) {
+        fprintf(stderr, "Failed to generate waveform!\n");
+        return -4;
+    }
 
     fprintf(stderr, "Output size = %d bytes\n", (int) bufferPCM.size());
 

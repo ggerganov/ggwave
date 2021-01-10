@@ -43,9 +43,14 @@ You can easily test the library using the free `Waver` application which is avai
  - https://ggwave.ggerganov.com
 
 ### [HTTP service](https://github.com/ggerganov/ggwave/blob/master/examples/ggwave-to-file/README.md#http-service)
- ```bash
- curl https://ggwave-to-file.ggerganov.com/?m=Hello\ world! --output hello.wav
- ```
+  ```bash
+  # audible example
+  curl -sS 'https://ggwave-to-file.ggerganov.com/?m=Hello world!' --output hello.wav
+
+  # ultrasound example
+  curl -sS 'https://ggwave-to-file.ggerganov.com/?m=Hello world!&p=4' --output hello.wav
+  ```
+
 
 ## Technical details
 

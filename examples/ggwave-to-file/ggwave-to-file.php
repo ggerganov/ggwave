@@ -2,12 +2,9 @@
 
 $cmd = "ggwave-to-file";
 
-if (isset($_GET['p']) && $_GET['p'] == '0') { $cmd .= " -p0"; }
-if (isset($_GET['p']) && $_GET['p'] == '1') { $cmd .= " -p1"; }
-if (isset($_GET['p']) && $_GET['p'] == '2') { $cmd .= " -p2"; }
-if (isset($_GET['p']) && $_GET['p'] == '3') { $cmd .= " -p3"; }
-if (isset($_GET['p']) && $_GET['p'] == '4') { $cmd .= " -p4"; }
-if (isset($_GET['p']) && $_GET['p'] == '5') { $cmd .= " -p5"; }
+if (isset($_GET['s']) && is_int($_GET['s'])) { $cmd .= " -s".$_GET['s']; }
+if (isset($_GET['v']) && is_int($_GET['v'])) { $cmd .= " -v".$_GET['v']; }
+if (isset($_GET['p']) && is_int($_GET['p'])) { $cmd .= " -p".$_GET['p']; }
 
 $descriptorspec = array(
     0 => array("pipe", "r"),

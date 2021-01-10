@@ -49,12 +49,23 @@ You can use it to query audio waveforms by specifying the text message as a GET 
 ### terminal
 
 ```bash
-curl https://ggwave-to-file.ggerganov.com/?m=Hello\ world! --output hello.wav
+# audible example
+curl -sS 'https://ggwave-to-file.ggerganov.com/?m=Hello world!' --output hello.wav
+
+# ultrasound example
+curl -sS 'https://ggwave-to-file.ggerganov.com/?m=Hello world!&p=4' --output hello.wav
 ```
 
 ### browser
 
-https://ggwave-to-file.ggerganov.com/?m=Hello%20world%21
+- Audible example
+  
+  https://ggwave-to-file.ggerganov.com/?m=Hello%20world%21
+
+- Ultrasound example
+  
+  https://ggwave-to-file.ggerganov.com/?m=Hello%20world%21&p=4
+
 
 ### python
 

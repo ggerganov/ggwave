@@ -1,0 +1,14 @@
+﻿---
+BasedOnStyle: Google
+IndentWidth: '4'
+DerivePointerAlignment: false
+PointerAlignment: Middle
+ColumnLimit: 160
+AllowShortFunctionsOnASingleLine: false
+AllowShortBlocksOnASingleLine: 'false'
+AllowShortCaseLabelsOnASingleLine: 'false'
+AllowShortIfStatementsOnASingleLine: 'false'
+AllowShortLoopsOnASingleLine: 'false'
+SpaceAfterCStyleCast: 'true'
+
+...

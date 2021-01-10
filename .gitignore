@@ -2,3 +2,4 @@ build
 build-em
 compile_commands.json
 .clangd
+.vimspector.json

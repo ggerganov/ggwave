@@ -13,7 +13,7 @@ int main(int argc, char** argv) {
     fprintf(stderr, "Usage: %s [-vN] [-sN] [-pN]\n", argv[0]);
     fprintf(stderr, "    -vN - output volume, N in (0, 100], (default: 50)\n");
     fprintf(stderr, "    -sN - output sample rate, N in [1024, %d], (default: %d)\n", (int) GGWave::kBaseSampleRate, (int) GGWave::kBaseSampleRate);
-    fprintf(stderr, "    -pN - select the transmission protocol (default: 1)\n");
+    fprintf(stderr, "    -pN - select the transmission protocol id (default: 1)\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "    Available protocols:\n");
 
@@ -33,9 +33,24 @@ int main(int argc, char** argv) {
         return 0;
     }
 
-    int protocolId = argm["p"].empty() ? 1 : std::stoi(argm["p"]);
     int volume = argm["v"].empty() ? 50 : std::stoi(argm["v"]);
     int sampleRateOut = argm["s"].empty() ? GGWave::kBaseSampleRate : std::stoi(argm["s"]);
+    int protocolId = argm["p"].empty() ? 1 : std::stoi(argm["p"]);
+
+    if (volume <= 0 || volume > 100) {
+        fprintf(stderr, "Invalid volume\n");
+        return -1;
+    }
+
+    if (sampleRateOut < 1024 || sampleRateOut > GGWave::kBaseSampleRate) {
+        fprintf(stderr, "Invalid sample rate\n");
+        return -1;
+    }
+
+    if (protocolId < 0 || protocolId >= (int) GGWave::getTxProtocols().size()) {
+        fprintf(stderr, "Invalid transmission protocol id\n");
+        return -1;
+    }
 
     fprintf(stderr, "Enter a text message:\n");
 

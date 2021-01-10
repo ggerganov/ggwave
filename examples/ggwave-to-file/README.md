@@ -30,7 +30,7 @@ Usage: ./bin/ggwave-to-file [-vN] [-sN] [-pN]
   ```bash
   echo "Hello world!" | ./bin/ggwave-to-file -s24000 > example.wav
   ```
-  
+
 - Generate ultrasound waveform using the `[U] Fast` protocol
 
   ```bash
@@ -61,13 +61,15 @@ https://ggwave-to-file.ggerganov.com/?m=Hello%20world%21
 ```python
 import requests
 
-def ggwave(message: str, protocolId: int = 1):
+def ggwave(message: str, protocolId: int = 1, sampleRate: int = 48000, volume: int = 50):
 
     url = 'https://ggwave-to-file.ggerganov.com/'
 
     params = {
         'm': message,       # message to encode
         'p': protocolId,    # transmission protocol to use
+        's': sampleRate,    # output sample rate
+        'v': volume,        # output volume
     }
 
     response = requests.get(url, params=params)

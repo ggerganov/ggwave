@@ -31,7 +31,7 @@ Usage: ./bin/ggwave-to-file [-vN] [-sN] [-pN]
   echo "Hello world!" | ./bin/ggwave-to-file -s24000 > example.wav
   ```
   
-- Generate ultrasound waveform using `[U] Fast` protocol
+- Generate ultrasound waveform using the `[U] Fast` protocol
 
   ```bash
   echo "Hello world!" | ./bin/ggwave-to-file -p4 > example.wav

@@ -171,7 +171,7 @@ GGWave::~GGWave() {
 
 bool GGWave::init(int textLength, const char * stext, const TxProtocol & aProtocol, const int volume) {
     if (textLength > kMaxLength) {
-        printf("Truncating data from %d to 140 bytes\n", textLength);
+        fprintf(stderr, "Truncating data from %d to 140 bytes\n", textLength);
         textLength = kMaxLength;
     }
 
@@ -218,10 +218,14 @@ bool GGWave::init(int textLength, const char * stext, const TxProtocol & aProtoc
     return true;
 }
 
-void GGWave::send(const CBQueueAudio & cbQueueAudio) {
+bool GGWave::send(const CBQueueAudio & cbQueueAudio) {
     int samplesPerFrameOut = (m_sampleRateOut/m_sampleRateIn)*m_samplesPerFrame;
+    if (m_sampleRateOut > m_sampleRateIn) {
+        fprintf(stderr, "Error: capture sample rate (%d Hz) must be <= playback sample rate (%d Hz)\n", (int) m_sampleRateIn, (int) m_sampleRateOut);
+        return false;
+    }
     if (m_sampleRateOut != m_sampleRateIn) {
-        printf("Resampling from %d Hz to %d Hz\n", (int) m_sampleRateIn, (int) m_sampleRateOut);
+        fprintf(stderr, "Resampling from %d Hz to %d Hz\n", (int) m_sampleRateIn, (int) m_sampleRateOut);
     }
 
     int frameId = 0;
@@ -382,6 +386,8 @@ void GGWave::send(const CBQueueAudio & cbQueueAudio) {
     for (int i = 0; i < frameId*samplesPerFrameOut; ++i) {
         m_txAmplitudeData16[i] = m_outputBlock16[i];
     }
+
+    return true;
 }
 
 void GGWave::receive(const CBDequeueAudio & CBDequeueAudio) {
@@ -437,7 +443,7 @@ void GGWave::receive(const CBDequeueAudio & CBDequeueAudio) {
             }
 
             if (m_analyzingData) {
-                printf("Analyzing captured data ..\n");
+                fprintf(stderr, "Analyzing captured data ..\n");
                 auto tStart = std::chrono::high_resolution_clock::now();
 
                 const int stepsPerFrame = 16;
@@ -531,8 +537,8 @@ void GGWave::receive(const CBDequeueAudio & CBDequeueAudio) {
                                 if (m_rxData[0] != 0) {
                                     std::string s((char *) m_rxData.data(), decodedLength);
 
-                                    printf("Decoded length = %d\n", decodedLength);
-                                    printf("Received sound data successfully: '%s'\n", s.c_str());
+                                    fprintf(stderr, "Decoded length = %d\n", decodedLength);
+                                    fprintf(stderr, "Received sound data successfully: '%s'\n", s.c_str());
 
                                     isValid = true;
                                     m_hasNewRxData = true;
@@ -555,7 +561,7 @@ void GGWave::receive(const CBDequeueAudio & CBDequeueAudio) {
                 m_framesToRecord = 0;
 
                 if (isValid == false) {
-                    printf("Failed to capture sound data. Please try again\n");
+                    fprintf(stderr, "Failed to capture sound data. Please try again\n");
                     m_lastRxDataLength = -1;
                     m_framesToRecord = -1;
                 }
@@ -569,7 +575,7 @@ void GGWave::receive(const CBDequeueAudio & CBDequeueAudio) {
                 m_framesLeftToAnalyze = 0;
 
                 auto tEnd = std::chrono::high_resolution_clock::now();
-                printf("Time to analyze: %g ms\n", getTime_ms(tStart, tEnd));
+                fprintf(stderr, "Time to analyze: %g ms\n", getTime_ms(tStart, tEnd));
             }
 
             // check if receiving data
@@ -599,7 +605,7 @@ void GGWave::receive(const CBDequeueAudio & CBDequeueAudio) {
 
                 if (isReceiving) {
                     std::time_t timestamp = std::time(nullptr);
-                    printf("%sReceiving sound data ...\n", std::asctime(std::localtime(&timestamp)));
+                    fprintf(stderr, "%sReceiving sound data ...\n", std::asctime(std::localtime(&timestamp)));
 
                     m_receivingData = true;
                     std::fill(m_rxData.begin(), m_rxData.end(), 0);
@@ -637,7 +643,7 @@ void GGWave::receive(const CBDequeueAudio & CBDequeueAudio) {
 
                 if (isEnded && m_framesToRecord > 1) {
                     std::time_t timestamp = std::time(nullptr);
-                    printf("%sReceived end marker. Frames left = %d\n", std::asctime(std::localtime(&timestamp)), m_framesLeftToRecord);
+                    fprintf(stderr, "%sReceived end marker. Frames left = %d\n", std::asctime(std::localtime(&timestamp)), m_framesLeftToRecord);
                     m_recvDuration_frames -= m_framesLeftToRecord - 1;
                     m_framesLeftToRecord = 1;
                 }

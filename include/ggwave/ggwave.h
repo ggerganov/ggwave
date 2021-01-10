@@ -57,7 +57,7 @@ public:
     ~GGWave();
 
     bool init(int textLength, const char * stext, const TxProtocol & aProtocol, const int volume);
-    void send(const CBQueueAudio & cbQueueAudio);
+    bool send(const CBQueueAudio & cbQueueAudio);
     void receive(const CBDequeueAudio & CBDequeueAudio);
 
     const bool & hasTxData() const { return m_hasNewTxData; }

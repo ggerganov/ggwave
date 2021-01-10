@@ -2,9 +2,41 @@
 
 Output a generated waveform to an uncompressed WAV file.
 
-```bash
-echo "Hello world!" | ./bin/ggwave-to-file > example.wav
 ```
+Usage: ./bin/ggwave-to-file [-vN] [-sN] [-pN]
+    -vN - output volume, N in (0, 100], (default: 50)
+    -sN - output sample rate, N in [1024, 48000], (default: 48000)
+    -pN - select the transmission protocol (default: 1)
+
+    Available protocols:
+      0 - Normal
+      1 - Fast
+      2 - Fastest
+      3 - [U] Normal
+      4 - [U] Fast
+      5 - [U] Fastest
+```
+
+### Examples
+
+- Generate waveform with default parameters
+
+  ```bash
+  echo "Hello world!" | ./bin/ggwave-to-file > example.wav
+  ```
+
+- Generate waveform at 24 kHz sample rate
+
+  ```bash
+  echo "Hello world!" | ./bin/ggwave-to-file -s24000 > example.wav
+  ```
+  
+- Generate ultrasound waveform using `[U] Fast` protocol
+
+  ```bash
+  echo "Hello world!" | ./bin/ggwave-to-file -p4 > example.wav
+  ```
+
 
 ## HTTP service
 

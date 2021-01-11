@@ -79,4 +79,6 @@ endif()
 
 if (GGWAVE_SUPPORT_SDL2)
     install(TARGETS waver RUNTIME DESTINATION bin)
+    install(FILES examples/assets/fonts/DroidSans.ttf DESTINATION bin)
+    install(FILES examples/assets/fonts/fontawesome-webfont.ttf DESTINATION bin)
 endif()

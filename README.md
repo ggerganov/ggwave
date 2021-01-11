@@ -39,10 +39,18 @@ You can easily test the library using the free [waver](https://github.com/ggerga
 </a>
 
 ### Browser demos
- - https://waver.ggerganov.com
- - https://ggwave.ggerganov.com
+
+  - https://waver.ggerganov.com
+  - https://ggwave.ggerganov.com
+
+### Mac OS
+
+  ```bash
+  brew install ggerganov/ggerganov/waver
+  ```
 
 ### [HTTP service](https://github.com/ggerganov/ggwave/blob/master/examples/ggwave-to-file/README.md#http-service)
+
   ```bash
   # audible example
   curl -sS 'https://ggwave-to-file.ggerganov.com/?m=Hello world!' --output hello.wav

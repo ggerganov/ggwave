@@ -33,8 +33,8 @@ target_link_libraries(imgui PRIVATE
 
 if (GGWAVE_SUPPORT_SDL2)
     if (MINGW)
-	find_package(PkgConfig REQUIRED)
-	pkg_search_module(SDL2 REQUIRED sdl2)
+        find_package(PkgConfig REQUIRED)
+        pkg_search_module(SDL2 REQUIRED sdl2)
 
         add_library(imgui-sdl2 ${GGWAVE_LIBRARY_TYPE}
             imgui/examples/libs/gl3w/GL/gl3w.c
@@ -88,6 +88,11 @@ if (GGWAVE_SUPPORT_SDL2)
             imgui-extra/imgui_impl.cpp
             imgui-extra/imgui_impl_sdl.cpp
             imgui-extra/imgui_impl_opengl3.cpp
+            )
+
+        # force GL3W loader
+        target_compile_definitions(imgui-sdl2 PUBLIC
+            IMGUI_IMPL_OPENGL_LOADER_GL3W=1
             )
 
         target_include_directories(imgui-sdl2 PUBLIC

@@ -27,7 +27,9 @@ sudo snap connect waver:audio-record :audio-record
 brew install ggerganov/ggerganov/waver
 ```
 
-Run in the browser: https://waver.ggerganov.com
+#### Run directly in the browser
+
+https://waver.ggerganov.com
 
 ## How to use
 

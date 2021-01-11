@@ -76,3 +76,7 @@ add_subdirectory(src)
 if (GGWAVE_STANDALONE AND GGWAVE_BUILD_EXAMPLES)
     add_subdirectory(examples)
 endif()
+
+if (GGWAVE_SUPPORT_SDL2)
+    install(TARGETS waver RUNTIME DESTINATION bin)
+endif()

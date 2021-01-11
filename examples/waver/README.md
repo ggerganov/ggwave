@@ -14,9 +14,17 @@ The main purpose of this app is to showcase the capabilities of the [ggwave](htt
 <img alt="Get it from the Snap Store" src="https://snapcraft.io/static/images/badges/en/snap-store-black.svg" height="60px"/>
 </a>
 
+#### Linux
+
 ```bash
 sudo snap install waver
 sudo snap connect waver:audio-record :audio-record
+```
+  
+#### Mac OS
+
+```bash
+brew install ggerganov/ggerganov/waver
 ```
 
 Run in the browser: https://waver.ggerganov.com

@@ -43,12 +43,6 @@ You can easily test the library using the free [waver](https://github.com/ggerga
   - https://waver.ggerganov.com
   - https://ggwave.ggerganov.com
 
-### Mac OS
-
-  ```bash
-  brew install ggerganov/ggerganov/waver
-  ```
-
 ### [HTTP service](https://github.com/ggerganov/ggwave/blob/master/examples/ggwave-to-file/README.md#http-service)
 
   ```bash
@@ -155,6 +149,11 @@ sudo snap install waver
 sudo snap connect waver:audio-record :audio-record
 ```
 
+### Mac OS
+
+  ```bash
+  brew install ggerganov/ggerganov/waver
+  ```
 
 ## Todo
 

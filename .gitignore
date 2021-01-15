@@ -2,5 +2,6 @@ build
 build-em
 compile_commands.json
 .clangd
+.cache
 .vimspector.json
 .*.swp

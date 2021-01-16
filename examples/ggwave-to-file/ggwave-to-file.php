@@ -33,20 +33,20 @@ if (is_resource($process)) {
 
     $return_value = proc_close($process);
 
-    exec("ffmpeg -i ".$path_wav." ".$path_mp3);
+    //exec("ffmpeg -i ".$path_wav." ".$path_wav);
 
-    $result = file_get_contents($path_mp3);
-    $size = filesize($path_mp3);
+    $result = file_get_contents($path_wav);
+    $size = filesize($path_wav);
 
     if ($size == 0) {
         header('Content-type: text/plain');
         echo $log;
     } else {
         //header("Content-Type: audio/wav");
-        header("Content-Type: ". mime_content_type($path_mp3));
+        header("Content-Type: ". mime_content_type($path_wav));
         header("Content-Length: $size");
         header("Accept-Ranges: bytes");
-        header('Content-Disposition: inline; filename="output.wav"');
+        header('Content-Disposition: attachment; filename="output.wav"');
         header("Content-Transfer-Encoding: binary");
         header("Content-Range: bytes 0-".$size."/".$size);
 

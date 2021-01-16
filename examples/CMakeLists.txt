@@ -42,6 +42,7 @@ add_library(ggwave-common ${GGWAVE_LIBRARY_TYPE}
     )
 
 target_link_libraries(ggwave-common PRIVATE
+    ${CMAKE_DL_LIBS}
     )
 
 if (GGWAVE_SUPPORT_SDL2)

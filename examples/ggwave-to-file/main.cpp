@@ -101,5 +101,7 @@ int main(int argc, char** argv) {
 
     fprintf(stderr, "WAV frames written = %d\n", (int) framesWritten);
 
+    drwav_uninit(&wav);
+
     return 0;
 }

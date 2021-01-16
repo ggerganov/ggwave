@@ -5,6 +5,7 @@
 #include <chrono>
 #include <algorithm>
 #include <random>
+#include <stdexcept>
 
 namespace {
 
@@ -163,6 +164,10 @@ GGWave::GGWave(
     m_outputBlock(kMaxSamplesPerFrame),
     m_outputBlock16(kMaxRecordedFrames*kMaxSamplesPerFrame)
 {
+    if (samplesPerFrame > kMaxSamplesPerFrame) {
+        throw std::runtime_error("Invalid samples per frame");
+    }
+
     init(0, "", getDefultTxProtocol(), 0);
 }
 

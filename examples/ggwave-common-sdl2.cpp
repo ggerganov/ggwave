@@ -227,7 +227,7 @@ bool GGWave_init(
         g_ggWave = new GGWave(
                 g_obtainedSpecIn.freq,
                 g_obtainedSpecOut.freq,
-                1024,
+                GGWave::kDefaultSamplesPerFrame,
                 sampleSizeBytesIn,
                 sampleSizeBytesOut);
     }

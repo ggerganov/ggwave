@@ -8,9 +8,14 @@ if (isset($_GET['p'])) { $cmd .= " -p".intval($_GET['p']); }
 
 $descriptorspec = array(
     0 => array("pipe", "r"),
-    1 => array("pipe", "w"),
+    //1 => array("pipe", "w"),
     2 => array("pipe", "w"),
 );
+
+$path_wav = tempnam("/tmp", "ggwave");
+$path_mp3 = $path_wav.".mp3";
+
+$cmd .= " > $path_wav";
 
 $process = proc_open($cmd, $descriptorspec, $pipes);
 
@@ -20,24 +25,36 @@ if (is_resource($process)) {
     fwrite($pipes[0], $message);
     fclose($pipes[0]);
 
-    $result = stream_get_contents($pipes[1]);
-    fclose($pipes[1]);
+    //$result = stream_get_contents($pipes[1]);
+    //fclose($pipes[1]);
 
     $log = stream_get_contents($pipes[2]);
     fclose($pipes[2]);
 
     $return_value = proc_close($process);
 
-    if (strlen($result) == 0) {
+    exec("ffmpeg -i ".$path_wav." ".$path_mp3);
+
+    $result = file_get_contents($path_mp3);
+    $size = filesize($path_mp3);
+
+    if ($size == 0) {
         header('Content-type: text/plain');
         echo $log;
     } else {
-        header('Content-Disposition: attachment; filename="output.wav"');
+        //header("Content-Type: audio/wav");
+        header("Content-Type: ". mime_content_type($path_mp3));
+        header("Content-Length: $size");
+        header("Accept-Ranges: bytes");
+        header('Content-Disposition: inline; filename="output.wav"');
         header("Content-Transfer-Encoding: binary");
-        header("Content-Type: audio/wav");
+        header("Content-Range: bytes 0-".$size."/".$size);
 
         echo $result;
     }
 }
+
+unlink($path_mp3);
+unlink($path_wav);
 
 ?>

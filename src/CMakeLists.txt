@@ -9,9 +9,8 @@ target_include_directories(ggwave PUBLIC
     ../include
     )
 
-target_link_libraries(ggwave PUBLIC
-    )
-
-target_link_libraries(ggwave PRIVATE
-    ${CMAKE_DL_LIBS}
-    )
+if (GGWAVE_LIBRARY_TYPE STREQUAL "SHARED")
+    target_link_libraries(ggwave PUBLIC
+        ${CMAKE_DL_LIBS}
+        )
+endif()

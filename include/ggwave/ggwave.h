@@ -20,7 +20,43 @@
 extern "C" {
 #endif
 
-    GGWAVE_API int ggwave_encode(const char * dataBuffer, int dataSize, char * outputBuffer);
+	typedef enum {
+		GGWAVE_SAMPLE_FORMAT_I16,
+		GGWAVE_SAMPLE_FORMAT_F32,
+	} ggwave_SampleFormat;
+
+	typedef enum {
+		GGWAVE_TX_PROTOCOL_AUDIBLE_NORMAL,
+		GGWAVE_TX_PROTOCOL_AUDIBLE_FAST,
+		GGWAVE_TX_PROTOCOL_AUDIBLE_FASTEST,
+		GGWAVE_TX_PROTOCOL_ULTRASOUND_NORMAL,
+		GGWAVE_TX_PROTOCOL_ULTRASOUND_FAST,
+		GGWAVE_TX_PROTOCOL_ULTRASOUND_FASTEST,
+	} ggwave_TxProtocol;
+
+	typedef struct {
+		int sampleRateIn;
+		int sampleRateOut;
+		int samplesPerFrame;
+		ggwave_SampleFormat formatIn;
+		ggwave_SampleFormat formatOut;
+	} ggwave_Parameters;
+
+    typedef void * ggwave_Instance;
+
+    GGWAVE_API ggwave_Parameters ggwave_defaultParameters(void);
+
+    GGWAVE_API ggwave_Instance ggwave_init(const ggwave_Parameters parameters);
+
+    GGWAVE_API void ggwave_free(ggwave_Instance instance);
+
+    GGWAVE_API int ggwave_encode(
+            ggwave_Instance instance,
+            const char * dataBuffer,
+            int dataSize,
+            ggwave_TxProtocol txProtocol,
+            int volume,
+            char * outputBuffer);
 
 #ifdef __cplusplus
 }
@@ -31,7 +67,7 @@ extern "C" {
 
 class GGWave {
 public:
-    static constexpr auto kBaseSampleRate = 48000.0;
+    static constexpr auto kBaseSampleRate = 48000;
     static constexpr auto kDefaultSamplesPerFrame = 1024;
     static constexpr auto kMaxSamplesPerFrame = 1024;
     static constexpr auto kMaxDataBits = 256;
@@ -102,7 +138,8 @@ public:
     const float & getSampleRateIn() const { return m_sampleRateIn; }
     const float & getSampleRateOut() const { return m_sampleRateOut; }
 
-    const TxProtocol & getDefultTxProtocol() const { return getTxProtocols()[1]; }
+    static int getDefultTxProtocolId() { return 1; }
+    static const TxProtocol & getDefultTxProtocol() { return getTxProtocols()[getDefultTxProtocolId()]; }
 
     const TxRxData & getRxData() const { return m_rxData; }
     const TxProtocol & getRxProtocol() const { return m_rxProtocol; }

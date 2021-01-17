@@ -7,19 +7,46 @@
 #include <random>
 #include <stdexcept>
 
-void testC() {
-    printf("Hello from C\n");
+//
+// C interface
+//
+
+ggwave_Parameters ggwave_defaultParameters(void) {
+    ggwave_Parameters result {
+        GGWave::kBaseSampleRate,
+        GGWave::kBaseSampleRate,
+        GGWave::kDefaultSamplesPerFrame,
+        GGWAVE_SAMPLE_FORMAT_F32,
+        GGWAVE_SAMPLE_FORMAT_I16
+    };
+    return result;
 }
 
-int ggwave_encode(const char * dataBuffer, int dataSize, char * outputBuffer) {
-    GGWave ggWave(
-                GGWave::kBaseSampleRate,
-                GGWave::kBaseSampleRate,
-                GGWave::kDefaultSamplesPerFrame,
-                4, // todo : hardcoded sample sizes
-                2);
+ggwave_Instance ggwave_init(const ggwave_Parameters parameters) {
+    GGWave * ggWave = new GGWave(
+            parameters.sampleRateIn,
+            parameters.sampleRateOut,
+            parameters.samplesPerFrame,
+            4, // todo : hardcoded sample sizes
+            2);
 
-    ggWave.init(dataSize, dataBuffer, ggWave.getDefultTxProtocol(), 10);
+    return ggWave;
+}
+
+void ggwave_free(ggwave_Instance instance) {
+    delete (GGWave *) instance;
+}
+
+int ggwave_encode(
+        ggwave_Instance instance,
+        const char * dataBuffer,
+        int dataSize,
+        ggwave_TxProtocol txProtocol,
+        int volume,
+        char * outputBuffer) {
+    GGWave * ggWave = (GGWave *) instance;
+
+    ggWave->init(dataSize, dataBuffer, ggWave->getTxProtocols()[txProtocol], volume);
 
     int nSamples = 0;
 
@@ -31,10 +58,14 @@ int ggwave_encode(const char * dataBuffer, int dataSize, char * outputBuffer) {
         nSamples = nBytes/2;
     };
 
-    ggWave.send(cbQueueAudio);
+    ggWave->send(cbQueueAudio);
 
     return nSamples;
 }
+
+//
+// C++ implementation
+//
 
 namespace {
 

@@ -33,7 +33,7 @@ sdist: ggwave pyggwave.bycython.cpp setup.py README.rst MANIFEST.in
 	python setup.py sdist
 
 publish: clean sdist
-	twine upload --repository testpypi dist/*
+	twine upload --repository pypi dist/*
 
 clean:
 	rm -rf ggwave dist ggwave.egg-info build

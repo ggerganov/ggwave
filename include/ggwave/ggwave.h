@@ -1,7 +1,6 @@
 #ifndef GGWAVE_H
 #define GGWAVE_H
 
-// Define GGWAVE_API macro to properly export symbols
 #ifdef GGWAVE_SHARED
 #    ifdef _WIN32
 #        ifdef GGWAVE_BUILD
@@ -20,11 +19,17 @@
 extern "C" {
 #endif
 
+    //
+    // C interface
+    //
+
+    // Data format of the audio samples
 	typedef enum {
 		GGWAVE_SAMPLE_FORMAT_I16,
 		GGWAVE_SAMPLE_FORMAT_F32,
 	} ggwave_SampleFormat;
 
+    // TxProtocol ids
 	typedef enum {
 		GGWAVE_TX_PROTOCOL_AUDIBLE_NORMAL,
 		GGWAVE_TX_PROTOCOL_AUDIBLE_FAST,
@@ -32,32 +37,72 @@ extern "C" {
 		GGWAVE_TX_PROTOCOL_ULTRASOUND_NORMAL,
 		GGWAVE_TX_PROTOCOL_ULTRASOUND_FAST,
 		GGWAVE_TX_PROTOCOL_ULTRASOUND_FASTEST,
-	} ggwave_TxProtocol;
+	} ggwave_TxProtocolId;
 
+    // GGWave instance parameters
 	typedef struct {
-		int sampleRateIn;
-		int sampleRateOut;
-		int samplesPerFrame;
-		ggwave_SampleFormat formatIn;
-		ggwave_SampleFormat formatOut;
+		int sampleRateIn;               // capture sample rate
+		int sampleRateOut;              // playback sample rate
+		int samplesPerFrame;            // number of samples per audio frame
+		ggwave_SampleFormat formatIn;   // format of the captured audio samples
+		ggwave_SampleFormat formatOut;  // format of the playback audio samples
 	} ggwave_Parameters;
 
+    // GGWave instances are identified with an integer and are stored
+    // in a private map container. Using void * caused some issues with
+    // the python module and unfortunately had to do it this way
     typedef int ggwave_Instance;
 
+    // Helper method to get default instance parameters
     GGWAVE_API ggwave_Parameters ggwave_defaultParameters(void);
 
+    // Create a new GGWave instance with the specified parameters
     GGWAVE_API ggwave_Instance ggwave_init(const ggwave_Parameters parameters);
 
+    // Free a GGWave instance
     GGWAVE_API void ggwave_free(ggwave_Instance instance);
 
+    // Encode data into audio waveform
+    //   instance       - the GGWave instance to use
+    //   dataBuffer     - the data to encode
+    //   dataSize       - number of bytes in the input dataBuffer
+    //   txProtocolId   - the protocol to use for encoding
+    //   volume         - the volume of the generated waveform [0, 100]
+    //   outputBuffer   - the generated audio waveform. must be big enough to fit the generated data
+    //
+    //   returns the number of generated samples
+    //
+    //   returns -1 if there was an error
+    //
+    //   todo : implement api to query the size of the generated waveform before generating it
+    //          so that the user can allocate enough memory for the outputBuffer
+    //
     GGWAVE_API int ggwave_encode(
             ggwave_Instance instance,
             const char * dataBuffer,
             int dataSize,
-            ggwave_TxProtocol txProtocol,
+            ggwave_TxProtocolId txProtocolId,
             int volume,
             char * outputBuffer);
 
+    // Decode an audio waveform into data
+    //   instance       - the GGWave instance to use
+    //   dataBuffer     - the audio waveform
+    //   dataSize       - number of bytes in the input dataBuffer
+    //   outputBuffer   - stores the decoded data on success
+    //
+    //   returns the number of decoded bytes
+    //
+    //   Use this function to continuously provide audio samples to a GGWave instance.
+    //   On each call, GGWave will analyze the provided data and if it detects a payload,
+    //   it will return a non-zero result.
+    //
+    //   If the return value is -1 then there was an error during the decoding process.
+    //   Usually can occur if there is a lot of background noise in the audio.
+    //
+    //   If the return value is greater than 0, then there will be that number of bytes
+    //   decoded in the outputBuffer
+    //
     GGWAVE_API int ggwave_decode(
             ggwave_Instance instance,
             const char * dataBuffer,
@@ -67,9 +112,14 @@ extern "C" {
 #ifdef __cplusplus
 }
 
+//
+// C++ interface
+//
+
 #include <cstdint>
 #include <functional>
 #include <vector>
+#include <map>
 
 class GGWave {
 public:
@@ -82,26 +132,28 @@ public:
     static constexpr auto kMaxSpectrumHistory = 4;
     static constexpr auto kMaxRecordedFrames = 1024;
 
-    struct TxProtocol {
-        const char * name;
+    using TxProtocolId = ggwave_TxProtocolId;
 
-        int freqStart;
-        int framesPerTx;
-        int bytesPerTx;
+    struct TxProtocol {
+        const char * name;  // string identifier of the protocol
+
+        int freqStart;      // FFT bin index of the lowest frequency
+        int framesPerTx;    // number of frames to transmit a single chunk of data
+        int bytesPerTx;     // number of bytes in a chunk of data
 
         int nDataBitsPerTx() const { return 8*bytesPerTx; }
     };
 
-    using TxProtocols     = std::vector<TxProtocol>;
+    using TxProtocols = std::map<TxProtocolId, TxProtocol>;
 
     static const TxProtocols & getTxProtocols() {
-        static TxProtocols kTxProtocols {
-            { "Normal",      40,  9, 3, },
-            { "Fast",        40,  6, 3, },
-            { "Fastest",     40,  3, 3, },
-            { "[U] Normal",  320, 9, 3, },
-            { "[U] Fast",    320, 6, 3, },
-            { "[U] Fastest", 320, 3, 3, },
+        static const TxProtocols kTxProtocols {
+            { GGWAVE_TX_PROTOCOL_AUDIBLE_NORMAL,        { "Normal",      40,  9, 3, } },
+            { GGWAVE_TX_PROTOCOL_AUDIBLE_FAST,          { "Fast",        40,  6, 3, } },
+            { GGWAVE_TX_PROTOCOL_AUDIBLE_FASTEST,       { "Fastest",     40,  3, 3, } },
+            { GGWAVE_TX_PROTOCOL_ULTRASOUND_NORMAL,     { "[U] Normal",  320, 9, 3, } },
+            { GGWAVE_TX_PROTOCOL_ULTRASOUND_FAST,       { "[U] Fast",    320, 6, 3, } },
+            { GGWAVE_TX_PROTOCOL_ULTRASOUND_FASTEST,    { "[U] Fastest", 320, 3, 3, } },
         };
 
         return kTxProtocols;
@@ -113,8 +165,7 @@ public:
     using RecordedData    = std::vector<float>;
     using TxRxData        = std::vector<std::uint8_t>;
 
-    // todo : rename to CBEnqueueAudio
-    using CBQueueAudio = std::function<void(const void * data, uint32_t nBytes)>;
+    using CBEnqueueAudio = std::function<void(const void * data, uint32_t nBytes)>;
     using CBDequeueAudio = std::function<uint32_t(void * data, uint32_t nMaxBytes)>;
 
     GGWave(
@@ -128,13 +179,12 @@ public:
 
     bool init(int textLength, const char * stext, const TxProtocol & aProtocol, const int volume);
 
-    // todo : rename to "encode" / "decode"
-    bool send(const CBQueueAudio & cbQueueAudio);
-    void receive(const CBDequeueAudio & CBDequeueAudio);
+    bool encode(const CBEnqueueAudio & cbEnqueueAudio);
+    void decode(const CBDequeueAudio & cbDequeueAudio);
 
-    const bool & hasTxData() const { return m_hasNewTxData; }
-    const bool & isReceiving() const { return m_receivingData; }
-    const bool & isAnalyzing() const { return m_analyzingData; }
+    const bool & hasTxData()    const { return m_hasNewTxData; }
+    const bool & isReceiving()  const { return m_receivingData; }
+    const bool & isAnalyzing()  const { return m_analyzingData; }
 
     const int & getFramesToRecord()         const { return m_framesToRecord; }
     const int & getFramesLeftToRecord()     const { return m_framesLeftToRecord; }
@@ -144,15 +194,17 @@ public:
     const int & getSampleSizeBytesIn()      const { return m_sampleSizeBytesIn; }
     const int & getSampleSizeBytesOut()     const { return m_sampleSizeBytesOut; }
 
-    const float & getSampleRateIn() const { return m_sampleRateIn; }
-    const float & getSampleRateOut() const { return m_sampleRateOut; }
+    const float & getSampleRateIn()     const { return m_sampleRateIn; }
+    const float & getSampleRateOut()    const { return m_sampleRateOut; }
 
-    static int getDefultTxProtocolId() { return 1; }
-    static const TxProtocol & getDefultTxProtocol() { return getTxProtocols()[getDefultTxProtocolId()]; }
+    static TxProtocolId getDefaultTxProtocolId()     { return GGWAVE_TX_PROTOCOL_AUDIBLE_FAST; }
+    static const TxProtocol & getDefaultTxProtocol() { return getTxProtocols().at(getDefaultTxProtocolId()); }
+    static const TxProtocol & getTxProtocol(int id)  { return getTxProtocols().at(TxProtocolId(id)); }
+    static const TxProtocol & getTxProtocol(TxProtocolId id) { return getTxProtocols().at(id); }
 
-    const TxRxData & getRxData() const { return m_rxData; }
-    const TxProtocol & getRxProtocol() const { return m_rxProtocol; }
-    const int & getRxProtocolId() const { return m_rxProtocolId; }
+    const TxRxData & getRxData()            const { return m_rxData; }
+    const TxProtocol & getRxProtocol()      const { return m_rxProtocol; }
+    const TxProtocolId & getRxProtocolId()  const { return m_rxProtocolId; }
 
     int takeRxData(TxRxData & dst);
     int takeTxAmplitudeData16(AmplitudeData16 & dst);
@@ -207,7 +259,7 @@ private:
     int m_lastRxDataLength;
     TxRxData m_rxData;
     TxProtocol m_rxProtocol;
-    int m_rxProtocolId;
+    TxProtocolId m_rxProtocolId;
 
     int m_historyId = 0;
     AmplitudeData m_sampleAmplitudeAverage;

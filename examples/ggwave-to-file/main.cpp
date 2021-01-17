@@ -18,8 +18,8 @@ int main(int argc, char** argv) {
     fprintf(stderr, "    Available protocols:\n");
 
     const auto & protocols = GGWave::getTxProtocols();
-    for (int i = 0; i < (int) protocols.size(); ++i) {
-        fprintf(stderr, "      %d - %s\n", i, protocols[i].name);
+    for (const auto & protocol : protocols) {
+        fprintf(stderr, "      %d - %s\n", protocol.first, protocol.second.name);
     }
     fprintf(stderr, "\n");
 
@@ -71,15 +71,15 @@ int main(int argc, char** argv) {
     fprintf(stderr, "Generating waveform for message '%s' ...\n", message.c_str());
 
     GGWave ggWave(GGWave::kBaseSampleRate, sampleRateOut, 1024, 4, 2);
-    ggWave.init(message.size(), message.data(), ggWave.getTxProtocols()[protocolId], volume);
+    ggWave.init(message.size(), message.data(), ggWave.getTxProtocol(protocolId), volume);
 
     std::vector<char> bufferPCM;
-    GGWave::CBQueueAudio cbQueueAudio = [&](const void * data, uint32_t nBytes) {
+    GGWave::CBEnqueueAudio cbEnqueueAudio = [&](const void * data, uint32_t nBytes) {
         bufferPCM.resize(nBytes);
         std::memcpy(bufferPCM.data(), data, nBytes);
     };
 
-    if (ggWave.send(cbQueueAudio) == false) {
+    if (ggWave.encode(cbEnqueueAudio) == false) {
         fprintf(stderr, "Failed to generate waveform!\n");
         return -4;
     }

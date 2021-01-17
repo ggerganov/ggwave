@@ -30,8 +30,9 @@ int main(int argc, char** argv) {
     auto ggWave = GGWave_instance();
 
     printf("Available Tx protocols:\n");
-    for (int i = 0; i < (int) ggWave->getTxProtocols().size(); ++i) {
-        printf("    -t%d : %s\n", i, ggWave->getTxProtocols()[i].name);
+    const auto & protocols = GGWave::getTxProtocols();
+    for (const auto & protocol : protocols) {
+        printf("    -t%d : %s\n", protocol.first, protocol.second.name);
     }
 
     if (txProtocol < 0 || txProtocol > (int) ggWave->getTxProtocols().size()) {
@@ -56,7 +57,7 @@ int main(int argc, char** argv) {
             }
             {
                 std::lock_guard<std::mutex> lock(mutex);
-                ggWave->init(input.size(), input.data(), ggWave->getTxProtocols()[txProtocol], 10);
+                ggWave->init(input.size(), input.data(), ggWave->getTxProtocol(txProtocol), 10);
             }
             inputOld = input;
         }

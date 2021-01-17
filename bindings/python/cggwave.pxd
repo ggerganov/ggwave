@@ -4,7 +4,7 @@ cdef extern from "ggwave.h" nogil:
         GGWAVE_SAMPLE_FORMAT_I16,
         GGWAVE_SAMPLE_FORMAT_F32
 
-    ctypedef enum ggwave_TxProtocol:
+    ctypedef enum ggwave_TxProtocolId:
         GGWAVE_TX_PROTOCOL_AUDIBLE_NORMAL,
         GGWAVE_TX_PROTOCOL_AUDIBLE_FAST,
         GGWAVE_TX_PROTOCOL_AUDIBLE_FASTEST,
@@ -31,7 +31,7 @@ cdef extern from "ggwave.h" nogil:
             ggwave_Instance instance,
             const char * dataBuffer,
             int dataSize,
-            ggwave_TxProtocol txProtocol,
+            ggwave_TxProtocolId txProtocolId,
             int volume,
             char * outputBuffer);
 

@@ -53,16 +53,24 @@ int ggwave_encode(
         ggwave_Instance instance,
         const char * dataBuffer,
         int dataSize,
-        ggwave_TxProtocol txProtocol,
+        ggwave_TxProtocolId txProtocolId,
         int volume,
         char * outputBuffer) {
     GGWave * ggWave = (GGWave *) g_instances[instance];
 
-    ggWave->init(dataSize, dataBuffer, ggWave->getTxProtocols()[txProtocol], volume);
+    if (ggWave == nullptr) {
+        fprintf(stderr, "Invalid GGWave instance %d\n", instance);
+        return -1;
+    }
+
+    if (ggWave->init(dataSize, dataBuffer, ggWave->getTxProtocol(txProtocolId), volume) == false) {
+        fprintf(stderr, "Failed to initialize GGWave instance %d\n", instance);
+        return -1;
+    }
 
     int nSamples = 0;
 
-    GGWave::CBQueueAudio cbQueueAudio = [&](const void * data, uint32_t nBytes) {
+    GGWave::CBEnqueueAudio cbEnqueueAudio = [&](const void * data, uint32_t nBytes) {
         char * p = (char *) data;
         std::copy(p, p + nBytes, outputBuffer);
 
@@ -70,7 +78,10 @@ int ggwave_encode(
         nSamples = nBytes/2;
     };
 
-    ggWave->send(cbQueueAudio);
+    if (ggWave->encode(cbEnqueueAudio) == false) {
+        fprintf(stderr, "Failed to encode data - GGWave instance %d\n", instance);
+        return -1;
+    }
 
     return nSamples;
 }
@@ -92,7 +103,7 @@ int ggwave_decode(
         return nCopied;
     };
 
-    ggWave->receive(cbDequeueAudio);
+    ggWave->decode(cbDequeueAudio);
 
     // todo : avoid allocation
     GGWave::TxRxData rxData;
@@ -273,7 +284,7 @@ GGWave::GGWave(
         throw std::runtime_error("Invalid samples per frame");
     }
 
-    init(0, "", getDefultTxProtocol(), 0);
+    init(0, "", getDefaultTxProtocol(), 0);
 }
 
 GGWave::~GGWave() {
@@ -328,7 +339,7 @@ bool GGWave::init(int textLength, const char * stext, const TxProtocol & aProtoc
     return true;
 }
 
-bool GGWave::send(const CBQueueAudio & cbQueueAudio) {
+bool GGWave::encode(const CBEnqueueAudio & cbEnqueueAudio) {
     int samplesPerFrameOut = (m_sampleRateOut/m_sampleRateIn)*m_samplesPerFrame;
     if (m_sampleRateOut > m_sampleRateIn) {
         fprintf(stderr, "Error: capture sample rate (%d Hz) must be <= playback sample rate (%d Hz)\n", (int) m_sampleRateIn, (int) m_sampleRateOut);
@@ -490,7 +501,7 @@ bool GGWave::send(const CBQueueAudio & cbQueueAudio) {
         ++frameId;
     }
 
-    cbQueueAudio(m_outputBlock16.data(), frameId*samplesPerFrameOut*m_sampleSizeBytesOut);
+    cbEnqueueAudio(m_outputBlock16.data(), frameId*samplesPerFrameOut*m_sampleSizeBytesOut);
 
     m_txAmplitudeData16.resize(frameId*samplesPerFrameOut);
     for (int i = 0; i < frameId*samplesPerFrameOut; ++i) {
@@ -500,7 +511,7 @@ bool GGWave::send(const CBQueueAudio & cbQueueAudio) {
     return true;
 }
 
-void GGWave::receive(const CBDequeueAudio & cbDequeueAudio) {
+void GGWave::decode(const CBDequeueAudio & cbDequeueAudio) {
     while (m_hasNewTxData == false) {
         // read capture data
         //
@@ -561,7 +572,7 @@ void GGWave::receive(const CBDequeueAudio & cbDequeueAudio) {
 
                 bool isValid = false;
                 for (int rxProtocolId = 0; rxProtocolId < (int) getTxProtocols().size(); ++rxProtocolId) {
-                    const auto & rxProtocol = getTxProtocols()[rxProtocolId];
+                    const auto & rxProtocol = getTxProtocol(rxProtocolId);
 
                     // skip Rx protocol if start frequency is different from detected one
                     if (rxProtocol.freqStart != m_markerFreqStart) {
@@ -654,7 +665,7 @@ void GGWave::receive(const CBDequeueAudio & cbDequeueAudio) {
                                     m_hasNewRxData = true;
                                     m_lastRxDataLength = decodedLength;
                                     m_rxProtocol = rxProtocol;
-                                    m_rxProtocolId = rxProtocolId;
+                                    m_rxProtocolId = TxProtocolId(rxProtocolId);
                                 }
                             }
                         }
@@ -696,7 +707,7 @@ void GGWave::receive(const CBDequeueAudio & cbDequeueAudio) {
                     int nDetectedMarkerBits = m_nBitsInMarker;
 
                     for (int i = 0; i < m_nBitsInMarker; ++i) {
-                        double freq = bitFreq(rxProtocol, i);
+                        double freq = bitFreq(rxProtocol.second, i);
                         int bin = std::round(freq*m_ihzPerSample);
 
                         if (i%2 == 0) {
@@ -707,7 +718,7 @@ void GGWave::receive(const CBDequeueAudio & cbDequeueAudio) {
                     }
 
                     if (nDetectedMarkerBits == m_nBitsInMarker) {
-                        m_markerFreqStart = rxProtocol.freqStart;
+                        m_markerFreqStart = rxProtocol.second.freqStart;
                         isReceiving = true;
                         break;
                     }
@@ -735,7 +746,7 @@ void GGWave::receive(const CBDequeueAudio & cbDequeueAudio) {
                     int nDetectedMarkerBits = m_nBitsInMarker;
 
                     for (int i = 0; i < m_nBitsInMarker; ++i) {
-                        double freq = bitFreq(rxProtocol, i);
+                        double freq = bitFreq(rxProtocol.second, i);
                         int bin = std::round(freq*m_ihzPerSample);
 
                         if (i%2 == 0) {
@@ -798,15 +809,15 @@ bool GGWave::takeSpectrum(SpectrumData & dst) {
 int GGWave::maxFramesPerTx() const {
     int res = 0;
     for (const auto & protocol : getTxProtocols()) {
-        res = std::max(res, protocol.framesPerTx);
+        res = std::max(res, protocol.second.framesPerTx);
     }
     return res;
 }
 
 int GGWave::minBytesPerTx() const {
-    int res = getTxProtocols().front().framesPerTx;
+    int res = getTxProtocols().begin()->second.bytesPerTx;
     for (const auto & protocol : getTxProtocols()) {
-        res = std::min(res, protocol.bytesPerTx);
+        res = std::min(res, protocol.second.bytesPerTx);
     }
     return res;
 }

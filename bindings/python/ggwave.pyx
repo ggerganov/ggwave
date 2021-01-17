@@ -18,7 +18,7 @@ def init(parameters = None):
 def free(instance):
     return cggwave.ggwave_free(instance)
 
-def encode(payload, txProtocol = 1, volume = 10, instance = None):
+def encode(payload, txProtocolId = 1, volume = 10, instance = None):
     """ Encode payload into an audio waveform.
         @param {string} payload, the data to be encoded
         @return Generated audio waveform bytes representing 16-bit signed integer samples.
@@ -35,7 +35,7 @@ def encode(payload, txProtocol = 1, volume = 10, instance = None):
         own = True
         instance = init(defaultParameters())
 
-    n = cggwave.ggwave_encode(instance, cdata, len(data_bytes), txProtocol, volume, coutput)
+    n = cggwave.ggwave_encode(instance, cdata, len(data_bytes), txProtocolId, volume, coutput)
 
     if (own):
         free(instance)

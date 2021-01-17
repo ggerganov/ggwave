@@ -34,7 +34,7 @@ GGWave *g_ggWave = nullptr;
 extern "C" {
     EMSCRIPTEN_KEEPALIVE
         int sendData(int textLength, const char * text, int protocolId, int volume) {
-            g_ggWave->init(textLength, text, g_ggWave->getTxProtocols()[protocolId], volume);
+            g_ggWave->init(textLength, text, g_ggWave->getTxProtocol(protocolId), volume);
             return 0;
         }
 
@@ -242,7 +242,7 @@ bool GGWave_mainLoop() {
         return false;
     }
 
-    static GGWave::CBQueueAudio cbQueueAudio = [&](const void * data, uint32_t nBytes) {
+    static GGWave::CBEnqueueAudio cbQueueAudio = [&](const void * data, uint32_t nBytes) {
         SDL_QueueAudio(g_devIdOut, data, nBytes);
     };
 
@@ -259,7 +259,7 @@ bool GGWave_mainLoop() {
         if ((int) SDL_GetQueuedAudioSize(g_devIdOut) < g_ggWave->getSamplesPerFrame()*g_ggWave->getSampleSizeBytesOut()) {
             SDL_PauseAudioDevice(g_devIdIn, SDL_FALSE);
             if (::getTime_ms(tLastNoData, tNow) > 500.0f) {
-                g_ggWave->receive(CBDequeueAudio);
+                g_ggWave->decode(CBDequeueAudio);
                 if ((int) SDL_GetQueuedAudioSize(g_devIdIn) > 32*g_ggWave->getSamplesPerFrame()*g_ggWave->getSampleSizeBytesIn()) {
                     SDL_ClearQueuedAudio(g_devIdIn);
                 }
@@ -273,7 +273,7 @@ bool GGWave_mainLoop() {
         SDL_PauseAudioDevice(g_devIdOut, SDL_TRUE);
         SDL_PauseAudioDevice(g_devIdIn, SDL_TRUE);
 
-        g_ggWave->send(cbQueueAudio);
+        g_ggWave->encode(cbQueueAudio);
     }
 
     return true;

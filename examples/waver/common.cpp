@@ -523,7 +523,7 @@ void updateCore() {
         g_ggWave->init(
                 (int) inputCurrent.message.data.size(),
                 inputCurrent.message.data.data(),
-                g_ggWave->getTxProtocols()[inputCurrent.message.protocolId],
+                g_ggWave->getTxProtocol(inputCurrent.message.protocolId),
                 100*inputCurrent.message.volume);
 
         inputCurrent.update = false;
@@ -892,10 +892,10 @@ void renderMain() {
             ImGui::Text("Tx Protocol: ");
             ImGui::SetCursorScreenPos({ posSave.x + kLabelWidth, posSave.y });
         }
-        if (ImGui::BeginCombo("##protocol", g_ggWave->getTxProtocols()[settings.protocolId].name)) {
+        if (ImGui::BeginCombo("##protocol", g_ggWave->getTxProtocol(settings.protocolId).name)) {
             for (int i = 0; i < (int) g_ggWave->getTxProtocols().size(); ++i) {
                 const bool isSelected = (settings.protocolId == i);
-                if (ImGui::Selectable(g_ggWave->getTxProtocols()[i].name, isSelected)) {
+                if (ImGui::Selectable(g_ggWave->getTxProtocol(i).name, isSelected)) {
                     settings.protocolId = i;
                 }
 
@@ -966,7 +966,7 @@ void renderMain() {
             const auto msgStatus = message.received ? "Recv" : "Send";
             const auto msgColor = message.received ? ImVec4 { 0.0f, 1.0f, 0.0f, interp } : ImVec4 { 1.0f, 1.0f, 0.0f, interp };
 
-            ImGui::TextColored(msgColor, "[%s] %s (%s):", ::toTimeString(message.timestamp), msgStatus, g_ggWave->getTxProtocols()[message.protocolId].name);
+            ImGui::TextColored(msgColor, "[%s] %s (%s):", ::toTimeString(message.timestamp), msgStatus, g_ggWave->getTxProtocol(message.protocolId).name);
 
             {
                 auto p0 = ImGui::GetCursorScreenPos();

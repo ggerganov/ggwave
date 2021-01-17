@@ -7,6 +7,10 @@
 #include <random>
 #include <stdexcept>
 
+void testC() {
+    printf("Hello from C\n");
+}
+
 namespace {
 
 // FFT routines taken from https://stackoverflow.com/a/37729648/4039976

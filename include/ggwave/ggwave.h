@@ -1,4 +1,29 @@
-#pragma once
+#ifndef GGWAVE_H
+#define GGWAVE_H
+
+// Define GGWAVE_API macro to properly export symbols
+#ifdef GGWAVE_SHARED
+#    ifdef _WIN32
+#        ifdef GGWAVE_BUILD
+#            define GGWAVE_API __declspec(dllexport)
+#        else
+#            define GGWAVE_API __declspec(dllimport)
+#        endif
+#    else
+#        define GGWAVE_API __attribute__ ((visibility ("default")))
+#    endif
+#else
+#    define GGWAVE_API
+#endif
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+    GGWAVE_API void testC();
+
+#ifdef __cplusplus
+}
 
 #include <cstdint>
 #include <functional>
@@ -160,3 +185,7 @@ private:
     AmplitudeData16 m_outputBlock16;
     AmplitudeData16 m_txAmplitudeData16;
 };
+
+#endif
+
+#endif

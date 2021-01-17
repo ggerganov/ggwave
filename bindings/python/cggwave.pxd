@@ -19,7 +19,7 @@ cdef extern from "ggwave.h" nogil:
         ggwave_SampleFormat formatIn
         ggwave_SampleFormat formatOut
 
-    ctypedef void * ggwave_Instance
+    ctypedef int ggwave_Instance
 
     ggwave_Parameters ggwave_defaultParameters();
 

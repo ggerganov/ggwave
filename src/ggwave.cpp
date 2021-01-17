@@ -6,11 +6,17 @@
 #include <algorithm>
 #include <random>
 #include <stdexcept>
+#include <map>
 
 //
 // C interface
 //
 
+namespace {
+std::map<ggwave_Instance, GGWave *> g_instances;
+}
+
+extern "C"
 ggwave_Parameters ggwave_defaultParameters(void) {
     ggwave_Parameters result {
         GGWave::kBaseSampleRate,
@@ -22,21 +28,26 @@ ggwave_Parameters ggwave_defaultParameters(void) {
     return result;
 }
 
+extern "C"
 ggwave_Instance ggwave_init(const ggwave_Parameters parameters) {
-    GGWave * ggWave = new GGWave(
+    static ggwave_Instance curId = 0;
+
+    g_instances[curId] = new GGWave(
             parameters.sampleRateIn,
             parameters.sampleRateOut,
             parameters.samplesPerFrame,
             4, // todo : hardcoded sample sizes
             2);
 
-    return ggWave;
+    return curId++;
 }
 
+extern "C"
 void ggwave_free(ggwave_Instance instance) {
-    delete (GGWave *) instance;
+    delete (GGWave *) g_instances[instance];
 }
 
+extern "C"
 int ggwave_encode(
         ggwave_Instance instance,
         const char * dataBuffer,
@@ -44,7 +55,7 @@ int ggwave_encode(
         ggwave_TxProtocol txProtocol,
         int volume,
         char * outputBuffer) {
-    GGWave * ggWave = (GGWave *) instance;
+    GGWave * ggWave = (GGWave *) g_instances[instance];
 
     ggWave->init(dataSize, dataBuffer, ggWave->getTxProtocols()[txProtocol], volume);
 

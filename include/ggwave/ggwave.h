@@ -42,7 +42,7 @@ extern "C" {
 		ggwave_SampleFormat formatOut;
 	} ggwave_Parameters;
 
-    typedef void * ggwave_Instance;
+    typedef int ggwave_Instance;
 
     GGWAVE_API ggwave_Parameters ggwave_defaultParameters(void);
 

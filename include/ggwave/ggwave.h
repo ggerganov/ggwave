@@ -1,4 +1,71 @@
-#pragma once
+#ifndef GGWAVE_H
+#define GGWAVE_H
+
+// Define GGWAVE_API macro to properly export symbols
+#ifdef GGWAVE_SHARED
+#    ifdef _WIN32
+#        ifdef GGWAVE_BUILD
+#            define GGWAVE_API __declspec(dllexport)
+#        else
+#            define GGWAVE_API __declspec(dllimport)
+#        endif
+#    else
+#        define GGWAVE_API __attribute__ ((visibility ("default")))
+#    endif
+#else
+#    define GGWAVE_API
+#endif
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+	typedef enum {
+		GGWAVE_SAMPLE_FORMAT_I16,
+		GGWAVE_SAMPLE_FORMAT_F32,
+	} ggwave_SampleFormat;
+
+	typedef enum {
+		GGWAVE_TX_PROTOCOL_AUDIBLE_NORMAL,
+		GGWAVE_TX_PROTOCOL_AUDIBLE_FAST,
+		GGWAVE_TX_PROTOCOL_AUDIBLE_FASTEST,
+		GGWAVE_TX_PROTOCOL_ULTRASOUND_NORMAL,
+		GGWAVE_TX_PROTOCOL_ULTRASOUND_FAST,
+		GGWAVE_TX_PROTOCOL_ULTRASOUND_FASTEST,
+	} ggwave_TxProtocol;
+
+	typedef struct {
+		int sampleRateIn;
+		int sampleRateOut;
+		int samplesPerFrame;
+		ggwave_SampleFormat formatIn;
+		ggwave_SampleFormat formatOut;
+	} ggwave_Parameters;
+
+    typedef int ggwave_Instance;
+
+    GGWAVE_API ggwave_Parameters ggwave_defaultParameters(void);
+
+    GGWAVE_API ggwave_Instance ggwave_init(const ggwave_Parameters parameters);
+
+    GGWAVE_API void ggwave_free(ggwave_Instance instance);
+
+    GGWAVE_API int ggwave_encode(
+            ggwave_Instance instance,
+            const char * dataBuffer,
+            int dataSize,
+            ggwave_TxProtocol txProtocol,
+            int volume,
+            char * outputBuffer);
+
+    GGWAVE_API int ggwave_decode(
+            ggwave_Instance instance,
+            const char * dataBuffer,
+            int dataSize,
+            char * outputBuffer);
+
+#ifdef __cplusplus
+}
 
 #include <cstdint>
 #include <functional>
@@ -6,7 +73,7 @@
 
 class GGWave {
 public:
-    static constexpr auto kBaseSampleRate = 48000.0;
+    static constexpr auto kBaseSampleRate = 48000;
     static constexpr auto kDefaultSamplesPerFrame = 1024;
     static constexpr auto kMaxSamplesPerFrame = 1024;
     static constexpr auto kMaxDataBits = 256;
@@ -46,6 +113,7 @@ public:
     using RecordedData    = std::vector<float>;
     using TxRxData        = std::vector<std::uint8_t>;
 
+    // todo : rename to CBEnqueueAudio
     using CBQueueAudio = std::function<void(const void * data, uint32_t nBytes)>;
     using CBDequeueAudio = std::function<uint32_t(void * data, uint32_t nMaxBytes)>;
 
@@ -59,6 +127,8 @@ public:
     ~GGWave();
 
     bool init(int textLength, const char * stext, const TxProtocol & aProtocol, const int volume);
+
+    // todo : rename to "encode" / "decode"
     bool send(const CBQueueAudio & cbQueueAudio);
     void receive(const CBDequeueAudio & CBDequeueAudio);
 
@@ -77,7 +147,8 @@ public:
     const float & getSampleRateIn() const { return m_sampleRateIn; }
     const float & getSampleRateOut() const { return m_sampleRateOut; }
 
-    const TxProtocol & getDefultTxProtocol() const { return getTxProtocols()[1]; }
+    static int getDefultTxProtocolId() { return 1; }
+    static const TxProtocol & getDefultTxProtocol() { return getTxProtocols()[getDefultTxProtocolId()]; }
 
     const TxRxData & getRxData() const { return m_rxData; }
     const TxProtocol & getRxProtocol() const { return m_rxProtocol; }
@@ -160,3 +231,7 @@ private:
     AmplitudeData16 m_outputBlock16;
     AmplitudeData16 m_txAmplitudeData16;
 };
+
+#endif
+
+#endif

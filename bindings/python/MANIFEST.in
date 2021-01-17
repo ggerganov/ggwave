@@ -1,0 +1,4 @@
+recursive-include ggwave/include *
+recursive-include ggwave/src/ *
+include *.pxd
+include *.pyx

@@ -45,6 +45,7 @@ ggwave_Instance ggwave_init(const ggwave_Parameters parameters) {
 extern "C"
 void ggwave_free(ggwave_Instance instance) {
     delete (GGWave *) g_instances[instance];
+    g_instances.erase(instance);
 }
 
 extern "C"
@@ -72,6 +73,39 @@ int ggwave_encode(
     ggWave->send(cbQueueAudio);
 
     return nSamples;
+}
+
+extern "C"
+int ggwave_decode(
+        ggwave_Instance instance,
+        const char * dataBuffer,
+        int dataSize,
+        char * outputBuffer) {
+    GGWave * ggWave = (GGWave *) g_instances[instance];
+
+    GGWave::CBDequeueAudio cbDequeueAudio = [&](void * data, uint32_t nMaxBytes) -> uint32_t {
+        uint32_t nCopied = std::min((uint32_t) dataSize, nMaxBytes);
+        std::copy(dataBuffer, dataBuffer + nCopied, (char *) data);
+
+        dataSize -= nCopied;
+
+        return nCopied;
+    };
+
+    ggWave->receive(cbDequeueAudio);
+
+    // todo : avoid allocation
+    GGWave::TxRxData rxData;
+
+    auto rxDataLength = ggWave->takeRxData(rxData);
+    if (rxDataLength == -1) {
+        // failed to decode message
+        return -1;
+    } else if (rxDataLength > 0) {
+        std::copy(rxData.begin(), rxData.end(), outputBuffer);
+    }
+
+    return rxDataLength;
 }
 
 //
@@ -466,12 +500,12 @@ bool GGWave::send(const CBQueueAudio & cbQueueAudio) {
     return true;
 }
 
-void GGWave::receive(const CBDequeueAudio & CBDequeueAudio) {
+void GGWave::receive(const CBDequeueAudio & cbDequeueAudio) {
     while (m_hasNewTxData == false) {
         // read capture data
         //
         // todo : support for non-float input
-        auto nBytesRecorded = CBDequeueAudio(m_sampleAmplitude.data(), m_samplesPerFrame*m_sampleSizeBytesIn);
+        auto nBytesRecorded = cbDequeueAudio(m_sampleAmplitude.data(), m_samplesPerFrame*m_sampleSizeBytesIn);
 
         if (nBytesRecorded != 0) {
             m_sampleAmplitudeHistory[m_historyId] = m_sampleAmplitude;

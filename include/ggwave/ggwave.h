@@ -58,6 +58,12 @@ extern "C" {
             int volume,
             char * outputBuffer);
 
+    GGWAVE_API int ggwave_decode(
+            ggwave_Instance instance,
+            const char * dataBuffer,
+            int dataSize,
+            char * outputBuffer);
+
 #ifdef __cplusplus
 }
 
@@ -107,6 +113,7 @@ public:
     using RecordedData    = std::vector<float>;
     using TxRxData        = std::vector<std::uint8_t>;
 
+    // todo : rename to CBEnqueueAudio
     using CBQueueAudio = std::function<void(const void * data, uint32_t nBytes)>;
     using CBDequeueAudio = std::function<uint32_t(void * data, uint32_t nMaxBytes)>;
 
@@ -120,6 +127,8 @@ public:
     ~GGWave();
 
     bool init(int textLength, const char * stext, const TxProtocol & aProtocol, const int volume);
+
+    // todo : rename to "encode" / "decode"
     bool send(const CBQueueAudio & cbQueueAudio);
     void receive(const CBDequeueAudio & CBDequeueAudio);
 

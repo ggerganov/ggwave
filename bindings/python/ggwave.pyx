@@ -18,8 +18,13 @@ def init(parameters = None):
 def free(instance):
     return cggwave.ggwave_free(instance)
 
-def encode(data, txProtocol = 1, volume = 10, instance = None):
-    cdef bytes data_bytes = data.encode()
+def encode(payload, txProtocol = 1, volume = 10, instance = None):
+    """ Encode payload into an audio waveform.
+        @param {string} payload, the data to be encoded
+        @return Generated audio waveform bytes representing 16-bit signed integer samples.
+    """
+
+    cdef bytes data_bytes = payload.encode()
     cdef char* cdata = data_bytes
 
     cdef bytes output_bytes = bytes(1024*1024)
@@ -27,7 +32,6 @@ def encode(data, txProtocol = 1, volume = 10, instance = None):
 
     own = False
     if (instance is None):
-        print('creating')
         own = True
         instance = init(defaultParameters())
 
@@ -40,3 +44,22 @@ def encode(data, txProtocol = 1, volume = 10, instance = None):
     n += 16*1024
 
     return struct.unpack("h"*n, output_bytes[0:2*n])
+
+def decode(instance, waveform):
+    """ Analyze and decode audio waveform to obtain original payload
+        @param {bytes} waveform, the audio waveform to decode
+        @return The decoded payload if successful.
+    """
+
+    cdef bytes data_bytes = waveform
+    cdef char* cdata = data_bytes
+
+    cdef bytes output_bytes = bytes(256)
+    cdef char* coutput = output_bytes
+
+    rxDataLength = cggwave.ggwave_decode(instance, cdata, len(data_bytes), coutput)
+
+    if (rxDataLength > 0):
+        return coutput[0:rxDataLength]
+
+    return None

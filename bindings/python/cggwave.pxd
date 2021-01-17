@@ -34,3 +34,9 @@ cdef extern from "ggwave.h" nogil:
             ggwave_TxProtocol txProtocol,
             int volume,
             char * outputBuffer);
+
+    int ggwave_decode(
+            ggwave_Instance instance,
+            const char * dataBuffer,
+            int dataSize,
+            char * outputBuffer);

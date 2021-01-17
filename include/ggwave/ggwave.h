@@ -24,29 +24,29 @@ extern "C" {
     //
 
     // Data format of the audio samples
-	typedef enum {
-		GGWAVE_SAMPLE_FORMAT_I16,
-		GGWAVE_SAMPLE_FORMAT_F32,
-	} ggwave_SampleFormat;
+    typedef enum {
+        GGWAVE_SAMPLE_FORMAT_I16,
+        GGWAVE_SAMPLE_FORMAT_F32,
+    } ggwave_SampleFormat;
 
     // TxProtocol ids
-	typedef enum {
-		GGWAVE_TX_PROTOCOL_AUDIBLE_NORMAL,
-		GGWAVE_TX_PROTOCOL_AUDIBLE_FAST,
-		GGWAVE_TX_PROTOCOL_AUDIBLE_FASTEST,
-		GGWAVE_TX_PROTOCOL_ULTRASOUND_NORMAL,
-		GGWAVE_TX_PROTOCOL_ULTRASOUND_FAST,
-		GGWAVE_TX_PROTOCOL_ULTRASOUND_FASTEST,
-	} ggwave_TxProtocolId;
+    typedef enum {
+        GGWAVE_TX_PROTOCOL_AUDIBLE_NORMAL,
+        GGWAVE_TX_PROTOCOL_AUDIBLE_FAST,
+        GGWAVE_TX_PROTOCOL_AUDIBLE_FASTEST,
+        GGWAVE_TX_PROTOCOL_ULTRASOUND_NORMAL,
+        GGWAVE_TX_PROTOCOL_ULTRASOUND_FAST,
+        GGWAVE_TX_PROTOCOL_ULTRASOUND_FASTEST,
+    } ggwave_TxProtocolId;
 
     // GGWave instance parameters
-	typedef struct {
-		int sampleRateIn;               // capture sample rate
-		int sampleRateOut;              // playback sample rate
-		int samplesPerFrame;            // number of samples per audio frame
-		ggwave_SampleFormat formatIn;   // format of the captured audio samples
-		ggwave_SampleFormat formatOut;  // format of the playback audio samples
-	} ggwave_Parameters;
+    typedef struct {
+        int sampleRateIn;               // capture sample rate
+        int sampleRateOut;              // playback sample rate
+        int samplesPerFrame;            // number of samples per audio frame
+        ggwave_SampleFormat formatIn;   // format of the captured audio samples
+        ggwave_SampleFormat formatOut;  // format of the playback audio samples
+    } ggwave_Parameters;
 
     // GGWave instances are identified with an integer and are stored
     // in a private map container. Using void * caused some issues with

@@ -3,6 +3,7 @@
 [![Actions Status](https://github.com/ggerganov/ggwave/workflows/CI/badge.svg)](https://github.com/ggerganov/ggwave/actions)
 [![ggwave v0.0.1 badge][changelog-badge]][changelog]
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](https://opensource.org/licenses/MIT)
+![pypi](https://img.shields.io/pypi/v/ggwave.svg)
 
 Tiny data-over-sound library.
 

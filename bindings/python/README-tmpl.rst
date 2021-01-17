@@ -16,9 +16,9 @@
     ]]]
     [[[end]]]
 
-=====
+======
 ggwave
-=====
+======
 
 Tiny data-over-sound library.
 

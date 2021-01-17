@@ -20,7 +20,7 @@
 extern "C" {
 #endif
 
-    GGWAVE_API void testC();
+    GGWAVE_API int ggwave_encode(const char * dataBuffer, int dataSize, char * outputBuffer);
 
 #ifdef __cplusplus
 }

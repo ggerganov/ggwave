@@ -3,9 +3,10 @@ import ggwave
 
 testFailed = False
 
-#result = ggwave.testC()
-#if not (result):
-#    testFailed = True
+n, samples = ggwave.encode("hello python")
+
+if not (samples and n > 1024):
+    testFailed = True
 
 if testFailed:
     print("Some of the tests failed!")

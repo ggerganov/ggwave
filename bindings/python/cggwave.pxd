@@ -1,3 +1,3 @@
 cdef extern from "ggwave.h" nogil:
 
-     void testC()
+     int ggwave_encode(const char * dataBuffer, int dataSize, char * outputBuffer);

@@ -11,6 +11,31 @@ void testC() {
     printf("Hello from C\n");
 }
 
+int ggwave_encode(const char * dataBuffer, int dataSize, char * outputBuffer) {
+    GGWave ggWave(
+                GGWave::kBaseSampleRate,
+                GGWave::kBaseSampleRate,
+                GGWave::kDefaultSamplesPerFrame,
+                4, // todo : hardcoded sample sizes
+                2);
+
+    ggWave.init(dataSize, dataBuffer, ggWave.getDefultTxProtocol(), 10);
+
+    int nSamples = 0;
+
+    GGWave::CBQueueAudio cbQueueAudio = [&](const void * data, uint32_t nBytes) {
+        char * p = (char *) data;
+        std::copy(p, p + nBytes, outputBuffer);
+
+        // todo : tmp assume int16
+        nSamples = nBytes/2;
+    };
+
+    ggWave.send(cbQueueAudio);
+
+    return nSamples;
+}
+
 namespace {
 
 // FFT routines taken from https://stackoverflow.com/a/37729648/4039976

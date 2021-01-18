@@ -37,7 +37,7 @@ add_subdirectory(third-party)
 
 # helper libraries
 
-add_library(ggwave-common ${GGWAVE_LIBRARY_TYPE}
+add_library(ggwave-common
     ggwave-common.cpp
     )
 
@@ -48,7 +48,7 @@ target_link_libraries(ggwave-common PRIVATE
 if (GGWAVE_SUPPORT_SDL2)
     # ggwave-common-sdl2
 
-    add_library(ggwave-common-sdl2 ${GGWAVE_LIBRARY_TYPE}
+    add_library(ggwave-common-sdl2
         ggwave-common-sdl2.cpp
         )
 

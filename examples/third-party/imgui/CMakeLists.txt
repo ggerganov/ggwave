@@ -12,7 +12,7 @@ else (APPLE)
     unset(ADDITIONAL_LIBRARIES)
 endif (APPLE)
 
-add_library(imgui ${GGWAVE_LIBRARY_TYPE}
+add_library(imgui
     imgui/imgui.cpp
     imgui/imgui_draw.cpp
     imgui/imgui_demo.cpp
@@ -36,7 +36,7 @@ if (GGWAVE_SUPPORT_SDL2)
         find_package(PkgConfig REQUIRED)
         pkg_search_module(SDL2 REQUIRED sdl2)
 
-        add_library(imgui-sdl2 ${GGWAVE_LIBRARY_TYPE}
+        add_library(imgui-sdl2
             imgui/examples/libs/gl3w/GL/gl3w.c
             imgui-extra/imgui_impl.cpp
             imgui-extra/imgui_impl_sdl.cpp
@@ -66,7 +66,7 @@ if (GGWAVE_SUPPORT_SDL2)
             ${ADDITIONAL_LIBRARIES}
             )
     elseif (EMSCRIPTEN)
-        add_library(imgui-sdl2 ${GGWAVE_LIBRARY_TYPE}
+        add_library(imgui-sdl2
             imgui-extra/imgui_impl.cpp
             imgui-extra/imgui_impl_sdl.cpp
             imgui-extra/imgui_impl_opengl3.cpp
@@ -83,7 +83,7 @@ if (GGWAVE_SUPPORT_SDL2)
     else()
         find_package(OpenGL REQUIRED)
 
-        add_library(imgui-sdl2 ${GGWAVE_LIBRARY_TYPE}
+        add_library(imgui-sdl2
             imgui/examples/libs/gl3w/GL/gl3w.c
             imgui-extra/imgui_impl.cpp
             imgui-extra/imgui_impl_sdl.cpp

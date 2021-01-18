@@ -14,18 +14,15 @@ endif()
 
 if (EMSCRIPTEN)
     set(GGWAVE_SUPPORT_SDL2_DEFAULT ON)
-    set(GGWAVE_LIBRARY_TYPE STATIC)
+    set(BUILD_SHARED_LIBS_DEFAULT OFF)
 else()
     set(GGWAVE_SUPPORT_SDL2_DEFAULT ON)
-    if (BUILD_SHARED_LIBS)
-        set(GGWAVE_LIBRARY_TYPE SHARED)
-    else ()
-        set(GGWAVE_LIBRARY_TYPE STATIC)
-    endif()
+    set(BUILD_SHARED_LIBS_DEFAULT ON)
 endif()
 
 # options
 
+option(BUILD_SHARED_LIBS              "ggwave: build shared libs" ${BUILD_SHARED_LIBS_DEFAULT})
 option(USE_FINDSDL2                   "ggwave: use the FindSDL2.cmake script" OFF)
 
 option(GGWAVE_ALL_WARNINGS            "ggwave: enable all compiler warnings" ON)

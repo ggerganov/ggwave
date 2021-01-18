@@ -125,6 +125,7 @@ class GGWave {
 public:
     static constexpr auto kBaseSampleRate = 48000;
     static constexpr auto kDefaultSamplesPerFrame = 1024;
+    static constexpr auto kDefaultVolume = 10;
     static constexpr auto kMaxSamplesPerFrame = 1024;
     static constexpr auto kMaxDataBits = 256;
     static constexpr auto kMaxDataSize = 256;
@@ -177,7 +178,8 @@ public:
 
     ~GGWave();
 
-    bool init(int textLength, const char * stext, const TxProtocol & aProtocol, const int volume);
+    bool init(int dataSize, const char * dataBuffer, const int volume = kDefaultVolume);
+    bool init(int dataSize, const char * dataBuffer, const TxProtocol & aProtocol, const int volume = kDefaultVolume);
 
     bool encode(const CBEnqueueAudio & cbEnqueueAudio);
     void decode(const CBDequeueAudio & cbDequeueAudio);

@@ -34,6 +34,7 @@ option(GGWAVE_SANITIZE_UNDEFINED      "ggwave: enable undefined sanitizer" OFF)
 
 option(GGWAVE_SUPPORT_SDL2            "ggwave: support for libSDL2" ${GGWAVE_SUPPORT_SDL2_DEFAULT})
 
+option(GGWAVE_BUILD_TESTS             "ggwave: build examples" ${GGWAVE_STANDALONE})
 option(GGWAVE_BUILD_EXAMPLES          "ggwave: build examples" ${GGWAVE_STANDALONE})
 
 # sanitizers
@@ -70,6 +71,11 @@ endif()
 
 add_subdirectory(src)
 
-if (GGWAVE_STANDALONE AND GGWAVE_BUILD_EXAMPLES)
+if (GGWAVE_BUILD_TESTS)
+    enable_testing()
+    add_subdirectory(tests)
+endif()
+
+if (GGWAVE_BUILD_EXAMPLES)
     add_subdirectory(examples)
 endif()

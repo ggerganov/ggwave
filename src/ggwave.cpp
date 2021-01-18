@@ -290,17 +290,31 @@ GGWave::GGWave(
 GGWave::~GGWave() {
 }
 
-bool GGWave::init(int textLength, const char * stext, const TxProtocol & aProtocol, const int volume) {
-    if (textLength > kMaxLength) {
-        fprintf(stderr, "Truncating data from %d to 140 bytes\n", textLength);
-        textLength = kMaxLength;
+bool GGWave::init(int dataSize, const char * dataBuffer, const int volume) {
+    return init(dataSize, dataBuffer, getDefaultTxProtocol(), volume);
+}
+
+bool GGWave::init(int dataSize, const char * dataBuffer, const TxProtocol & aProtocol, const int volume) {
+    if (dataSize < 0) {
+        fprintf(stderr, "Negative data size: %d\n", dataSize);
+        return false;
+    }
+
+    if (dataSize > kMaxLength) {
+        fprintf(stderr, "Truncating data from %d to 140 bytes\n", dataSize);
+        dataSize = kMaxLength;
+    }
+
+    if (volume < 0 || volume > 100) {
+        fprintf(stderr, "Invalid volume: %d\n", volume);
+        return false;
     }
 
     m_txProtocol = aProtocol;
-    m_txDataLength = textLength;
+    m_txDataLength = dataSize;
     m_sendVolume = ((double)(volume))/100.0f;
 
-    const uint8_t * text = reinterpret_cast<const uint8_t *>(stext);
+    const uint8_t * text = reinterpret_cast<const uint8_t *>(dataBuffer);
 
     m_hasNewTxData = false;
     std::fill(m_txData.begin(), m_txData.end(), 0);

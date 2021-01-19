@@ -188,48 +188,37 @@ bool GGWave_init(
         }
     }
 
-    int sampleSizeBytesIn = 4;
-    int sampleSizeBytesOut = 2;
+    GGWave::SampleFormat sampleFormatIn = GGWAVE_SAMPLE_FORMAT_UNDEFINED;
+    GGWave::SampleFormat sampleFormatOut = GGWAVE_SAMPLE_FORMAT_UNDEFINED;
 
     switch (g_obtainedSpecIn.format) {
-        case AUDIO_U8:
-        case AUDIO_S8:
-            sampleSizeBytesIn = 1;
-            break;
-        case AUDIO_U16SYS:
-        case AUDIO_S16SYS:
-            sampleSizeBytesIn = 2;
-            break;
-        case AUDIO_S32SYS:
-        case AUDIO_F32SYS:
-            sampleSizeBytesIn = 4;
-            break;
+        case AUDIO_U8:      sampleFormatIn = GGWAVE_SAMPLE_FORMAT_U8; break;
+        case AUDIO_S8:      sampleFormatIn = GGWAVE_SAMPLE_FORMAT_I8; break;
+        case AUDIO_U16SYS:  sampleFormatIn = GGWAVE_SAMPLE_FORMAT_U16; break;
+        case AUDIO_S16SYS:  sampleFormatIn = GGWAVE_SAMPLE_FORMAT_I16; break;
+        case AUDIO_S32SYS:  sampleFormatIn = GGWAVE_SAMPLE_FORMAT_F32; break;
+        case AUDIO_F32SYS:  sampleFormatIn = GGWAVE_SAMPLE_FORMAT_F32; break;
     }
 
     switch (g_obtainedSpecOut.format) {
-        case AUDIO_U8:
-        case AUDIO_S8:
-            sampleSizeBytesOut = 1;
-            break;
-        case AUDIO_U16SYS:
-        case AUDIO_S16SYS:
-            sampleSizeBytesOut = 2;
-            break;
-        case AUDIO_S32SYS:
-        case AUDIO_F32SYS:
-            sampleSizeBytesOut = 4;
+        case AUDIO_U8:      sampleFormatOut = GGWAVE_SAMPLE_FORMAT_U8; break;
+        case AUDIO_S8:      sampleFormatOut = GGWAVE_SAMPLE_FORMAT_I8; break;
+        case AUDIO_U16SYS:  sampleFormatOut = GGWAVE_SAMPLE_FORMAT_U16; break;
+        case AUDIO_S16SYS:  sampleFormatOut = GGWAVE_SAMPLE_FORMAT_I16; break;
+        case AUDIO_S32SYS:  sampleFormatOut = GGWAVE_SAMPLE_FORMAT_F32; break;
+        case AUDIO_F32SYS:  sampleFormatOut = GGWAVE_SAMPLE_FORMAT_F32; break;
             break;
     }
 
     if (reinit) {
         if (g_ggWave) delete g_ggWave;
 
-        g_ggWave = new GGWave(
+        g_ggWave = new GGWave({
                 g_obtainedSpecIn.freq,
                 g_obtainedSpecOut.freq,
                 GGWave::kDefaultSamplesPerFrame,
-                sampleSizeBytesIn,
-                sampleSizeBytesOut);
+                sampleFormatIn,
+                sampleFormatOut});
     }
 
     return true;

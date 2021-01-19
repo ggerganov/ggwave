@@ -16,8 +16,8 @@ cdef extern from "ggwave.h" nogil:
         int sampleRateIn
         int sampleRateOut
         int samplesPerFrame
-        ggwave_SampleFormat formatIn
-        ggwave_SampleFormat formatOut
+        ggwave_SampleFormat sampleFormatIn
+        ggwave_SampleFormat sampleFormatOut
 
     ctypedef int ggwave_Instance
 

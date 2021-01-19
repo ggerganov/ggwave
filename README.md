@@ -164,12 +164,6 @@ sudo snap connect waver:audio-record :audio-record
   brew install ggerganov/ggerganov/waver
   ```
 
-## Todo
-
-  - [ ] Improve library interface
-  - [ ] Support for non-float32 input and non-int16 output
-  - [x] Mobile app examples
-
 [changelog]: ./CHANGELOG.md
 [changelog-badge]: https://img.shields.io/badge/changelog-ggwave%20v0.1-dummy
 [license]: ./LICENSE

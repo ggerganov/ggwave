@@ -12,7 +12,7 @@
 #define CHECK_F(cond) CHECK(!(cond))
 
 int main() {
-    GGWave instance(48000, 48000, 1024, 4, 2);
+    GGWave instance(GGWave::defaultParameters());
 
     std::string payload = "hello";
 

@@ -78,7 +78,7 @@ The original data is encoded using [Reed-Solomon error codes](https://github.com
 
 ### Demodulation (Rx)
 
-Beginning and ending of the transmission are marked with special sound markers. The receiver listens for these markers and records the in-between sound data. The recorded data is then Fourier transformed to obtain a frequency spectrum. The detected frequencies are decoded back to binary data in the same way they were encoded.
+Beginning and ending of the transmission are marked with special sound markers ([#13](https://github.com/ggerganov/ggwave/discussions/13)). The receiver listens for these markers and records the in-between sound data. The recorded data is then Fourier transformed to obtain a frequency spectrum. The detected frequencies are decoded back to binary data in the same way they were encoded.
 
 Reed-Solomon decoding is finally performed to obtain the original data.
 

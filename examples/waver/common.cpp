@@ -181,7 +181,7 @@ struct State {
 
     Message message;
     GGWave::SpectrumData spectrum;
-    GGWave::AmplitudeData16 txAmplitudeData;
+    GGWave::AmplitudeDataI16 txAmplitudeData;
     GGWaveStats stats;
 };
 
@@ -563,7 +563,7 @@ void updateCore() {
         g_buffer.stateCore.flags.newSpectrum = true;
     }
 
-    if (g_ggWave->takeTxAmplitudeData16(g_buffer.stateCore.txAmplitudeData)) {
+    if (g_ggWave->takeTxAmplitudeDataI16(g_buffer.stateCore.txAmplitudeData)) {
         g_buffer.stateCore.update = true;
         g_buffer.stateCore.flags.newTxAmplitudeData = true;
     }
@@ -696,7 +696,7 @@ void renderMain() {
 
     static GGWaveStats statsCurrent;
     static GGWave::SpectrumData spectrumCurrent;
-    static GGWave::AmplitudeData16 txAmplitudeDataCurrent;
+    static GGWave::AmplitudeDataI16 txAmplitudeDataCurrent;
     static std::vector<Message> messageHistory;
 
     if (stateCurrent.update) {

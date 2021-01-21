@@ -166,11 +166,11 @@ public:
         return kTxProtocols;
     }
 
-    using AmplitudeData   = std::vector<float>;
-    using AmplitudeData16 = std::vector<int16_t>;
-    using SpectrumData    = std::vector<float>;
-    using RecordedData    = std::vector<float>;
-    using TxRxData        = std::vector<std::uint8_t>;
+    using AmplitudeData    = std::vector<float>;
+    using AmplitudeDataI16 = std::vector<int16_t>;
+    using SpectrumData     = std::vector<float>;
+    using RecordedData     = std::vector<float>;
+    using TxRxData         = std::vector<std::uint8_t>;
 
     using CBEnqueueAudio = std::function<void(const void * data, uint32_t nBytes)>;
     using CBDequeueAudio = std::function<uint32_t(void * data, uint32_t nMaxBytes)>;
@@ -211,7 +211,7 @@ public:
     const TxProtocolId & getRxProtocolId()  const { return m_rxProtocolId; }
 
     int takeRxData(TxRxData & dst);
-    int takeTxAmplitudeData16(AmplitudeData16 & dst);
+    int takeTxAmplitudeDataI16(AmplitudeDataI16 & dst);
     bool takeSpectrum(SpectrumData & dst);
 
 private:
@@ -289,8 +289,8 @@ private:
 
     AmplitudeData m_outputBlock;
     TxRxData m_outputBlockTmp;
-    AmplitudeData16 m_outputBlock16;
-    AmplitudeData16 m_txAmplitudeData16;
+    AmplitudeDataI16 m_outputBlockI16;
+    AmplitudeDataI16 m_txAmplitudeDataI16;
 };
 
 #endif

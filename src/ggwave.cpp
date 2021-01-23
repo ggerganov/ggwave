@@ -268,7 +268,7 @@ const GGWave::Parameters & GGWave::getDefaultParameters() {
         GGWave::kBaseSampleRate,
         GGWave::kDefaultSamplesPerFrame,
         GGWAVE_SAMPLE_FORMAT_F32,
-        GGWAVE_SAMPLE_FORMAT_I16
+        GGWAVE_SAMPLE_FORMAT_F32,
     };
 
     return result;

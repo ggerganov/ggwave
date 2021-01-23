@@ -3,7 +3,6 @@ cimport cython
 from cpython.mem cimport PyMem_Malloc, PyMem_Free
 
 import re
-import struct
 
 cimport cggwave
 
@@ -43,7 +42,7 @@ def encode(payload, txProtocolId = 1, volume = 10, instance = None):
     if (own):
         free(instance)
 
-    return struct.unpack("h"*n, output_bytes[0:2*n])
+    return output_bytes
 
 def decode(instance, waveform):
     """ Analyze and decode audio waveform to obtain original payload

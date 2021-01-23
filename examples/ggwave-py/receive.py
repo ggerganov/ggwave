@@ -10,7 +10,7 @@ instance = ggwave.init()
 
 try:
     while True:
-        data = stream.read(1024)
+        data = stream.read(1024, exception_on_overflow=False)
         res = ggwave.decode(instance, data)
         if (not res is None):
             try:

@@ -8,7 +8,7 @@ README.rst is not commited to git because it is generated from [README-tmpl.rst]
 ## Building
 
 Run `make build` to generate an extension module as .so file.
-You can test it then by importing it from python interpreter `import ggwave` and running `ggwave.testC(...)` (you have to be positioned in the directory where .so was built).
+You can test it then by importing it from python interpreter `import ggwave` and running `ggwave.encode('test')` (you have to be positioned in the directory where .so was built).
 This is useful for testing while developing.
 
 Run `make sdist` to create a source distribution, but not publish it - it is a tarball in dist/ that will be uploaded to pip on `publish`.

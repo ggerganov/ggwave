@@ -3,8 +3,9 @@
 #include "reed-solomon/rs.hpp"
 
 #include <chrono>
+#include <cmath>
 #include <algorithm>
-#include <random>
+//#include <random>
 #include <stdexcept>
 #include <map>
 
@@ -17,27 +18,20 @@ std::map<ggwave_Instance, GGWave *> g_instances;
 }
 
 extern "C"
-ggwave_Parameters ggwave_defaultParameters(void) {
-    ggwave_Parameters result {
-        GGWave::kBaseSampleRate,
-        GGWave::kBaseSampleRate,
-        GGWave::kDefaultSamplesPerFrame,
-        GGWAVE_SAMPLE_FORMAT_F32,
-        GGWAVE_SAMPLE_FORMAT_I16
-    };
-    return result;
+ggwave_Parameters ggwave_getDefaultParameters(void) {
+    return GGWave::getDefaultParameters();
 }
 
 extern "C"
 ggwave_Instance ggwave_init(const ggwave_Parameters parameters) {
     static ggwave_Instance curId = 0;
 
-    g_instances[curId] = new GGWave(
+    g_instances[curId] = new GGWave({
             parameters.sampleRateIn,
             parameters.sampleRateOut,
             parameters.samplesPerFrame,
-            4, // todo : hardcoded sample sizes
-            2);
+            GGWAVE_SAMPLE_FORMAT_F32,
+            GGWAVE_SAMPLE_FORMAT_I16});
 
     return curId++;
 }
@@ -74,8 +68,7 @@ int ggwave_encode(
         char * p = (char *) data;
         std::copy(p, p + nBytes, outputBuffer);
 
-        // todo : tmp assume int16
-        nSamples = nBytes/2;
+        nSamples = nBytes/ggWave->getSampleSizeBytesOut();
     };
 
     if (ggWave->encode(cbEnqueueAudio) == false) {
@@ -242,21 +235,45 @@ int getECCBytesForLength(int len) {
     return std::max(4, 2*(len/5));
 }
 
+int bytesForSampleFormat(GGWave::SampleFormat sampleFormat) {
+    switch (sampleFormat) {
+        case GGWAVE_SAMPLE_FORMAT_UNDEFINED:    return 0;                   break;
+        case GGWAVE_SAMPLE_FORMAT_U8:           return sizeof(uint8_t);     break;
+        case GGWAVE_SAMPLE_FORMAT_I8:           return sizeof(int8_t);      break;
+        case GGWAVE_SAMPLE_FORMAT_U16:          return sizeof(uint16_t);    break;
+        case GGWAVE_SAMPLE_FORMAT_I16:          return sizeof(int16_t);     break;
+        case GGWAVE_SAMPLE_FORMAT_F32:          return sizeof(float);       break;
+    };
+
+    fprintf(stderr, "Invalid sample format: %d\n", (int) sampleFormat);
+
+    return 0;
 }
 
-GGWave::GGWave(
-        int sampleRateIn,
-        int sampleRateOut,
-        int samplesPerFrame,
-        int sampleSizeBytesIn,
-        int sampleSizeBytesOut) :
-    m_sampleRateIn(sampleRateIn),
-    m_sampleRateOut(sampleRateOut),
-    m_samplesPerFrame(samplesPerFrame),
+}
+
+const GGWave::Parameters & GGWave::getDefaultParameters() {
+    static ggwave_Parameters result {
+        GGWave::kBaseSampleRate,
+        GGWave::kBaseSampleRate,
+        GGWave::kDefaultSamplesPerFrame,
+        GGWAVE_SAMPLE_FORMAT_F32,
+        GGWAVE_SAMPLE_FORMAT_I16
+    };
+
+    return result;
+}
+
+GGWave::GGWave(const Parameters & parameters) :
+    m_sampleRateIn(parameters.sampleRateIn),
+    m_sampleRateOut(parameters.sampleRateOut),
+    m_samplesPerFrame(parameters.samplesPerFrame),
     m_isamplesPerFrame(1.0f/m_samplesPerFrame),
-    m_sampleSizeBytesIn(sampleSizeBytesIn),
-    m_sampleSizeBytesOut(sampleSizeBytesOut),
-    m_hzPerSample(m_sampleRateIn/samplesPerFrame),
+    m_sampleSizeBytesIn(bytesForSampleFormat(parameters.sampleFormatIn)),
+    m_sampleSizeBytesOut(bytesForSampleFormat(parameters.sampleFormatOut)),
+    m_sampleFormatIn(parameters.sampleFormatIn),
+    m_sampleFormatOut(parameters.sampleFormatOut),
+    m_hzPerSample(m_sampleRateIn/parameters.samplesPerFrame),
     m_ihzPerSample(1.0f/m_hzPerSample),
     m_freqDelta_bin(1),
     m_freqDelta_hz(2*m_hzPerSample),
@@ -264,11 +281,13 @@ GGWave::GGWave(
     m_nMarkerFrames(16),
     m_nPostMarkerFrames(0),
     m_encodedDataOffset(3),
+    m_samplesNeeded(m_samplesPerFrame),
     m_fftIn(kMaxSamplesPerFrame),
     m_fftOut(2*kMaxSamplesPerFrame),
     m_hasNewSpectrum(false),
     m_sampleSpectrum(kMaxSamplesPerFrame),
     m_sampleAmplitude(kMaxSamplesPerFrame),
+    m_sampleAmplitudeTmp(kMaxSamplesPerFrame*m_sampleSizeBytesIn),
     m_hasNewRxData(false),
     m_lastRxDataLength(0),
     m_rxData(kMaxDataSize),
@@ -278,23 +297,40 @@ GGWave::GGWave(
     m_txData(kMaxDataSize),
     m_txDataEncoded(kMaxDataSize),
     m_outputBlock(kMaxSamplesPerFrame),
-    m_outputBlock16(kMaxRecordedFrames*kMaxSamplesPerFrame)
-{
-    if (samplesPerFrame > kMaxSamplesPerFrame) {
+    m_outputBlockTmp(kMaxRecordedFrames*kMaxSamplesPerFrame*m_sampleSizeBytesOut),
+    m_outputBlockI16(kMaxRecordedFrames*kMaxSamplesPerFrame) {
+
+    if (m_sampleSizeBytesIn == 0) {
+        throw std::runtime_error("Invalid or unsupported capture sample format");
+    }
+
+    if (m_sampleSizeBytesOut == 0) {
+        throw std::runtime_error("Invalid or unsupported playback sample format");
+    }
+
+    if (parameters.samplesPerFrame > kMaxSamplesPerFrame) {
         throw std::runtime_error("Invalid samples per frame");
     }
 
-    init(0, "", getDefaultTxProtocol(), 0);
+    init("", getDefaultTxProtocol(), 0);
 }
 
 GGWave::~GGWave() {
+}
+
+bool GGWave::init(const std::string & text, const int volume) {
+    return init(text.size(), text.data(), getDefaultTxProtocol(), volume);
+}
+
+bool GGWave::init(const std::string & text, const TxProtocol & txProtocol, const int volume) {
+    return init(text.size(), text.data(), txProtocol, volume);
 }
 
 bool GGWave::init(int dataSize, const char * dataBuffer, const int volume) {
     return init(dataSize, dataBuffer, getDefaultTxProtocol(), volume);
 }
 
-bool GGWave::init(int dataSize, const char * dataBuffer, const TxProtocol & aProtocol, const int volume) {
+bool GGWave::init(int dataSize, const char * dataBuffer, const TxProtocol & txProtocol, const int volume) {
     if (dataSize < 0) {
         fprintf(stderr, "Negative data size: %d\n", dataSize);
         return false;
@@ -310,7 +346,7 @@ bool GGWave::init(int dataSize, const char * dataBuffer, const TxProtocol & aPro
         return false;
     }
 
-    m_txProtocol = aProtocol;
+    m_txProtocol = txProtocol;
     m_txDataLength = dataSize;
     m_sendVolume = ((double)(volume))/100.0f;
 
@@ -372,10 +408,10 @@ bool GGWave::encode(const CBEnqueueAudio & cbEnqueueAudio) {
     }
 
     // note : what is the purpose of this shuffle ? I forgot .. :(
-    std::random_device rd;
-    std::mt19937 g(rd());
+    //std::random_device rd;
+    //std::mt19937 g(rd());
 
-    std::shuffle(phaseOffsets.begin(), phaseOffsets.end(), g);
+    //std::shuffle(phaseOffsets.begin(), phaseOffsets.end(), g);
 
     std::vector<bool> dataBits(kMaxDataBits);
 
@@ -507,19 +543,75 @@ bool GGWave::encode(const CBEnqueueAudio & cbEnqueueAudio) {
             m_outputBlock[i] *= scale;
         }
 
-        // todo : support for non-int16 output
+        uint32_t offset = frameId*samplesPerFrameOut;
+
+        // default output is in 16-bit signed int so we always compute it
         for (int i = 0; i < samplesPerFrameOut; ++i) {
-            m_outputBlock16[frameId*samplesPerFrameOut + i] = std::round(32000.0*m_outputBlock[i]);
+            m_outputBlockI16[offset + i] = 32768*m_outputBlock[i];
+        }
+
+        // convert from 32-bit float
+        switch (m_sampleFormatOut) {
+            case GGWAVE_SAMPLE_FORMAT_UNDEFINED: break;
+            case GGWAVE_SAMPLE_FORMAT_U8:
+                {
+                    auto p = reinterpret_cast<uint8_t *>(m_outputBlockTmp.data());
+                    for (int i = 0; i < samplesPerFrameOut; ++i) {
+                        p[offset + i] = 128*(m_outputBlock[i] + 1.0f);
+                    }
+                } break;
+            case GGWAVE_SAMPLE_FORMAT_I8:
+                {
+                    auto p = reinterpret_cast<uint8_t *>(m_outputBlockTmp.data());
+                    for (int i = 0; i < samplesPerFrameOut; ++i) {
+                        p[offset + i] = 128*m_outputBlock[i];
+                    }
+                } break;
+            case GGWAVE_SAMPLE_FORMAT_U16:
+                {
+                    auto p = reinterpret_cast<uint16_t *>(m_outputBlockTmp.data());
+                    for (int i = 0; i < samplesPerFrameOut; ++i) {
+                        p[offset + i] = 32768*(m_outputBlock[i] + 1.0f);
+                    }
+                } break;
+            case GGWAVE_SAMPLE_FORMAT_I16:
+                {
+                    // skip because we already have the data in m_outputBlockI16
+                    //auto p = reinterpret_cast<uint16_t *>(m_outputBlockTmp.data());
+                    //for (int i = 0; i < samplesPerFrameOut; ++i) {
+                    //    p[offset + i] = 32768*m_outputBlock[i];
+                    //}
+                } break;
+            case GGWAVE_SAMPLE_FORMAT_F32:
+                {
+                    auto p = reinterpret_cast<float *>(m_outputBlockTmp.data());
+                    for (int i = 0; i < samplesPerFrameOut; ++i) {
+                        p[offset + i] = m_outputBlock[i];
+                    }
+                } break;
         }
 
         ++frameId;
     }
 
-    cbEnqueueAudio(m_outputBlock16.data(), frameId*samplesPerFrameOut*m_sampleSizeBytesOut);
+    switch (m_sampleFormatOut) {
+        case GGWAVE_SAMPLE_FORMAT_UNDEFINED: break;
+        case GGWAVE_SAMPLE_FORMAT_I16:
+            {
+                cbEnqueueAudio(m_outputBlockI16.data(), frameId*samplesPerFrameOut*m_sampleSizeBytesOut);
+            } break;
+        case GGWAVE_SAMPLE_FORMAT_U8:
+        case GGWAVE_SAMPLE_FORMAT_I8:
+        case GGWAVE_SAMPLE_FORMAT_U16:
+        case GGWAVE_SAMPLE_FORMAT_F32:
+            {
+                cbEnqueueAudio(m_outputBlockTmp.data(), frameId*samplesPerFrameOut*m_sampleSizeBytesOut);
+            } break;
+    }
 
-    m_txAmplitudeData16.resize(frameId*samplesPerFrameOut);
+    m_txAmplitudeDataI16.resize(frameId*samplesPerFrameOut);
     for (int i = 0; i < frameId*samplesPerFrameOut; ++i) {
-        m_txAmplitudeData16[i] = m_outputBlock16[i];
+        m_txAmplitudeDataI16[i] = m_outputBlockI16[i];
     }
 
     return true;
@@ -528,11 +620,84 @@ bool GGWave::encode(const CBEnqueueAudio & cbEnqueueAudio) {
 void GGWave::decode(const CBDequeueAudio & cbDequeueAudio) {
     while (m_hasNewTxData == false) {
         // read capture data
-        //
-        // todo : support for non-float input
-        auto nBytesRecorded = cbDequeueAudio(m_sampleAmplitude.data(), m_samplesPerFrame*m_sampleSizeBytesIn);
+        uint32_t nBytesNeeded = m_samplesNeeded*m_sampleSizeBytesIn;
+        uint32_t nBytesRecorded = 0;
+        uint32_t offset = m_samplesPerFrame - m_samplesNeeded;
 
-        if (nBytesRecorded != 0) {
+        switch (m_sampleFormatIn) {
+            case GGWAVE_SAMPLE_FORMAT_UNDEFINED: break;
+            case GGWAVE_SAMPLE_FORMAT_U8:
+            case GGWAVE_SAMPLE_FORMAT_I8:
+            case GGWAVE_SAMPLE_FORMAT_U16:
+            case GGWAVE_SAMPLE_FORMAT_I16:
+                {
+                    nBytesRecorded = cbDequeueAudio(m_sampleAmplitudeTmp.data() + offset, nBytesNeeded);
+                } break;
+            case GGWAVE_SAMPLE_FORMAT_F32:
+                {
+                    nBytesRecorded = cbDequeueAudio(m_sampleAmplitude.data() + offset, nBytesNeeded);
+                } break;
+        }
+
+        if (nBytesRecorded % m_sampleSizeBytesIn != 0) {
+            fprintf(stderr, "Failure during capture - provided bytes (%d) are not multiple of sample size (%d)\n",
+                    nBytesRecorded, m_sampleSizeBytesIn);
+            m_samplesNeeded = m_samplesPerFrame;
+            break;
+        }
+
+        if (nBytesRecorded > nBytesNeeded) {
+            fprintf(stderr, "Failure during capture - more samples were provided (%d) than requested (%d)\n",
+                    nBytesRecorded/m_sampleSizeBytesIn, nBytesNeeded/m_sampleSizeBytesIn);
+            m_samplesNeeded = m_samplesPerFrame;
+            break;
+        }
+
+        // convert to 32-bit float
+        switch (m_sampleFormatIn) {
+            case GGWAVE_SAMPLE_FORMAT_UNDEFINED: break;
+            case GGWAVE_SAMPLE_FORMAT_U8:
+                {
+                    constexpr float scale = 1.0f/128;
+                    int nSamplesRecorded = nBytesRecorded/m_sampleSizeBytesIn;
+                    auto p = reinterpret_cast<uint8_t *>(m_sampleAmplitudeTmp.data());
+                    for (int i = 0; i < nSamplesRecorded; ++i) {
+                        m_sampleAmplitude[offset + i] = float(int16_t(*(p + offset + i)) - 128)*scale;
+                    }
+                } break;
+            case GGWAVE_SAMPLE_FORMAT_I8:
+                {
+                    constexpr float scale = 1.0f/128;
+                    int nSamplesRecorded = nBytesRecorded/m_sampleSizeBytesIn;
+                    auto p = reinterpret_cast<int8_t *>(m_sampleAmplitudeTmp.data());
+                    for (int i = 0; i < nSamplesRecorded; ++i) {
+                        m_sampleAmplitude[offset + i] = float(*(p + offset + i))*scale;
+                    }
+                } break;
+            case GGWAVE_SAMPLE_FORMAT_U16:
+                {
+                    constexpr float scale = 1.0f/32768;
+                    int nSamplesRecorded = nBytesRecorded/m_sampleSizeBytesIn;
+                    auto p = reinterpret_cast<uint16_t *>(m_sampleAmplitudeTmp.data());
+                    for (int i = 0; i < nSamplesRecorded; ++i) {
+                        m_sampleAmplitude[offset + i] = float(int32_t(*(p + offset + i)) - 32768)*scale;
+                    }
+                } break;
+            case GGWAVE_SAMPLE_FORMAT_I16:
+                {
+                    constexpr float scale = 1.0f/32768;
+                    int nSamplesRecorded = nBytesRecorded/m_sampleSizeBytesIn;
+                    auto p = reinterpret_cast<int16_t *>(m_sampleAmplitudeTmp.data());
+                    for (int i = 0; i < nSamplesRecorded; ++i) {
+                        m_sampleAmplitude[offset + i] = float(*(p + offset + i))*scale;
+                    }
+                } break;
+            case GGWAVE_SAMPLE_FORMAT_F32: break;
+        }
+
+        // we have enough bytes to do analysis
+        if (nBytesRecorded == nBytesNeeded) {
+            m_samplesNeeded = m_samplesPerFrame;
             m_sampleAmplitudeHistory[m_historyId] = m_sampleAmplitude;
 
             if (++m_historyId >= kMaxSpectrumHistory) {
@@ -784,6 +949,7 @@ void GGWave::decode(const CBDequeueAudio & cbDequeueAudio) {
                 }
             }
         } else {
+            m_samplesNeeded -= nBytesRecorded/m_sampleSizeBytesIn;
             break;
         }
     }
@@ -802,11 +968,11 @@ int GGWave::takeRxData(TxRxData & dst) {
     return res;
 }
 
-int GGWave::takeTxAmplitudeData16(AmplitudeData16 & dst) {
-    if (m_txAmplitudeData16.size() == 0) return 0;
+int GGWave::takeTxAmplitudeDataI16(AmplitudeDataI16 & dst) {
+    if (m_txAmplitudeDataI16.size() == 0) return 0;
 
-    int res = (int) m_txAmplitudeData16.size();
-    dst = std::move(m_txAmplitudeData16);
+    int res = (int) m_txAmplitudeDataI16.size();
+    dst = std::move(m_txAmplitudeDataI16);
 
     return res;
 }

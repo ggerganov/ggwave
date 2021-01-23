@@ -70,7 +70,7 @@ int main(int argc, char** argv) {
 
     fprintf(stderr, "Generating waveform for message '%s' ...\n", message.c_str());
 
-    GGWave ggWave(GGWave::kBaseSampleRate, sampleRateOut, 1024, 4, 2);
+    GGWave ggWave({ GGWave::kBaseSampleRate, sampleRateOut, 1024, GGWAVE_SAMPLE_FORMAT_F32, GGWAVE_SAMPLE_FORMAT_I16 });
     ggWave.init(message.size(), message.data(), ggWave.getTxProtocol(protocolId), volume);
 
     std::vector<char> bufferPCM;

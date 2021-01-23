@@ -1,6 +1,10 @@
 cdef extern from "ggwave.h" nogil:
 
     ctypedef enum ggwave_SampleFormat:
+        GGWAVE_SAMPLE_FORMAT_UNDEFINED,
+        GGWAVE_SAMPLE_FORMAT_U8,
+        GGWAVE_SAMPLE_FORMAT_I8,
+        GGWAVE_SAMPLE_FORMAT_U16,
         GGWAVE_SAMPLE_FORMAT_I16,
         GGWAVE_SAMPLE_FORMAT_F32
 
@@ -16,12 +20,12 @@ cdef extern from "ggwave.h" nogil:
         int sampleRateIn
         int sampleRateOut
         int samplesPerFrame
-        ggwave_SampleFormat formatIn
-        ggwave_SampleFormat formatOut
+        ggwave_SampleFormat sampleFormatIn
+        ggwave_SampleFormat sampleFormatOut
 
     ctypedef int ggwave_Instance
 
-    ggwave_Parameters ggwave_defaultParameters();
+    ggwave_Parameters ggwave_getDefaultParameters();
 
     ggwave_Instance ggwave_init(const ggwave_Parameters parameters);
 

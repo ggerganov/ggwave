@@ -6,12 +6,12 @@ import struct
 
 cimport cggwave
 
-def defaultParameters():
-    return cggwave.ggwave_defaultParameters()
+def getDefaultParameters():
+    return cggwave.ggwave_getDefaultParameters()
 
 def init(parameters = None):
     if (parameters is None):
-        parameters = defaultParameters()
+        parameters = getDefaultParameters()
 
     return cggwave.ggwave_init(parameters)
 
@@ -33,7 +33,7 @@ def encode(payload, txProtocolId = 1, volume = 10, instance = None):
     own = False
     if (instance is None):
         own = True
-        instance = init(defaultParameters())
+        instance = init(getDefaultParameters())
 
     n = cggwave.ggwave_encode(instance, cdata, len(data_bytes), txProtocolId, volume, coutput)
 

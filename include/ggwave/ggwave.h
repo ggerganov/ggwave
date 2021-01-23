@@ -25,6 +25,10 @@ extern "C" {
 
     // Data format of the audio samples
     typedef enum {
+        GGWAVE_SAMPLE_FORMAT_UNDEFINED,
+        GGWAVE_SAMPLE_FORMAT_U8,
+        GGWAVE_SAMPLE_FORMAT_I8,
+        GGWAVE_SAMPLE_FORMAT_U16,
         GGWAVE_SAMPLE_FORMAT_I16,
         GGWAVE_SAMPLE_FORMAT_F32,
     } ggwave_SampleFormat;
@@ -41,11 +45,11 @@ extern "C" {
 
     // GGWave instance parameters
     typedef struct {
-        int sampleRateIn;               // capture sample rate
-        int sampleRateOut;              // playback sample rate
-        int samplesPerFrame;            // number of samples per audio frame
-        ggwave_SampleFormat formatIn;   // format of the captured audio samples
-        ggwave_SampleFormat formatOut;  // format of the playback audio samples
+        int sampleRateIn;                       // capture sample rate
+        int sampleRateOut;                      // playback sample rate
+        int samplesPerFrame;                    // number of samples per audio frame
+        ggwave_SampleFormat sampleFormatIn;     // format of the captured audio samples
+        ggwave_SampleFormat sampleFormatOut;    // format of the playback audio samples
     } ggwave_Parameters;
 
     // GGWave instances are identified with an integer and are stored
@@ -54,7 +58,7 @@ extern "C" {
     typedef int ggwave_Instance;
 
     // Helper method to get default instance parameters
-    GGWAVE_API ggwave_Parameters ggwave_defaultParameters(void);
+    GGWAVE_API ggwave_Parameters ggwave_getDefaultParameters(void);
 
     // Create a new GGWave instance with the specified parameters
     GGWAVE_API ggwave_Instance ggwave_init(const ggwave_Parameters parameters);
@@ -120,6 +124,7 @@ extern "C" {
 #include <functional>
 #include <vector>
 #include <map>
+#include <string>
 
 class GGWave {
 public:
@@ -133,7 +138,9 @@ public:
     static constexpr auto kMaxSpectrumHistory = 4;
     static constexpr auto kMaxRecordedFrames = 1024;
 
-    using TxProtocolId = ggwave_TxProtocolId;
+    using Parameters    = ggwave_Parameters;
+    using SampleFormat  = ggwave_SampleFormat;
+    using TxProtocolId  = ggwave_TxProtocolId;
 
     struct TxProtocol {
         const char * name;  // string identifier of the protocol
@@ -160,26 +167,24 @@ public:
         return kTxProtocols;
     }
 
-    using AmplitudeData   = std::vector<float>;
-    using AmplitudeData16 = std::vector<int16_t>;
-    using SpectrumData    = std::vector<float>;
-    using RecordedData    = std::vector<float>;
-    using TxRxData        = std::vector<std::uint8_t>;
+    using AmplitudeData    = std::vector<float>;
+    using AmplitudeDataI16 = std::vector<int16_t>;
+    using SpectrumData     = std::vector<float>;
+    using RecordedData     = std::vector<float>;
+    using TxRxData         = std::vector<std::uint8_t>;
 
     using CBEnqueueAudio = std::function<void(const void * data, uint32_t nBytes)>;
     using CBDequeueAudio = std::function<uint32_t(void * data, uint32_t nMaxBytes)>;
 
-    GGWave(
-            int sampleRateIn,
-            int sampleRateOut,
-            int samplesPerFrame,
-            int sampleSizeBytesIn,
-            int sampleSizeBytesOut);
-
+    GGWave(const Parameters & parameters);
     ~GGWave();
 
+    static const Parameters & getDefaultParameters();
+
+    bool init(const std::string & text, const int volume = kDefaultVolume);
+    bool init(const std::string & text, const TxProtocol & txProtocol, const int volume = kDefaultVolume);
     bool init(int dataSize, const char * dataBuffer, const int volume = kDefaultVolume);
-    bool init(int dataSize, const char * dataBuffer, const TxProtocol & aProtocol, const int volume = kDefaultVolume);
+    bool init(int dataSize, const char * dataBuffer, const TxProtocol & txProtocol, const int volume = kDefaultVolume);
 
     bool encode(const CBEnqueueAudio & cbEnqueueAudio);
     void decode(const CBDequeueAudio & cbDequeueAudio);
@@ -209,7 +214,7 @@ public:
     const TxProtocolId & getRxProtocolId()  const { return m_rxProtocolId; }
 
     int takeRxData(TxRxData & dst);
-    int takeTxAmplitudeData16(AmplitudeData16 & dst);
+    int takeTxAmplitudeDataI16(AmplitudeDataI16 & dst);
     bool takeSpectrum(SpectrumData & dst);
 
 private:
@@ -226,6 +231,8 @@ private:
     const float m_isamplesPerFrame;
     const int m_sampleSizeBytesIn;
     const int m_sampleSizeBytesOut;
+    const SampleFormat m_sampleFormatIn;
+    const SampleFormat m_sampleFormatOut;
 
     const float m_hzPerSample;
     const float m_ihzPerSample;
@@ -249,6 +256,7 @@ private:
     int m_framesLeftToRecord;
     int m_framesToAnalyze;
     int m_framesToRecord;
+    int m_samplesNeeded;
 
     std::vector<float> m_fftIn;  // real
     std::vector<float> m_fftOut; // complex
@@ -256,6 +264,7 @@ private:
     bool m_hasNewSpectrum;
     SpectrumData m_sampleSpectrum;
     AmplitudeData m_sampleAmplitude;
+    TxRxData m_sampleAmplitudeTmp;
 
     bool m_hasNewRxData;
     int m_lastRxDataLength;
@@ -282,8 +291,9 @@ private:
     TxProtocol m_txProtocol;
 
     AmplitudeData m_outputBlock;
-    AmplitudeData16 m_outputBlock16;
-    AmplitudeData16 m_txAmplitudeData16;
+    TxRxData m_outputBlockTmp;
+    AmplitudeDataI16 m_outputBlockI16;
+    AmplitudeDataI16 m_txAmplitudeDataI16;
 };
 
 #endif

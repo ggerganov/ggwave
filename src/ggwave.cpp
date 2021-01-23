@@ -313,6 +313,11 @@ GGWave::GGWave(const Parameters & parameters) :
         throw std::runtime_error("Invalid samples per frame");
     }
 
+    if (m_sampleRateInp < m_sampleRateOut) {
+        fprintf(stderr, "Error: capture sample rate (%d Hz) must be >= playback sample rate (%d Hz)\n", (int) m_sampleRateInp, (int) m_sampleRateOut);
+        throw std::runtime_error("Invalid capture/playback sample rate");
+    }
+
     init("", getDefaultTxProtocol(), 0);
 }
 
@@ -399,6 +404,7 @@ uint32_t GGWave::encodeSize_samples() const {
         return 0;
     }
 
+    int samplesPerFrameOut = (m_sampleRateOut/m_sampleRateInp)*m_samplesPerFrame;
     int nECCBytesPerTx = getECCBytesForLength(m_txDataLength);
     int sendDataLength = m_txDataLength + m_encodedDataOffset;
     int totalBytes = sendDataLength + nECCBytesPerTx;
@@ -406,15 +412,12 @@ uint32_t GGWave::encodeSize_samples() const {
 
     return (
             m_nMarkerFrames + m_nPostMarkerFrames + totalDataFrames + m_nMarkerFrames
-           )*m_samplesPerFrame;
+           )*samplesPerFrameOut;
 }
 
 bool GGWave::encode(const CBWaveformOut & cbWaveformOut) {
     int samplesPerFrameOut = (m_sampleRateOut/m_sampleRateInp)*m_samplesPerFrame;
-    if (m_sampleRateOut > m_sampleRateInp) {
-        fprintf(stderr, "Error: capture sample rate (%d Hz) must be <= playback sample rate (%d Hz)\n", (int) m_sampleRateInp, (int) m_sampleRateOut);
-        return false;
-    }
+
     if (m_sampleRateOut != m_sampleRateInp) {
         fprintf(stderr, "Resampling from %d Hz to %d Hz\n", (int) m_sampleRateInp, (int) m_sampleRateOut);
     }

@@ -181,6 +181,42 @@ int main() {
         CHECK_F(instance.init(payload.size(), payload.c_str(), 101));
     }
 
+    // capture / playback at different sample rates
+    {
+        auto parameters = GGWave::getDefaultParameters();
+
+        std::string payload = "hello";
+
+        // encode
+        {
+            parameters.sampleRateInp = 48000;
+            parameters.sampleRateOut = 12000;
+            GGWave instanceOut(parameters);
+
+            instanceOut.init(payload, 25);
+            auto expectedSize = instanceOut.encodeSize_samples();
+            instanceOut.encode(kCBWaveformOut.at(parameters.sampleFormatOut));
+            printf("Expected = %d, actual = %d\n", expectedSize, nSamples);
+            CHECK(expectedSize == nSamples);
+            convertHelper(parameters.sampleFormatOut, parameters.sampleFormatInp);
+        }
+
+        // decode
+        {
+            parameters.samplesPerFrame *= float(parameters.sampleRateOut)/parameters.sampleRateInp;
+            parameters.sampleRateInp = parameters.sampleRateOut;
+            GGWave instanceInp(parameters);
+
+            instanceInp.decode(kCBWaveformInp.at(parameters.sampleFormatInp));
+
+            GGWave::TxRxData result;
+            CHECK(instanceInp.takeRxData(result) == (int) payload.size());
+            for (int i = 0; i < (int) payload.size(); ++i) {
+                CHECK(payload[i] == result[i]);
+            }
+        }
+    }
+
     for (const auto & txProtocol : GGWave::getTxProtocols()) {
         for (const auto & formatOut : kFormats) {
             for (const auto & formatInp : kFormats) {
@@ -201,12 +237,10 @@ int main() {
                 convertHelper(formatOut, formatInp);
                 instance.decode(kCBWaveformInp.at(formatInp));
 
-                {
-                    GGWave::TxRxData result;
-                    CHECK(instance.takeRxData(result) == (int) payload.size());
-                    for (int i = 0; i < (int) payload.size(); ++i) {
-                        CHECK(payload[i] == result[i]);
-                    }
+                GGWave::TxRxData result;
+                CHECK(instance.takeRxData(result) == (int) payload.size());
+                for (int i = 0; i < (int) payload.size(); ++i) {
+                    CHECK(payload[i] == result[i]);
                 }
             }
         }

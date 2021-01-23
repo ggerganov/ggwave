@@ -181,15 +181,23 @@ public:
 
     static const Parameters & getDefaultParameters();
 
+    // set Tx data to encode
     bool init(const std::string & text, const int volume = kDefaultVolume);
     bool init(const std::string & text, const TxProtocol & txProtocol, const int volume = kDefaultVolume);
     bool init(int dataSize, const char * dataBuffer, const int volume = kDefaultVolume);
     bool init(int dataSize, const char * dataBuffer, const TxProtocol & txProtocol, const int volume = kDefaultVolume);
 
+    // expected waveform size of the encoded Tx data
     uint32_t encodeSize_bytes() const;
     uint32_t encodeSize_samples() const;
 
+    // encode Tx data into an audio waveform
+    //
+    //   returns false if the encoding fails
+    //
     bool encode(const CBWaveformOut & cbWaveformOut);
+
+    // decode an audio waveform
     void decode(const CBWaveformInp & cbWaveformInp);
 
     const bool & hasTxData()    const { return m_hasNewTxData; }

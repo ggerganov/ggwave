@@ -192,8 +192,8 @@ bool GGWave_init(
     GGWave::SampleFormat sampleFormatOut = GGWAVE_SAMPLE_FORMAT_UNDEFINED;
 
     switch (g_obtainedSpecInp.format) {
-        case AUDIO_U8:      sampleFormatInp = GGWAVE_SAMPLE_FORMAT_U8; break;
-        case AUDIO_S8:      sampleFormatInp = GGWAVE_SAMPLE_FORMAT_I8; break;
+        case AUDIO_U8:      sampleFormatInp = GGWAVE_SAMPLE_FORMAT_U8;  break;
+        case AUDIO_S8:      sampleFormatInp = GGWAVE_SAMPLE_FORMAT_I8;  break;
         case AUDIO_U16SYS:  sampleFormatInp = GGWAVE_SAMPLE_FORMAT_U16; break;
         case AUDIO_S16SYS:  sampleFormatInp = GGWAVE_SAMPLE_FORMAT_I16; break;
         case AUDIO_S32SYS:  sampleFormatInp = GGWAVE_SAMPLE_FORMAT_F32; break;
@@ -201,8 +201,8 @@ bool GGWave_init(
     }
 
     switch (g_obtainedSpecOut.format) {
-        case AUDIO_U8:      sampleFormatOut = GGWAVE_SAMPLE_FORMAT_U8; break;
-        case AUDIO_S8:      sampleFormatOut = GGWAVE_SAMPLE_FORMAT_I8; break;
+        case AUDIO_U8:      sampleFormatOut = GGWAVE_SAMPLE_FORMAT_U8;  break;
+        case AUDIO_S8:      sampleFormatOut = GGWAVE_SAMPLE_FORMAT_I8;  break;
         case AUDIO_U16SYS:  sampleFormatOut = GGWAVE_SAMPLE_FORMAT_U16; break;
         case AUDIO_S16SYS:  sampleFormatOut = GGWAVE_SAMPLE_FORMAT_I16; break;
         case AUDIO_S32SYS:  sampleFormatOut = GGWAVE_SAMPLE_FORMAT_F32; break;

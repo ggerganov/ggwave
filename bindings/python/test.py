@@ -3,9 +3,9 @@ import ggwave
 
 testFailed = False
 
-n, samples = ggwave.encode("hello python")
+samples = ggwave.encode("hello python")
 
-if not (samples and n > 1024):
+if not (samples):
     testFailed = True
 
 if testFailed:

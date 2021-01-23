@@ -21,11 +21,13 @@ int main() {
     ggwave_Instance instance = ggwave_init(parameters);
 
     int ret;
-    char waveform[1024*1024];
     const char * payload = "test";
     char decoded[256];
 
-    ret = ggwave_encode(instance, payload, 4, GGWAVE_TX_PROTOCOL_AUDIBLE_FAST, 50, waveform);
+    int n = ggwave_encode(instance, payload, 4, GGWAVE_TX_PROTOCOL_AUDIBLE_FAST, 50, NULL, 1);
+    char waveform[n];
+
+    ret = ggwave_encode(instance, payload, 4, GGWAVE_TX_PROTOCOL_AUDIBLE_FAST, 50, waveform, 0);
     CHECK(ret > 0);
 
     ret = ggwave_decode(instance, waveform, sizeof(int16_t)*ret, decoded);

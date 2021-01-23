@@ -49,7 +49,8 @@ int ggwave_encode(
         int dataSize,
         ggwave_TxProtocolId txProtocolId,
         int volume,
-        char * outputBuffer) {
+        char * outputBuffer,
+        int query) {
     GGWave * ggWave = (GGWave *) g_instances[instance];
 
     if (ggWave == nullptr) {
@@ -60,6 +61,14 @@ int ggwave_encode(
     if (ggWave->init(dataSize, dataBuffer, ggWave->getTxProtocol(txProtocolId), volume) == false) {
         fprintf(stderr, "Failed to initialize GGWave instance %d\n", instance);
         return -1;
+    }
+
+    if (query != 0) {
+        if (query == 1) {
+            return ggWave->encodeSize_bytes();
+        }
+
+        return ggWave->encodeSize_samples();
     }
 
     int nSamples = 0;

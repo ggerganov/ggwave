@@ -3,8 +3,9 @@
 #include "reed-solomon/rs.hpp"
 
 #include <chrono>
+#include <cmath>
 #include <algorithm>
-#include <random>
+//#include <random>
 #include <stdexcept>
 #include <map>
 
@@ -17,8 +18,8 @@ std::map<ggwave_Instance, GGWave *> g_instances;
 }
 
 extern "C"
-ggwave_Parameters ggwave_defaultParameters(void) {
-    return GGWave::defaultParameters();
+ggwave_Parameters ggwave_getDefaultParameters(void) {
+    return GGWave::getDefaultParameters();
 }
 
 extern "C"
@@ -251,7 +252,7 @@ int bytesForSampleFormat(GGWave::SampleFormat sampleFormat) {
 
 }
 
-const GGWave::Parameters & GGWave::defaultParameters() {
+const GGWave::Parameters & GGWave::getDefaultParameters() {
     static ggwave_Parameters result {
         GGWave::kBaseSampleRate,
         GGWave::kBaseSampleRate,
@@ -311,17 +312,25 @@ GGWave::GGWave(const Parameters & parameters) :
         throw std::runtime_error("Invalid samples per frame");
     }
 
-    init(0, "", getDefaultTxProtocol(), 0);
+    init("", getDefaultTxProtocol(), 0);
 }
 
 GGWave::~GGWave() {
+}
+
+bool GGWave::init(const std::string & text, const int volume) {
+    return init(text.size(), text.data(), getDefaultTxProtocol(), volume);
+}
+
+bool GGWave::init(const std::string & text, const TxProtocol & txProtocol, const int volume) {
+    return init(text.size(), text.data(), txProtocol, volume);
 }
 
 bool GGWave::init(int dataSize, const char * dataBuffer, const int volume) {
     return init(dataSize, dataBuffer, getDefaultTxProtocol(), volume);
 }
 
-bool GGWave::init(int dataSize, const char * dataBuffer, const TxProtocol & aProtocol, const int volume) {
+bool GGWave::init(int dataSize, const char * dataBuffer, const TxProtocol & txProtocol, const int volume) {
     if (dataSize < 0) {
         fprintf(stderr, "Negative data size: %d\n", dataSize);
         return false;
@@ -337,7 +346,7 @@ bool GGWave::init(int dataSize, const char * dataBuffer, const TxProtocol & aPro
         return false;
     }
 
-    m_txProtocol = aProtocol;
+    m_txProtocol = txProtocol;
     m_txDataLength = dataSize;
     m_sendVolume = ((double)(volume))/100.0f;
 
@@ -399,10 +408,10 @@ bool GGWave::encode(const CBEnqueueAudio & cbEnqueueAudio) {
     }
 
     // note : what is the purpose of this shuffle ? I forgot .. :(
-    std::random_device rd;
-    std::mt19937 g(rd());
+    //std::random_device rd;
+    //std::mt19937 g(rd());
 
-    std::shuffle(phaseOffsets.begin(), phaseOffsets.end(), g);
+    //std::shuffle(phaseOffsets.begin(), phaseOffsets.end(), g);
 
     std::vector<bool> dataBits(kMaxDataBits);
 
@@ -573,7 +582,7 @@ bool GGWave::encode(const CBEnqueueAudio & cbEnqueueAudio) {
                     //    p[offset + i] = 32768*m_outputBlock[i];
                     //}
                 } break;
-            case GGWAVE_SAMPLE_FORMAT_F32: break;
+            case GGWAVE_SAMPLE_FORMAT_F32:
                 {
                     auto p = reinterpret_cast<float *>(m_outputBlockTmp.data());
                     for (int i = 0; i < samplesPerFrameOut; ++i) {

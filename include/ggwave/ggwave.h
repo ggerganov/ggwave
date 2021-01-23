@@ -58,7 +58,7 @@ extern "C" {
     typedef int ggwave_Instance;
 
     // Helper method to get default instance parameters
-    GGWAVE_API ggwave_Parameters ggwave_defaultParameters(void);
+    GGWAVE_API ggwave_Parameters ggwave_getDefaultParameters(void);
 
     // Create a new GGWave instance with the specified parameters
     GGWAVE_API ggwave_Instance ggwave_init(const ggwave_Parameters parameters);
@@ -178,10 +178,12 @@ public:
     GGWave(const Parameters & parameters);
     ~GGWave();
 
-    static const Parameters & defaultParameters();
+    static const Parameters & getDefaultParameters();
 
+    bool init(const std::string & text, const int volume = kDefaultVolume);
+    bool init(const std::string & text, const TxProtocol & txProtocol, const int volume = kDefaultVolume);
     bool init(int dataSize, const char * dataBuffer, const int volume = kDefaultVolume);
-    bool init(int dataSize, const char * dataBuffer, const TxProtocol & aProtocol, const int volume = kDefaultVolume);
+    bool init(int dataSize, const char * dataBuffer, const TxProtocol & txProtocol, const int volume = kDefaultVolume);
 
     bool encode(const CBEnqueueAudio & cbEnqueueAudio);
     void decode(const CBDequeueAudio & cbDequeueAudio);

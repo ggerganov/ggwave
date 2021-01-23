@@ -235,7 +235,7 @@ bool GGWave_mainLoop() {
         SDL_QueueAudio(g_devIdOut, data, nBytes);
     };
 
-    static GGWave::CBDequeueAudio CBDequeueAudio = [&](void * data, uint32_t nMaxBytes) {
+    static GGWave::CBDequeueAudio cbDequeueAudio = [&](void * data, uint32_t nMaxBytes) {
         return SDL_DequeueAudio(g_devIdIn, data, nMaxBytes);
     };
 
@@ -248,7 +248,7 @@ bool GGWave_mainLoop() {
         if ((int) SDL_GetQueuedAudioSize(g_devIdOut) < g_ggWave->getSamplesPerFrame()*g_ggWave->getSampleSizeBytesOut()) {
             SDL_PauseAudioDevice(g_devIdIn, SDL_FALSE);
             if (::getTime_ms(tLastNoData, tNow) > 500.0f) {
-                g_ggWave->decode(CBDequeueAudio);
+                g_ggWave->decode(cbDequeueAudio);
                 if ((int) SDL_GetQueuedAudioSize(g_devIdIn) > 32*g_ggWave->getSamplesPerFrame()*g_ggWave->getSampleSizeBytesIn()) {
                     SDL_ClearQueuedAudio(g_devIdIn);
                 }

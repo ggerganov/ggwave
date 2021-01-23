@@ -55,7 +55,7 @@ jobs:
                   sudo apt-get install cmake;
 
             - name: Configure
-              run: cmake . -DGGWAVE_SUPPORT_PYTHON=ON -DCMAKE_BUILD_TYPE=${{ matrix.build }}
+              run: cmake . -DGGWAVE_SUPPORT_PYTHON=ON -DGGWAVE_BUILD_EXAMPLES=OFF -DCMAKE_BUILD_TYPE=${{ matrix.build }}
 
             - name: Build
               run: |

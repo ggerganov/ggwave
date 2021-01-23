@@ -1,5 +1,4 @@
 import ggwave
-import numpy as np
 
 instance = ggwave.init()
 

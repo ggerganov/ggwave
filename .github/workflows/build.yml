@@ -28,7 +28,7 @@ jobs:
             - name: Build
               run: |
                 make
-                ctest
+                ctest --output-on-failure
 
     ubuntu-18_04-python:
         runs-on: ubuntu-18.04
@@ -60,7 +60,7 @@ jobs:
             - name: Build
               run: |
                 make
-                ctest
+                ctest --output-on-failure
 
     ubuntu-18_04-gcc-sanitized:
         runs-on: ubuntu-18.04
@@ -87,7 +87,7 @@ jobs:
             - name: Build
               run: |
                 make
-                ctest
+                ctest --output-on-failure
 
     ubuntu-18_04-clang:
         runs-on: ubuntu-18.04
@@ -115,7 +115,7 @@ jobs:
             - name: Build
               run: |
                 make
-                ctest
+                ctest --output-on-failure
 
     macOS-10_14-clang:
         runs-on: macOS-10.14
@@ -141,7 +141,7 @@ jobs:
             - name: Build
               run: |
                 make
-                ctest
+                ctest --output-on-failure
 
     Emscripten:
         runs-on: ubuntu-18.04
@@ -173,4 +173,4 @@ jobs:
                 source ./emsdk_env.sh
                 popd
                 emcmake cmake . -DCMAKE_BUILD_TYPE=${{ matrix.build }}
-                make && ctest
+                make && ctest --output-on-failure

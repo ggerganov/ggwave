@@ -821,7 +821,7 @@ void renderMain() {
         ImGui::Separator();
 
         ImGui::Text("%s", "");
-        ImGui::Text("Sample rate (capture):  %g, %d B/sample", g_ggWave->getSampleRateIn(),  g_ggWave->getSampleSizeBytesIn());
+        ImGui::Text("Sample rate (capture):  %g, %d B/sample", g_ggWave->getSampleRateInp(), g_ggWave->getSampleSizeBytesInp());
         ImGui::Text("Sample rate (playback): %g, %d B/sample", g_ggWave->getSampleRateOut(), g_ggWave->getSampleSizeBytesOut());
 
         const float kLabelWidth = ImGui::CalcTextSize("Tx Protocol:  ").x;

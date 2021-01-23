@@ -41,7 +41,7 @@ const std::set<GGWave::SampleFormat> kFormats = {
 };
 
 template <typename T>
-GGWave::CBEnqueueAudio getCBEnqueueAudio(uint32_t & nSamples, std::vector<T> & buffer) {
+GGWave::CBWaveformOut getCBWaveformOut(uint32_t & nSamples, std::vector<T> & buffer) {
     return [&nSamples, &buffer](const void * data, uint32_t nBytes) {
         nSamples = nBytes/sizeof(T);
         CHECK(nSamples*sizeof(T) == nBytes);
@@ -51,7 +51,7 @@ GGWave::CBEnqueueAudio getCBEnqueueAudio(uint32_t & nSamples, std::vector<T> & b
 }
 
 template <typename T>
-GGWave::CBDequeueAudio getCBDequeueAudio(uint32_t & nSamples, std::vector<T> & buffer) {
+GGWave::CBWaveformInp getCBWaveformInp(uint32_t & nSamples, std::vector<T> & buffer) {
     return [&nSamples, &buffer](void * data, uint32_t nMaxBytes) {
         uint32_t nCopied = std::min((uint32_t) (nSamples*sizeof(T)), nMaxBytes);
         const char * p = (char *) (buffer.data() + buffer.size() - nSamples);
@@ -78,12 +78,12 @@ int main() {
     std::vector<int16_t>  bufferI16;
     std::vector<float>    bufferF32;
 
-    auto convertHelper = [&](GGWave::SampleFormat formatOut, GGWave::SampleFormat formatIn) {
+    auto convertHelper = [&](GGWave::SampleFormat formatOut, GGWave::SampleFormat formatInp) {
         switch (formatOut) {
             case GGWAVE_SAMPLE_FORMAT_UNDEFINED: CHECK(false); break;
             case GGWAVE_SAMPLE_FORMAT_U8:
                 {
-                    switch (formatIn) {
+                    switch (formatInp) {
                         case GGWAVE_SAMPLE_FORMAT_UNDEFINED: CHECK(false); break;
                         case GGWAVE_SAMPLE_FORMAT_U8:        break;
                         case GGWAVE_SAMPLE_FORMAT_I8:        convert(bufferU8, bufferI8);  break;
@@ -94,7 +94,7 @@ int main() {
                 } break;
             case GGWAVE_SAMPLE_FORMAT_I8:
                 {
-                    switch (formatIn) {
+                    switch (formatInp) {
                         case GGWAVE_SAMPLE_FORMAT_UNDEFINED: CHECK(false); break;
                         case GGWAVE_SAMPLE_FORMAT_U8:        convert(bufferI8, bufferU8);  break;
                         case GGWAVE_SAMPLE_FORMAT_I8:        break;
@@ -105,7 +105,7 @@ int main() {
                 } break;
             case GGWAVE_SAMPLE_FORMAT_U16:
                 {
-                    switch (formatIn) {
+                    switch (formatInp) {
                         case GGWAVE_SAMPLE_FORMAT_UNDEFINED: CHECK(false); break;
                         case GGWAVE_SAMPLE_FORMAT_U8:        convert(bufferU16, bufferU8);  break;
                         case GGWAVE_SAMPLE_FORMAT_I8:        convert(bufferU16, bufferI8);  break;
@@ -116,7 +116,7 @@ int main() {
                 } break;
             case GGWAVE_SAMPLE_FORMAT_I16:
                 {
-                    switch (formatIn) {
+                    switch (formatInp) {
                         case GGWAVE_SAMPLE_FORMAT_UNDEFINED: CHECK(false); break;
                         case GGWAVE_SAMPLE_FORMAT_U8:        convert(bufferI16, bufferU8);  break;
                         case GGWAVE_SAMPLE_FORMAT_I8:        convert(bufferI16, bufferI8);  break;
@@ -127,7 +127,7 @@ int main() {
                 } break;
             case GGWAVE_SAMPLE_FORMAT_F32:
                 {
-                    switch (formatIn) {
+                    switch (formatInp) {
                         case GGWAVE_SAMPLE_FORMAT_UNDEFINED: CHECK(false); break;
                         case GGWAVE_SAMPLE_FORMAT_U8:        convert(bufferF32, bufferU8);  break;
                         case GGWAVE_SAMPLE_FORMAT_I8:        convert(bufferF32, bufferI8);  break;
@@ -142,20 +142,20 @@ int main() {
 
     uint32_t nSamples = 0;
 
-    const std::map<GGWave::SampleFormat, GGWave::CBEnqueueAudio> kCBEnqueueAudio = {
-        { GGWAVE_SAMPLE_FORMAT_U8,  getCBEnqueueAudio(nSamples, bufferU8)  },
-        { GGWAVE_SAMPLE_FORMAT_I8,  getCBEnqueueAudio(nSamples, bufferI8)  },
-        { GGWAVE_SAMPLE_FORMAT_U16, getCBEnqueueAudio(nSamples, bufferU16) },
-        { GGWAVE_SAMPLE_FORMAT_I16, getCBEnqueueAudio(nSamples, bufferI16) },
-        { GGWAVE_SAMPLE_FORMAT_F32, getCBEnqueueAudio(nSamples, bufferF32) },
+    const std::map<GGWave::SampleFormat, GGWave::CBWaveformOut> kCBWaveformOut = {
+        { GGWAVE_SAMPLE_FORMAT_U8,  getCBWaveformOut(nSamples, bufferU8)  },
+        { GGWAVE_SAMPLE_FORMAT_I8,  getCBWaveformOut(nSamples, bufferI8)  },
+        { GGWAVE_SAMPLE_FORMAT_U16, getCBWaveformOut(nSamples, bufferU16) },
+        { GGWAVE_SAMPLE_FORMAT_I16, getCBWaveformOut(nSamples, bufferI16) },
+        { GGWAVE_SAMPLE_FORMAT_F32, getCBWaveformOut(nSamples, bufferF32) },
     };
 
-    const std::map<GGWave::SampleFormat, GGWave::CBDequeueAudio> kCBDequeueAudio = {
-        { GGWAVE_SAMPLE_FORMAT_U8,  getCBDequeueAudio(nSamples, bufferU8)  },
-        { GGWAVE_SAMPLE_FORMAT_I8,  getCBDequeueAudio(nSamples, bufferI8)  },
-        { GGWAVE_SAMPLE_FORMAT_U16, getCBDequeueAudio(nSamples, bufferU16) },
-        { GGWAVE_SAMPLE_FORMAT_I16, getCBDequeueAudio(nSamples, bufferI16) },
-        { GGWAVE_SAMPLE_FORMAT_F32, getCBDequeueAudio(nSamples, bufferF32) },
+    const std::map<GGWave::SampleFormat, GGWave::CBWaveformInp> kCBWaveformInp = {
+        { GGWAVE_SAMPLE_FORMAT_U8,  getCBWaveformInp(nSamples, bufferU8)  },
+        { GGWAVE_SAMPLE_FORMAT_I8,  getCBWaveformInp(nSamples, bufferI8)  },
+        { GGWAVE_SAMPLE_FORMAT_U16, getCBWaveformInp(nSamples, bufferU16) },
+        { GGWAVE_SAMPLE_FORMAT_I16, getCBWaveformInp(nSamples, bufferI16) },
+        { GGWAVE_SAMPLE_FORMAT_F32, getCBWaveformInp(nSamples, bufferF32) },
     };
 
     {
@@ -183,20 +183,23 @@ int main() {
 
     for (const auto & txProtocol : GGWave::getTxProtocols()) {
         for (const auto & formatOut : kFormats) {
-            for (const auto & formatIn : kFormats) {
-                printf("Testing: protocol = %s, in = %d, out = %d\n", txProtocol.second.name, formatIn, formatOut);
+            for (const auto & formatInp : kFormats) {
+                printf("Testing: protocol = %s, in = %d, out = %d\n", txProtocol.second.name, formatInp, formatOut);
 
                 auto parameters = GGWave::getDefaultParameters();
-                parameters.sampleFormatIn = formatIn;
+                parameters.sampleFormatInp = formatInp;
                 parameters.sampleFormatOut = formatOut;
                 GGWave instance(parameters);
 
-                std::string payload = "test message xxxxxxxxxxxx";
+                std::string payload = "test";
 
                 instance.init(payload, txProtocol.second, 25);
-                instance.encode(kCBEnqueueAudio.at(formatOut));
-                convertHelper(formatOut, formatIn);
-                instance.decode(kCBDequeueAudio.at(formatIn));
+                auto expectedSize = instance.encodeSize_samples();
+                instance.encode(kCBWaveformOut.at(formatOut));
+                printf("Expected = %d, actual = %d\n", expectedSize, nSamples);
+                CHECK(expectedSize == nSamples);
+                convertHelper(formatOut, formatInp);
+                instance.decode(kCBWaveformInp.at(formatInp));
 
                 {
                     GGWave::TxRxData result;

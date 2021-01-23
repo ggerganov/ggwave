@@ -15,7 +15,7 @@
 
 int main() {
     ggwave_Parameters parameters = ggwave_getDefaultParameters();
-    parameters.sampleFormatIn = GGWAVE_SAMPLE_FORMAT_I16;
+    parameters.sampleFormatInp = GGWAVE_SAMPLE_FORMAT_I16;
     parameters.sampleFormatOut = GGWAVE_SAMPLE_FORMAT_I16;
 
     ggwave_Instance instance = ggwave_init(parameters);

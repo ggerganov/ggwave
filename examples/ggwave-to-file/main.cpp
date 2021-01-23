@@ -74,12 +74,12 @@ int main(int argc, char** argv) {
     ggWave.init(message.size(), message.data(), ggWave.getTxProtocol(protocolId), volume);
 
     std::vector<char> bufferPCM;
-    GGWave::CBEnqueueAudio cbEnqueueAudio = [&](const void * data, uint32_t nBytes) {
+    GGWave::CBWaveformOut cbWaveformOut = [&](const void * data, uint32_t nBytes) {
         bufferPCM.resize(nBytes);
         std::memcpy(bufferPCM.data(), data, nBytes);
     };
 
-    if (ggWave.encode(cbEnqueueAudio) == false) {
+    if (ggWave.encode(cbWaveformOut) == false) {
         fprintf(stderr, "Failed to generate waveform!\n");
         return -4;
     }

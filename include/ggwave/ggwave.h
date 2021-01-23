@@ -45,10 +45,10 @@ extern "C" {
 
     // GGWave instance parameters
     typedef struct {
-        int sampleRateIn;                       // capture sample rate
+        int sampleRateInp;                      // capture sample rate
         int sampleRateOut;                      // playback sample rate
         int samplesPerFrame;                    // number of samples per audio frame
-        ggwave_SampleFormat sampleFormatIn;     // format of the captured audio samples
+        ggwave_SampleFormat sampleFormatInp;    // format of the captured audio samples
         ggwave_SampleFormat sampleFormatOut;    // format of the playback audio samples
     } ggwave_Parameters;
 
@@ -138,9 +138,9 @@ public:
     static constexpr auto kMaxSpectrumHistory = 4;
     static constexpr auto kMaxRecordedFrames = 1024;
 
-    using Parameters    = ggwave_Parameters;
-    using SampleFormat  = ggwave_SampleFormat;
-    using TxProtocolId  = ggwave_TxProtocolId;
+    using Parameters   = ggwave_Parameters;
+    using SampleFormat = ggwave_SampleFormat;
+    using TxProtocolId = ggwave_TxProtocolId;
 
     struct TxProtocol {
         const char * name;  // string identifier of the protocol
@@ -173,8 +173,8 @@ public:
     using RecordedData     = std::vector<float>;
     using TxRxData         = std::vector<std::uint8_t>;
 
-    using CBEnqueueAudio = std::function<void(const void * data, uint32_t nBytes)>;
-    using CBDequeueAudio = std::function<uint32_t(void * data, uint32_t nMaxBytes)>;
+    using CBWaveformOut = std::function<void(const void * data, uint32_t nBytes)>;
+    using CBWaveformInp = std::function<uint32_t(void * data, uint32_t nMaxBytes)>;
 
     GGWave(const Parameters & parameters);
     ~GGWave();
@@ -186,8 +186,11 @@ public:
     bool init(int dataSize, const char * dataBuffer, const int volume = kDefaultVolume);
     bool init(int dataSize, const char * dataBuffer, const TxProtocol & txProtocol, const int volume = kDefaultVolume);
 
-    bool encode(const CBEnqueueAudio & cbEnqueueAudio);
-    void decode(const CBDequeueAudio & cbDequeueAudio);
+    uint32_t encodeSize_bytes() const;
+    uint32_t encodeSize_samples() const;
+
+    bool encode(const CBWaveformOut & cbWaveformOut);
+    void decode(const CBWaveformInp & cbWaveformInp);
 
     const bool & hasTxData()    const { return m_hasNewTxData; }
     const bool & isReceiving()  const { return m_receivingData; }
@@ -198,10 +201,10 @@ public:
     const int & getFramesToAnalyze()        const { return m_framesToAnalyze; }
     const int & getFramesLeftToAnalyze()    const { return m_framesLeftToAnalyze; }
     const int & getSamplesPerFrame()        const { return m_samplesPerFrame; }
-    const int & getSampleSizeBytesIn()      const { return m_sampleSizeBytesIn; }
+    const int & getSampleSizeBytesInp()     const { return m_sampleSizeBytesInp; }
     const int & getSampleSizeBytesOut()     const { return m_sampleSizeBytesOut; }
 
-    const float & getSampleRateIn()     const { return m_sampleRateIn; }
+    const float & getSampleRateInp()    const { return m_sampleRateInp; }
     const float & getSampleRateOut()    const { return m_sampleRateOut; }
 
     static TxProtocolId getDefaultTxProtocolId()     { return GGWAVE_TX_PROTOCOL_AUDIBLE_FAST; }
@@ -225,13 +228,13 @@ private:
         return m_hzPerSample*p.freqStart + m_freqDelta_hz*bit;
     }
 
-    const float m_sampleRateIn;
+    const float m_sampleRateInp;
     const float m_sampleRateOut;
     const int m_samplesPerFrame;
     const float m_isamplesPerFrame;
-    const int m_sampleSizeBytesIn;
+    const int m_sampleSizeBytesInp;
     const int m_sampleSizeBytesOut;
-    const SampleFormat m_sampleFormatIn;
+    const SampleFormat m_sampleFormatInp;
     const SampleFormat m_sampleFormatOut;
 
     const float m_hzPerSample;
@@ -258,7 +261,7 @@ private:
     int m_framesToRecord;
     int m_samplesNeeded;
 
-    std::vector<float> m_fftIn;  // real
+    std::vector<float> m_fftInp;  // real
     std::vector<float> m_fftOut; // complex
 
     bool m_hasNewSpectrum;
@@ -280,8 +283,6 @@ private:
 
     // Tx
     bool m_hasNewTxData;
-    int m_nECCBytesPerTx;
-    int m_sendDataLength;
     float m_sendVolume;
 
     int m_txDataLength;

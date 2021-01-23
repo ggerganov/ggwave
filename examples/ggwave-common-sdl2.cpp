@@ -19,10 +19,10 @@ namespace {
 
 std::string g_defaultCaptureDeviceName = "";
 
-SDL_AudioDeviceID g_devIdIn = 0;
+SDL_AudioDeviceID g_devIdInp = 0;
 SDL_AudioDeviceID g_devIdOut = 0;
 
-SDL_AudioSpec g_obtainedSpecIn;
+SDL_AudioSpec g_obtainedSpecInp;
 SDL_AudioSpec g_obtainedSpecOut;
 
 GGWave *g_ggWave = nullptr;
@@ -45,7 +45,7 @@ extern "C" {
         }
 
     EMSCRIPTEN_KEEPALIVE
-        int getSampleRate()             { return g_ggWave->getSampleRateIn(); }
+        int getSampleRate()             { return g_ggWave->getSampleRateInp(); }
 
     EMSCRIPTEN_KEEPALIVE
         int getFramesToRecord()         { return g_ggWave->getFramesToRecord(); }
@@ -63,7 +63,7 @@ extern "C" {
         int hasDeviceOutput()           { return g_devIdOut; }
 
     EMSCRIPTEN_KEEPALIVE
-        int hasDeviceCapture()          { return g_devIdIn; }
+        int hasDeviceCapture()          { return g_devIdInp; }
 
     EMSCRIPTEN_KEEPALIVE
         int doInit()                    {
@@ -79,11 +79,11 @@ bool GGWave_init(
         const int playbackId,
         const int captureId) {
 
-    if (g_devIdIn && g_devIdOut) {
+    if (g_devIdInp && g_devIdOut) {
         return false;
     }
 
-    if (g_devIdIn == 0 && g_devIdOut == 0) {
+    if (g_devIdInp == 0 && g_devIdOut == 0) {
         SDL_LogSetPriority(SDL_LOG_CATEGORY_APPLICATION, SDL_LOG_PRIORITY_INFO);
 
         if (SDL_Init(SDL_INIT_AUDIO) < 0) {
@@ -157,47 +157,47 @@ bool GGWave_init(
         }
     }
 
-    if (g_devIdIn == 0) {
+    if (g_devIdInp == 0) {
         SDL_AudioSpec captureSpec;
         captureSpec = g_obtainedSpecOut;
         captureSpec.freq = GGWave::kBaseSampleRate;
         captureSpec.format = AUDIO_F32SYS;
         captureSpec.samples = 4096;
 
-        SDL_zero(g_obtainedSpecIn);
+        SDL_zero(g_obtainedSpecInp);
 
         if (captureId >= 0) {
             printf("Attempt to open capture device %d : '%s' ...\n", captureId, SDL_GetAudioDeviceName(captureId, SDL_FALSE));
-            g_devIdIn = SDL_OpenAudioDevice(SDL_GetAudioDeviceName(captureId, SDL_TRUE), SDL_TRUE, &captureSpec, &g_obtainedSpecIn, 0);
+            g_devIdInp = SDL_OpenAudioDevice(SDL_GetAudioDeviceName(captureId, SDL_TRUE), SDL_TRUE, &captureSpec, &g_obtainedSpecInp, 0);
         } else {
             printf("Attempt to open default capture device ...\n");
-            g_devIdIn = SDL_OpenAudioDevice(g_defaultCaptureDeviceName.empty() ? nullptr : g_defaultCaptureDeviceName.c_str(),
-                                            SDL_TRUE, &captureSpec, &g_obtainedSpecIn, 0);
+            g_devIdInp = SDL_OpenAudioDevice(g_defaultCaptureDeviceName.empty() ? nullptr : g_defaultCaptureDeviceName.c_str(),
+                                            SDL_TRUE, &captureSpec, &g_obtainedSpecInp, 0);
         }
-        if (!g_devIdIn) {
+        if (!g_devIdInp) {
             printf("Couldn't open an audio device for capture: %s!\n", SDL_GetError());
-            g_devIdIn = 0;
+            g_devIdInp = 0;
         } else {
-            printf("Obtained spec for input device (SDL Id = %d):\n", g_devIdIn);
-            printf("    - Sample rate:       %d\n", g_obtainedSpecIn.freq);
-            printf("    - Format:            %d (required: %d)\n", g_obtainedSpecIn.format, captureSpec.format);
-            printf("    - Channels:          %d (required: %d)\n", g_obtainedSpecIn.channels, captureSpec.channels);
-            printf("    - Samples per frame: %d\n", g_obtainedSpecIn.samples);
+            printf("Obtained spec for input device (SDL Id = %d):\n", g_devIdInp);
+            printf("    - Sample rate:       %d\n", g_obtainedSpecInp.freq);
+            printf("    - Format:            %d (required: %d)\n", g_obtainedSpecInp.format, captureSpec.format);
+            printf("    - Channels:          %d (required: %d)\n", g_obtainedSpecInp.channels, captureSpec.channels);
+            printf("    - Samples per frame: %d\n", g_obtainedSpecInp.samples);
 
             reinit = true;
         }
     }
 
-    GGWave::SampleFormat sampleFormatIn = GGWAVE_SAMPLE_FORMAT_UNDEFINED;
+    GGWave::SampleFormat sampleFormatInp = GGWAVE_SAMPLE_FORMAT_UNDEFINED;
     GGWave::SampleFormat sampleFormatOut = GGWAVE_SAMPLE_FORMAT_UNDEFINED;
 
-    switch (g_obtainedSpecIn.format) {
-        case AUDIO_U8:      sampleFormatIn = GGWAVE_SAMPLE_FORMAT_U8; break;
-        case AUDIO_S8:      sampleFormatIn = GGWAVE_SAMPLE_FORMAT_I8; break;
-        case AUDIO_U16SYS:  sampleFormatIn = GGWAVE_SAMPLE_FORMAT_U16; break;
-        case AUDIO_S16SYS:  sampleFormatIn = GGWAVE_SAMPLE_FORMAT_I16; break;
-        case AUDIO_S32SYS:  sampleFormatIn = GGWAVE_SAMPLE_FORMAT_F32; break;
-        case AUDIO_F32SYS:  sampleFormatIn = GGWAVE_SAMPLE_FORMAT_F32; break;
+    switch (g_obtainedSpecInp.format) {
+        case AUDIO_U8:      sampleFormatInp = GGWAVE_SAMPLE_FORMAT_U8; break;
+        case AUDIO_S8:      sampleFormatInp = GGWAVE_SAMPLE_FORMAT_I8; break;
+        case AUDIO_U16SYS:  sampleFormatInp = GGWAVE_SAMPLE_FORMAT_U16; break;
+        case AUDIO_S16SYS:  sampleFormatInp = GGWAVE_SAMPLE_FORMAT_I16; break;
+        case AUDIO_S32SYS:  sampleFormatInp = GGWAVE_SAMPLE_FORMAT_F32; break;
+        case AUDIO_F32SYS:  sampleFormatInp = GGWAVE_SAMPLE_FORMAT_F32; break;
     }
 
     switch (g_obtainedSpecOut.format) {
@@ -214,10 +214,10 @@ bool GGWave_init(
         if (g_ggWave) delete g_ggWave;
 
         g_ggWave = new GGWave({
-                g_obtainedSpecIn.freq,
+                g_obtainedSpecInp.freq,
                 g_obtainedSpecOut.freq,
                 GGWave::kDefaultSamplesPerFrame,
-                sampleFormatIn,
+                sampleFormatInp,
                 sampleFormatOut});
     }
 
@@ -227,16 +227,16 @@ bool GGWave_init(
 GGWave * GGWave_instance() { return g_ggWave; }
 
 bool GGWave_mainLoop() {
-    if (g_devIdIn == 0 && g_devIdOut == 0) {
+    if (g_devIdInp == 0 && g_devIdOut == 0) {
         return false;
     }
 
-    static GGWave::CBEnqueueAudio cbQueueAudio = [&](const void * data, uint32_t nBytes) {
+    static GGWave::CBWaveformOut cbQueueAudio = [&](const void * data, uint32_t nBytes) {
         SDL_QueueAudio(g_devIdOut, data, nBytes);
     };
 
-    static GGWave::CBDequeueAudio cbDequeueAudio = [&](void * data, uint32_t nMaxBytes) {
-        return SDL_DequeueAudio(g_devIdIn, data, nMaxBytes);
+    static GGWave::CBWaveformInp cbWaveformInp = [&](void * data, uint32_t nMaxBytes) {
+        return SDL_DequeueAudio(g_devIdInp, data, nMaxBytes);
     };
 
     if (g_ggWave->hasTxData() == false) {
@@ -246,21 +246,21 @@ bool GGWave_mainLoop() {
         auto tNow = std::chrono::high_resolution_clock::now();
 
         if ((int) SDL_GetQueuedAudioSize(g_devIdOut) < g_ggWave->getSamplesPerFrame()*g_ggWave->getSampleSizeBytesOut()) {
-            SDL_PauseAudioDevice(g_devIdIn, SDL_FALSE);
+            SDL_PauseAudioDevice(g_devIdInp, SDL_FALSE);
             if (::getTime_ms(tLastNoData, tNow) > 500.0f) {
-                g_ggWave->decode(cbDequeueAudio);
-                if ((int) SDL_GetQueuedAudioSize(g_devIdIn) > 32*g_ggWave->getSamplesPerFrame()*g_ggWave->getSampleSizeBytesIn()) {
-                    SDL_ClearQueuedAudio(g_devIdIn);
+                g_ggWave->decode(cbWaveformInp);
+                if ((int) SDL_GetQueuedAudioSize(g_devIdInp) > 32*g_ggWave->getSamplesPerFrame()*g_ggWave->getSampleSizeBytesInp()) {
+                    SDL_ClearQueuedAudio(g_devIdInp);
                 }
             } else {
-                SDL_ClearQueuedAudio(g_devIdIn);
+                SDL_ClearQueuedAudio(g_devIdInp);
             }
         } else {
             tLastNoData = tNow;
         }
     } else {
         SDL_PauseAudioDevice(g_devIdOut, SDL_TRUE);
-        SDL_PauseAudioDevice(g_devIdIn, SDL_TRUE);
+        SDL_PauseAudioDevice(g_devIdInp, SDL_TRUE);
 
         g_ggWave->encode(cbQueueAudio);
     }
@@ -269,15 +269,15 @@ bool GGWave_mainLoop() {
 }
 
 bool GGWave_deinit() {
-    if (g_devIdIn == 0 && g_devIdOut == 0) {
+    if (g_devIdInp == 0 && g_devIdOut == 0) {
         return false;
     }
 
     delete g_ggWave;
     g_ggWave = nullptr;
 
-    SDL_PauseAudioDevice(g_devIdIn, 1);
-    SDL_CloseAudioDevice(g_devIdIn);
+    SDL_PauseAudioDevice(g_devIdInp, 1);
+    SDL_CloseAudioDevice(g_devIdInp);
     SDL_PauseAudioDevice(g_devIdOut, 1);
     SDL_CloseAudioDevice(g_devIdOut);
     SDL_CloseAudio();

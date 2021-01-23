@@ -17,10 +17,10 @@ cdef extern from "ggwave.h" nogil:
         GGWAVE_TX_PROTOCOL_ULTRASOUND_FASTEST
 
     ctypedef struct ggwave_Parameters:
-        int sampleRateIn
+        int sampleRateInp
         int sampleRateOut
         int samplesPerFrame
-        ggwave_SampleFormat sampleFormatIn
+        ggwave_SampleFormat sampleFormatInp
         ggwave_SampleFormat sampleFormatOut
 
     ctypedef int ggwave_Instance

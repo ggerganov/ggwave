@@ -1,5 +1,8 @@
 cmake_minimum_required (VERSION 3.0)
-project (ggwave)
+project(ggwave VERSION 0.1.4)
+
+configure_file(${CMAKE_SOURCE_DIR}/README.md.tmpl ${CMAKE_SOURCE_DIR}/README.md @ONLY)
+configure_file(${CMAKE_SOURCE_DIR}/bindings/python/setup.py.tmpl ${CMAKE_SOURCE_DIR}/bindings/python/setup.py @ONLY)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS "on")
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)

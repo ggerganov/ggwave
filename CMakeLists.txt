@@ -98,6 +98,23 @@ if (GGWAVE_SUPPORT_PYTHON)
         DEPENDS bindings/python/ggwave.bycython.cpp
         DEPENDS bindings/python/ggwave
         )
+
+    add_custom_command(
+        OUTPUT ${CMAKE_SOURCE_DIR}/bindings/python/dist
+        DEPENDS ${CMAKE_SOURCE_DIR}/bindings/python/Makefile
+        DEPENDS ${CMAKE_SOURCE_DIR}/bindings/python/ggwave.pyx
+        DEPENDS ${CMAKE_SOURCE_DIR}/bindings/python/cggwave.pxd
+        DEPENDS ${CMAKE_SOURCE_DIR}/bindings/python/setup.py
+        DEPENDS ${GGWAVE_SOURCES}
+        WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/bindings/python
+        COMMAND make publish
+        COMMENT "Publishing Python module v${PROJECT_VERSION}"
+        VERBATIM
+        )
+
+    add_custom_target(pypi-publish
+        DEPENDS bindings/python/dist
+        )
 endif()
 
 

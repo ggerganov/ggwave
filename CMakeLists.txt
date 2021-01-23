@@ -33,6 +33,7 @@ option(GGWAVE_SANITIZE_ADDRESS        "ggwave: enable address sanitizer" OFF)
 option(GGWAVE_SANITIZE_UNDEFINED      "ggwave: enable undefined sanitizer" OFF)
 
 option(GGWAVE_SUPPORT_SDL2            "ggwave: support for libSDL2" ${GGWAVE_SUPPORT_SDL2_DEFAULT})
+option(GGWAVE_SUPPORT_PYTHON          "ggwave: support for python" OFF)
 
 option(GGWAVE_BUILD_TESTS             "ggwave: build examples" ${GGWAVE_STANDALONE})
 option(GGWAVE_BUILD_EXAMPLES          "ggwave: build examples" ${GGWAVE_STANDALONE})
@@ -70,6 +71,31 @@ if (GGWAVE_ALL_WARNINGS)
 endif()
 
 add_subdirectory(src)
+
+if (GGWAVE_SUPPORT_PYTHON)
+    file(GLOB_RECURSE GGWAVE_SOURCES "include/*" "src/*")
+
+    add_custom_command(
+        OUTPUT ${CMAKE_SOURCE_DIR}/bindings/python/ggwave.bycython.cpp
+        OUTPUT ${CMAKE_SOURCE_DIR}/bindings/python/ggwave
+        DEPENDS ${CMAKE_SOURCE_DIR}/bindings/python/Makefile
+        DEPENDS ${CMAKE_SOURCE_DIR}/bindings/python/ggwave.pyx
+        DEPENDS ${CMAKE_SOURCE_DIR}/bindings/python/cggwave.pxd
+        DEPENDS ${CMAKE_SOURCE_DIR}/bindings/python/setup.py
+        DEPENDS ${GGWAVE_SOURCES}
+        WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/bindings/python
+        COMMAND make clean
+        COMMAND make
+        COMMENT "Compiling Python module"
+        VERBATIM
+        )
+
+    add_custom_target(ggwave-py ALL
+        DEPENDS bindings/python/ggwave.bycython.cpp
+        DEPENDS bindings/python/ggwave
+        )
+endif()
+
 
 if (GGWAVE_BUILD_TESTS)
     enable_testing()

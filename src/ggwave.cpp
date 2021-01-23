@@ -30,8 +30,8 @@ ggwave_Instance ggwave_init(const ggwave_Parameters parameters) {
             parameters.sampleRateIn,
             parameters.sampleRateOut,
             parameters.samplesPerFrame,
-            GGWAVE_SAMPLE_FORMAT_F32,
-            GGWAVE_SAMPLE_FORMAT_I16});
+            parameters.sampleFormatIn,
+            parameters.sampleFormatOut});
 
     return curId++;
 }
@@ -92,6 +92,7 @@ int ggwave_decode(
         std::copy(dataBuffer, dataBuffer + nCopied, (char *) data);
 
         dataSize -= nCopied;
+        dataBuffer += nCopied;
 
         return nCopied;
     };

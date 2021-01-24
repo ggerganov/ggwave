@@ -75,48 +75,7 @@ if (GGWAVE_ALL_WARNINGS)
 endif()
 
 add_subdirectory(src)
-
-if (GGWAVE_SUPPORT_PYTHON)
-    file(GLOB_RECURSE GGWAVE_SOURCES "include/*" "src/*")
-
-    add_custom_command(
-        OUTPUT ${CMAKE_SOURCE_DIR}/bindings/python/ggwave.bycython.cpp
-        OUTPUT ${CMAKE_SOURCE_DIR}/bindings/python/ggwave
-        DEPENDS ${CMAKE_SOURCE_DIR}/bindings/python/Makefile
-        DEPENDS ${CMAKE_SOURCE_DIR}/bindings/python/ggwave.pyx
-        DEPENDS ${CMAKE_SOURCE_DIR}/bindings/python/cggwave.pxd
-        DEPENDS ${CMAKE_SOURCE_DIR}/bindings/python/setup.py
-        DEPENDS ${GGWAVE_SOURCES}
-        WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/bindings/python
-        COMMAND make clean
-        COMMAND make
-        COMMENT "Compiling Python module"
-        VERBATIM
-        )
-
-    add_custom_target(ggwave-py ALL
-        DEPENDS bindings/python/ggwave.bycython.cpp
-        DEPENDS bindings/python/ggwave
-        )
-
-    add_custom_command(
-        OUTPUT ${CMAKE_SOURCE_DIR}/bindings/python/dist
-        DEPENDS ${CMAKE_SOURCE_DIR}/bindings/python/Makefile
-        DEPENDS ${CMAKE_SOURCE_DIR}/bindings/python/ggwave.pyx
-        DEPENDS ${CMAKE_SOURCE_DIR}/bindings/python/cggwave.pxd
-        DEPENDS ${CMAKE_SOURCE_DIR}/bindings/python/setup.py
-        DEPENDS ${GGWAVE_SOURCES}
-        WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}/bindings/python
-        COMMAND make publish
-        COMMENT "Publishing Python module v${PROJECT_VERSION}"
-        VERBATIM
-        )
-
-    add_custom_target(pypi-publish
-        DEPENDS bindings/python/dist
-        )
-endif()
-
+add_subdirectory(bindings)
 
 if (GGWAVE_BUILD_TESTS)
     enable_testing()

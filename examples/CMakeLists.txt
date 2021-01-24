@@ -6,7 +6,14 @@ if (GGWAVE_SUPPORT_SDL2)
     # SDL2
 
     if (EMSCRIPTEN)
-        set(CMAKE_CXX_FLAGS "-s TOTAL_MEMORY=67108864 -s USE_SDL=2 -s ASSERTIONS=1 -s DISABLE_EXCEPTION_CATCHING=0 -s 'EXTRA_EXPORTED_RUNTIME_METHODS=[\"writeArrayToMemory\"]'")
+        set(CMAKE_CXX_FLAGS " \
+        --bind \
+        -s TOTAL_MEMORY=67108864 \
+        -s USE_SDL=2 \
+        -s ASSERTIONS=1 \
+        -s DISABLE_EXCEPTION_CATCHING=0 \
+        -s 'EXTRA_EXPORTED_RUNTIME_METHODS=[\"writeArrayToMemory\"]' \
+        ")
 
         unset(SDL2_INCLUDE_DIRS)
         unset(SDL2_LIBRARIES)
@@ -65,19 +72,23 @@ endif()
 
 # examples
 
-add_subdirectory(ggwave-to-file)
+if (EMSCRIPTEN)
+    add_subdirectory(ggwave-js)
+else()
+    add_subdirectory(ggwave-to-file)
+endif()
 
 if (GGWAVE_SUPPORT_SDL2)
     if (EMSCRIPTEN)
         # emscripten sdl2 examples
 
         add_subdirectory(ggwave-wasm)
-        add_subdirectory(waver)
     else()
         # non-emscripten sdl2 examples
 
         add_subdirectory(ggwave-rx)
         add_subdirectory(ggwave-cli)
-        add_subdirectory(waver)
     endif()
+
+    add_subdirectory(waver)
 endif()

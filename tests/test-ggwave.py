@@ -1,6 +1,7 @@
 import sys
 import ggwave
 
+# create ggwave instance with default parameters
 instance = ggwave.init()
 
 payload = 'hello python'

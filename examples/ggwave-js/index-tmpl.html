@@ -33,6 +33,7 @@
             </div>
         </div>
 
+        <script type="text/javascript" src="ggwave.js"></script>
         <script type='text/javascript'>
             window.AudioContext = window.AudioContext || window.webkitAudioContext;
             window.OfflineAudioContext = window.OfflineAudioContext || window.webkitOfflineAudioContext;
@@ -40,8 +41,8 @@
             var context = null;
             var recorder = null;
 
-            // the ggwave module
-            var ggwave = {};
+            // instantiate the ggwave instance
+            var ggwave = ggwave();
             var parameters = null;
             var instance = null;
 
@@ -169,7 +170,5 @@
 
             captureStop.click();
         </script>
-
-        <script type="text/javascript" src="ggwave.js"></script>
     </body>
 </html>

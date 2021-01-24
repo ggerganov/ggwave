@@ -1,8 +1,10 @@
 cmake_minimum_required (VERSION 3.0)
 project(ggwave VERSION 0.1.4)
 
+# configure project version
 configure_file(${CMAKE_SOURCE_DIR}/README.md.tmpl ${CMAKE_SOURCE_DIR}/README.md @ONLY)
 configure_file(${CMAKE_SOURCE_DIR}/bindings/python/setup.py.tmpl ${CMAKE_SOURCE_DIR}/bindings/python/setup.py @ONLY)
+configure_file(${CMAKE_SOURCE_DIR}/bindings/javascript/package-tmpl.json ${CMAKE_SOURCE_DIR}/bindings/javascript/package.json @ONLY)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS "on")
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)

@@ -41,10 +41,16 @@
             var context = null;
             var recorder = null;
 
-            // instantiate the ggwave instance
-            var ggwave = ggwave();
+            // the ggwave module instance
+            var ggwave = null;
             var parameters = null;
             var instance = null;
+
+            // instantiate the ggwave instance
+            // ggwave_factory comes from the ggwave.js module
+            ggwave_factory().then(function(obj) {
+                ggwave = obj;
+            });
 
             var txData = document.getElementById("txData");
             var rxData = document.getElementById("rxData");

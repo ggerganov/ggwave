@@ -13,7 +13,7 @@ set_target_properties(${TARGET} PROPERTIES LINK_FLAGS " \
     -s MODULARIZE=1 \
     -s SINGLE_FILE=1 \
     -s ALLOW_MEMORY_GROWTH=1 \
-    -s EXPORT_NAME=\"'ggwave'\" \
+    -s EXPORT_NAME=\"'ggwave_factory'\" \
     ")
 
 add_custom_command(

@@ -44,6 +44,7 @@ You can easily test the library using the free [waver](https://github.com/ggerga
 
   - https://waver.ggerganov.com
   - https://ggwave.ggerganov.com
+  - https://ggwave-js.ggerganov.com
 
 ### [HTTP service](https://github.com/ggerganov/ggwave/blob/master/examples/ggwave-to-file/README.md#http-service)
 

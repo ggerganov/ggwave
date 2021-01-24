@@ -1,0 +1,26 @@
+{
+  "name": "ggwave",
+  "version": "@PROJECT_VERSION@",
+  "description": "Tiny data-over-sound library",
+  "main": "ggwave.js",
+  "scripts": {
+    "test": "echo \"todo: add tests\" && exit 0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ggerganov/ggwave.git"
+  },
+  "keywords": [
+    "data-over-sound",
+    "fsk",
+    "sound-library",
+    "ultrasound",
+    "ecc"
+  ],
+  "author": "Georgi Gerganov",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/ggerganov/ggwave/issues"
+  },
+  "homepage": "https://github.com/ggerganov/ggwave#readme"
+}

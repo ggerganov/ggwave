@@ -1,6 +1,17 @@
 if (EMSCRIPTEN)
+    #
+    # test-ggwave-js
+
+    set(TEST_TARGET test-ggwave-js)
+
+    add_test(NAME ${TEST_TARGET}
+        COMMAND node test-ggwave.js
+        WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+        )
+
     return()
 endif()
+
 #
 # test-ggwave-c
 

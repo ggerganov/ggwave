@@ -4,6 +4,7 @@
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 [![ggwave badge][changelog-badge]][changelog]
 [![pypi](https://img.shields.io/pypi/v/ggwave.svg)](https://pypi.org/project/ggwave/)
+[![npm](https://img.shields.io/npm/v/ggwave.svg)](https://www.npmjs.com/package/ggwave/)
 
 Tiny data-over-sound library.
 
@@ -88,14 +89,15 @@ Reed-Solomon decoding is finally performed to obtain the original data.
 The [examples](https://github.com/ggerganov/ggwave/blob/master/examples/) folder contains several sample applications of the library:
 
 
-| Example | Description | Backend |
-| ------- | ----------- | ------- |
+| Example | Description | Audio |
+| ------- | ----------- | ----- |
 | [ggwave-rx](https://github.com/ggerganov/ggwave/blob/master/examples/ggwave-rx) | Very basic receive-only program | SDL |
 | [ggwave-cli](https://github.com/ggerganov/ggwave/blob/master/examples/ggwave-cli) | Command line tool for sending/receiving data through sound | SDL |
 | [ggwave-wasm](https://github.com/ggerganov/ggwave/blob/master/examples/ggwave-wasm) | WebAssembly module for web applications | SDL |
 | [ggwave-to-file](https://github.com/ggerganov/ggwave/blob/master/examples/ggwave-to-file) | Output a generated waveform to an uncompressed WAV file | - |
 | [waver](https://github.com/ggerganov/ggwave/blob/master/examples/waver) | GUI application for sending/receiving data through sound | SDL |
-| [ggwave-py](https://github.com/ggerganov/ggwave/blob/master/examples/ggwave-py) | Python examples | - |
+| [ggwave-py](https://github.com/ggerganov/ggwave/blob/master/examples/ggwave-py) | Python examples | PortAudio |
+| [ggwave-js](https://github.com/ggerganov/ggwave/blob/master/examples/ggwave-js) | Javascript example | Web Audio API |
 
 Other projects using **ggwave** or one of its prototypes:
 
@@ -146,6 +148,14 @@ pip install ggwave
 ```
 
 More info: https://pypi.org/project/ggwave/
+
+### Node.js
+
+```bash
+npm install ggwave
+```
+
+More info: https://www.npmjs.com/package/ggwave
 
 ## Installing the Waver application
 

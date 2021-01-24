@@ -67,7 +67,6 @@ int main(int argc, char** argv) {
         return -3;
     }
 
-
     fprintf(stderr, "Generating waveform for message '%s' ...\n", message.c_str());
 
     GGWave ggWave({ GGWave::kBaseSampleRate, sampleRateOut, 1024, GGWAVE_SAMPLE_FORMAT_F32, GGWAVE_SAMPLE_FORMAT_I16 });

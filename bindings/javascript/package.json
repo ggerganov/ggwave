@@ -1,6 +1,6 @@
 {
   "name": "ggwave",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "description": "Tiny data-over-sound library",
   "main": "ggwave.js",
   "scripts": {

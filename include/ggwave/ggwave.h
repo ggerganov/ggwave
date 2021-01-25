@@ -44,6 +44,14 @@ extern "C" {
     } ggwave_TxProtocolId;
 
     // GGWave instance parameters
+    //
+    //   The sample rates are values typically between 8000 and 96000.
+    //   Default value: GGWave::kBaseSampleRate
+    //
+    //   The samplesPerFrame is the number of samples on which ggwave performs FFT.
+    //   This affects the number of bins in the Fourier spectrum.
+    //   Default value: GGWave::kDefaultSamplesPerFrame
+    //
     typedef struct {
         int sampleRateInp;                      // capture sample rate
         int sampleRateOut;                      // playback sample rate
@@ -61,17 +69,24 @@ extern "C" {
     GGWAVE_API ggwave_Parameters ggwave_getDefaultParameters(void);
 
     // Create a new GGWave instance with the specified parameters
+    //
+    //   The newly created instance is added to the internal map container.
+    //   This function returns an id that can be used to identify this instance.
+    //   Make sure to deallocate the instance at the end by calling ggwave_free()
+    //
     GGWAVE_API ggwave_Instance ggwave_init(const ggwave_Parameters parameters);
 
     // Free a GGWave instance
     GGWAVE_API void ggwave_free(ggwave_Instance instance);
 
     // Encode data into audio waveform
+    //
     //   instance       - the GGWave instance to use
     //   dataBuffer     - the data to encode
     //   dataSize       - number of bytes in the input dataBuffer
     //   txProtocolId   - the protocol to use for encoding
     //   volume         - the volume of the generated waveform [0, 100]
+    //                    usually 25 is OK and you should not go over 50
     //   outputBuffer   - the generated audio waveform. must be big enough to fit the generated data
     //   query          - if != 0, do not perform encoding.
     //                    if == 1, return waveform size in bytes
@@ -81,8 +96,45 @@ extern "C" {
     //
     //   returns -1 if there was an error
     //
-    //   todo : implement api to query the size of the generated waveform before generating it
-    //          so that the user can allocate enough memory for the outputBuffer
+    //   This function can be used to encode some binary data (payload) into an audio waveform.
+    //
+    //     payload -> waveform
+    //
+    //   When calling it, make sure that the outputBuffer is big enough to store the
+    //   generated waveform. This means that its size must be at least:
+    //
+    //     nSamples*sizeOfSample_bytes
+    //
+    //   Where nSamples is the number of audio samples in the waveform and sizeOfSample_bytes
+    //   is the size of a single sample in bytes based on the sampleFormatOut parameter
+    //   specified during the initialization of the GGWave instance.
+    //
+    //   If query != 0, then this function does not perform the actual encoding and just
+    //   outputs the expected size of the waveform that would be generated if you call it
+    //   with query == 0. This mechanism can be used to ask ggwave how much memory to
+    //   allocate for the outputBuffer. For example:
+    //
+    //     // this is the data to encode
+    //     const char * payload = "test";
+    //
+    //     // query the number of bytes in the waveform
+    //     int n = ggwave_encode(instance, payload, 4, GGWAVE_TX_PROTOCOL_AUDIBLE_FAST, 25, NULL, 1);
+    //
+    //     // allocate the output buffer
+    //     char waveform[n];
+    //
+    //     // generate the waveform
+    //     ggwave_encode(instance, payload, 4, GGWAVE_TX_PROTOCOL_AUDIBLE_FAST, 25, waveform, 0);
+    //
+    //   The dataBuffer can be any binary data that you would like to transmit (i.e. the payload).
+    //   Usually, this is some text, but it can be any sequence of bytes.
+    //
+    //   todo:
+    //      - change the type of dataBuffer to const void *
+    //      - change the type of outputBuffer to void *
+    //      - rename dataBuffer to payloadBuffer
+    //      - rename dataSize to payloadSize
+    //      - rename outputBuffer to waveformBuffer
     //
     GGWAVE_API int ggwave_encode(
             ggwave_Instance instance,
@@ -94,10 +146,12 @@ extern "C" {
             int query);
 
     // Decode an audio waveform into data
+    //
     //   instance       - the GGWave instance to use
     //   dataBuffer     - the audio waveform
     //   dataSize       - number of bytes in the input dataBuffer
     //   outputBuffer   - stores the decoded data on success
+    //                    the maximum size of the output is GGWave::kMaxDataSize
     //
     //   returns the number of decoded bytes
     //
@@ -105,11 +159,33 @@ extern "C" {
     //   On each call, GGWave will analyze the provided data and if it detects a payload,
     //   it will return a non-zero result.
     //
+    //     waveform -> payload
+    //
     //   If the return value is -1 then there was an error during the decoding process.
     //   Usually can occur if there is a lot of background noise in the audio.
     //
     //   If the return value is greater than 0, then there will be that number of bytes
     //   decoded in the outputBuffer
+    //
+    //   Example:
+    //
+    //     char payload[256];
+    //
+    //     while (true) {
+    //         ... capture samplesPerFrame audio samples into waveform ...
+    //
+    //         int ret = ggwave_decode(instance, waveform, samplesPerFrame*sizeOfSample_bytes, payload);
+    //         if (ret > 0) {
+    //             printf("Received payload: '%s'\n", payload);
+    //         }
+    //     }
+    //
+    //   todo:
+    //      - change the type of dataBuffer to const void *
+    //      - change the type of outputBuffer to void *
+    //      - rename dataBuffer to waveformBuffer
+    //      - rename dataSize to waveformSize
+    //      - rename outputBuffer to payloadBuffer
     //
     GGWAVE_API int ggwave_decode(
             ggwave_Instance instance,

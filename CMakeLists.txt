@@ -2,9 +2,10 @@ cmake_minimum_required (VERSION 3.0)
 project(ggwave VERSION 0.1.5)
 
 # configure project version
-configure_file(${CMAKE_SOURCE_DIR}/README.md.tmpl ${CMAKE_SOURCE_DIR}/README.md @ONLY)
-configure_file(${CMAKE_SOURCE_DIR}/bindings/python/setup.py.tmpl ${CMAKE_SOURCE_DIR}/bindings/python/setup.py @ONLY)
+configure_file(${CMAKE_SOURCE_DIR}/README-tmpl.md ${CMAKE_SOURCE_DIR}/README.md @ONLY)
+configure_file(${CMAKE_SOURCE_DIR}/bindings/python/setup-tmpl.py ${CMAKE_SOURCE_DIR}/bindings/python/setup.py @ONLY)
 configure_file(${CMAKE_SOURCE_DIR}/bindings/javascript/package-tmpl.json ${CMAKE_SOURCE_DIR}/bindings/javascript/package.json @ONLY)
+configure_file(${CMAKE_SOURCE_DIR}/bindings/ios/Makefile-tmpl ${CMAKE_SOURCE_DIR}/bindings/ios/Makefile @ONLY)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS "on")
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
@@ -39,6 +40,7 @@ option(GGWAVE_SANITIZE_UNDEFINED      "ggwave: enable undefined sanitizer" OFF)
 
 option(GGWAVE_SUPPORT_SDL2            "ggwave: support for libSDL2" ${GGWAVE_SUPPORT_SDL2_DEFAULT})
 option(GGWAVE_SUPPORT_PYTHON          "ggwave: support for python" OFF)
+option(GGWAVE_SUPPORT_SWIFT           "ggwave: support for swift" OFF)
 
 option(GGWAVE_BUILD_TESTS             "ggwave: build examples" ${GGWAVE_STANDALONE})
 option(GGWAVE_BUILD_EXAMPLES          "ggwave: build examples" ${GGWAVE_STANDALONE})

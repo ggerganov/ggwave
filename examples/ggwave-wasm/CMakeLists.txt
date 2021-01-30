@@ -1,6 +1,6 @@
 set(TARGET ggwave-wasm)
 
-configure_file(${CMAKE_CURRENT_SOURCE_DIR}/build_timestamp.h.tmpl ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${TARGET}/build_timestamp.h @ONLY)
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/build_timestamp-tmpl.h ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${TARGET}/build_timestamp.h @ONLY)
 
 add_executable(${TARGET}
     main.cpp

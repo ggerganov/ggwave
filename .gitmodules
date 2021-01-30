@@ -4,3 +4,6 @@
 [submodule "examples/third-party/ggsock"]
 	path = examples/third-party/ggsock
 	url = https://github.com/ggerganov/ggsock
+[submodule "bindings/ios"]
+	path = bindings/ios
+	url = https://github.com/ggerganov/ggwave-spm

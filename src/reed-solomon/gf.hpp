@@ -5,16 +5,12 @@
 
 #ifndef GF_H
 #define GF_H
-#include <stdint.h>
-#include <string.h>
+
 #include "poly.hpp"
 
-#if !defined DEBUG && !defined __CC_ARM
+#include <stdint.h>
+#include <string.h>
 #include <assert.h>
-#else
-#define assert(dummy)
-#endif
-
 
 namespace RS {
 

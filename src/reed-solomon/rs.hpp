@@ -5,17 +5,13 @@
 
 #ifndef RS_HPP
 #define RS_HPP
-#include <string.h>
-#include <stdint.h>
+
 #include "poly.hpp"
 #include "gf.hpp"
 
-#if !defined DEBUG && !defined __CC_ARM
 #include <assert.h>
-#else
-#define assert(dummy)
-#endif
-
+#include <string.h>
+#include <stdint.h>
 #include <vector>
 
 namespace RS {

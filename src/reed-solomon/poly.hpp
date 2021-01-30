@@ -5,14 +5,10 @@
 
 #ifndef POLY_H
 #define POLY_H
+
 #include <stdint.h>
 #include <string.h>
-
-#if !defined DEBUG && !defined __CC_ARM
 #include <assert.h>
-#else
-#define assert(dummy)
-#endif
 
 namespace RS {
 

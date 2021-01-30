@@ -58,3 +58,36 @@ if (GGWAVE_SUPPORT_PYTHON)
         )
 endif()
 
+if (GGWAVE_SUPPORT_SWIFT)
+    file(GLOB_RECURSE GGWAVE_SOURCES "../include/*" "../src/*")
+
+    add_custom_command(
+        OUTPUT ${CMAKE_CURRENT_SOURCE_DIR}/ios/.build
+        DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/ios/Makefile
+        DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/ios/Package.swift
+        DEPENDS ${GGWAVE_SOURCES}
+        WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/ios
+        COMMAND make clean
+        COMMAND make build-submodule
+        COMMENT "Compiling Swift package"
+        VERBATIM
+        )
+
+    add_custom_target(ggwave-spm ALL
+        DEPENDS ios/.build
+        )
+
+    add_custom_command(
+        OUTPUT ${CMAKE_CURRENT_SOURCE_DIR}/ios/publish
+        DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/ios/publish-trigger
+        DEPENDS ${GGWAVE_SOURCES}
+        WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/ios
+        COMMAND make publish
+        COMMENT "Publishing Swift package v${PROJECT_VERSION}"
+        VERBATIM
+        )
+
+    add_custom_target(spm-publish
+        DEPENDS ios/publish
+        )
+endif()

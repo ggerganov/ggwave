@@ -2,8 +2,8 @@ cmake_minimum_required (VERSION 3.0)
 project(ggwave VERSION 0.1.5)
 
 # configure project version
-configure_file(${CMAKE_SOURCE_DIR}/README.md.tmpl ${CMAKE_SOURCE_DIR}/README.md @ONLY)
-configure_file(${CMAKE_SOURCE_DIR}/bindings/python/setup.py.tmpl ${CMAKE_SOURCE_DIR}/bindings/python/setup.py @ONLY)
+configure_file(${CMAKE_SOURCE_DIR}/README-tmpl.md ${CMAKE_SOURCE_DIR}/README.md @ONLY)
+configure_file(${CMAKE_SOURCE_DIR}/bindings/python/setup-tmpl.py ${CMAKE_SOURCE_DIR}/bindings/python/setup.py @ONLY)
 configure_file(${CMAKE_SOURCE_DIR}/bindings/javascript/package-tmpl.json ${CMAKE_SOURCE_DIR}/bindings/javascript/package.json @ONLY)
 configure_file(${CMAKE_SOURCE_DIR}/bindings/ios/Makefile-tmpl ${CMAKE_SOURCE_DIR}/bindings/ios/Makefile @ONLY)
 

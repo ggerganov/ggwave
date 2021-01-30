@@ -158,6 +158,10 @@ npm install ggwave
 
 More info: https://www.npmjs.com/package/ggwave
 
+### iOS
+
+Available as a Swift Package: https://github.com/ggerganov/ggwave-spm
+
 ## Installing the Waver application
 
 [![Get it from the Snap Store](https://snapcraft.io/static/images/badges/en/snap-store-black.svg)](https://snapcraft.io/waver)

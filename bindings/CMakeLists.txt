@@ -12,7 +12,7 @@ if (EMSCRIPTEN)
         VERBATIM
         )
 
-    add_custom_target(npm-publish
+    add_custom_target(publish-npm
         DEPENDS javascript/publish.log
         )
 endif()
@@ -53,7 +53,7 @@ if (GGWAVE_SUPPORT_PYTHON)
         VERBATIM
         )
 
-    add_custom_target(pypi-publish
+    add_custom_target(publish-pypi
         DEPENDS python/dist
         )
 endif()
@@ -87,7 +87,7 @@ if (GGWAVE_SUPPORT_SWIFT)
         VERBATIM
         )
 
-    add_custom_target(spm-publish
+    add_custom_target(publish-spm
         DEPENDS ios/publish
         )
 endif()

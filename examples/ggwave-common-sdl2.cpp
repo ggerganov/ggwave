@@ -231,7 +231,7 @@ bool GGWave_mainLoop() {
         return false;
     }
 
-    static GGWave::CBWaveformOut cbQueueAudio = [&](const void * data, uint32_t nBytes) {
+    static GGWave::CBWaveformOut cbWaveformOut = [&](const void * data, uint32_t nBytes) {
         SDL_QueueAudio(g_devIdOut, data, nBytes);
     };
 
@@ -262,7 +262,7 @@ bool GGWave_mainLoop() {
         SDL_PauseAudioDevice(g_devIdOut, SDL_TRUE);
         SDL_PauseAudioDevice(g_devIdInp, SDL_TRUE);
 
-        g_ggWave->encode(cbQueueAudio);
+        g_ggWave->encode(cbWaveformOut);
     }
 
     return true;

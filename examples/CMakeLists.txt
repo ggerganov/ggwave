@@ -91,4 +91,5 @@ if (GGWAVE_SUPPORT_SDL2)
     endif()
 
     add_subdirectory(waver)
+    add_subdirectory(goertzel)
 endif()

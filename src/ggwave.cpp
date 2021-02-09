@@ -792,7 +792,9 @@ void GGWave::decode(const CBWaveformInp & cbWaveformInp) {
 
                     m_framesToAnalyze = m_nMarkerFrames*stepsPerFrame;
                     m_framesLeftToAnalyze = m_framesToAnalyze;
-                    for (int ii = m_nMarkerFrames*stepsPerFrame - 1; ii >= m_nMarkerFrames*stepsPerFrame/2; --ii) {
+
+                    // note : not sure if looping backwards here is more meaningful than looping forwards
+                    for (int ii = m_nMarkerFrames*stepsPerFrame - 1; ii >= 0; --ii) {
                         bool knownLength = false;
 
                         const int offsetStart = ii;
@@ -806,7 +808,7 @@ void GGWave::decode(const CBWaveformInp & cbWaveformInp) {
                                     m_recordedAmplitude.begin() + offsetTx*step,
                                     m_recordedAmplitude.begin() + offsetTx*step + m_samplesPerFrame, m_fftInp.data());
 
-                            for (int k = 1; k < rxProtocol.framesPerTx - 1; ++k) {
+                            for (int k = 1; k < rxProtocol.framesPerTx; ++k) {
                                 for (int i = 0; i < m_samplesPerFrame; ++i) {
                                     m_fftInp[i] += m_recordedAmplitude[(offsetTx + k*stepsPerFrame)*step + i];
                                 }

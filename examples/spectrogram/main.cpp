@@ -34,6 +34,8 @@ constexpr int g_nSamplesPerFrame = 1024;
 int g_binMin = 40;
 int g_binMax = 40 + 96;
 
+float g_scale = 5.0;
+
 bool g_showControls = true;
 
 int g_freqDataHead = 0;
@@ -449,7 +451,7 @@ int main(int argc, char** argv) {
                 if (k >= g_freqDataSize) k -= g_freqDataSize;
                 auto v = g_freqData[g_binMin + i].mag[k];
                 ImVec4 c = { 0.0f, 1.0f, 0.0, 0.0f };
-                c.w = v/(5.0*sum);
+                c.w = v/(g_scale*sum);
                 drawList->AddRectFilled({ p0.x + j*dx, p0.y + i*dy }, { p0.x + j*dx + dx - 1, p0.y + i*dy + dy - 1 }, ImGui::ColorConvertFloat4ToU32(c));
             }
         }
@@ -471,6 +473,7 @@ int main(int argc, char** argv) {
             ImGui::Text("Press 'c' to hide/show this window");
             ImGui::DragInt("Min", &g_binMin, 1, 0, g_binMax - 1);
             ImGui::DragInt("Max", &g_binMax, 1, g_binMin + 1, g_nSamplesPerFrame/2);
+            ImGui::DragFloat("Scale", &g_scale, 1.0f, 1.0f, 1000.0f);
             if (ImGui::Button("Pause")) {
                 togglePause = true;
             }

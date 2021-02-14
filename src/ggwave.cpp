@@ -1427,7 +1427,7 @@ void GGWave::decode_fixed(const CBWaveformInp & cbWaveformInp) {
                     int detectedTx = 0;
                     int txNeeded = 0;
                     for (int j = 0; j < rxProtocol.bytesPerTx; ++j) {
-                        if (k*rxProtocol.bytesPerTx + j > totalLength) break;
+                        if (k*rxProtocol.bytesPerTx + j >= totalLength) break;
                         txNeeded += 2;
                         for (int b = 0; b < 16; ++b) {
                             if (tones[2*j + 0].nMax[b] > rxProtocol.framesPerTx/2) {

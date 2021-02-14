@@ -77,7 +77,8 @@ void GGWave_setDefaultCaptureDeviceName(std::string name) {
 
 bool GGWave_init(
         const int playbackId,
-        const int captureId) {
+        const int captureId,
+        const int payloadLength) {
 
     if (g_devIdInp && g_devIdOut) {
         return false;
@@ -214,11 +215,12 @@ bool GGWave_init(
         if (g_ggWave) delete g_ggWave;
 
         g_ggWave = new GGWave({
-                g_obtainedSpecInp.freq,
-                g_obtainedSpecOut.freq,
-                GGWave::kDefaultSamplesPerFrame,
-                sampleFormatInp,
-                sampleFormatOut});
+            payloadLength,
+            g_obtainedSpecInp.freq,
+            g_obtainedSpecOut.freq,
+            GGWave::kDefaultSamplesPerFrame,
+            sampleFormatInp,
+            sampleFormatOut});
     }
 
     return true;

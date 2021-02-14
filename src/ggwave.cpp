@@ -27,6 +27,7 @@ ggwave_Instance ggwave_init(const ggwave_Parameters parameters) {
     static ggwave_Instance curId = 0;
 
     g_instances[curId] = new GGWave({
+            parameters.payloadLength,
             parameters.sampleRateInp,
             parameters.sampleRateOut,
             parameters.samplesPerFrame,
@@ -242,7 +243,7 @@ float getTime_ms(const T & tStart, const T & tEnd) {
 }
 
 int getECCBytesForLength(int len) {
-    return std::max(4, 2*(len/5));
+    return len < 4 ? 2 : std::max(4, 2*(len/5));
 }
 
 int bytesForSampleFormat(GGWave::SampleFormat sampleFormat) {
@@ -264,6 +265,7 @@ int bytesForSampleFormat(GGWave::SampleFormat sampleFormat) {
 
 const GGWave::Parameters & GGWave::getDefaultParameters() {
     static ggwave_Parameters result {
+        -1, // vaiable payload length
         GGWave::kBaseSampleRate,
         GGWave::kBaseSampleRate,
         GGWave::kDefaultSamplesPerFrame,
@@ -290,7 +292,11 @@ GGWave::GGWave(const Parameters & parameters) :
     m_nBitsInMarker(16),
     m_nMarkerFrames(16),
     m_nPostMarkerFrames(0),
-    m_encodedDataOffset(3),
+    m_encodedDataOffset(parameters.payloadLength > 0 ? 0 : 3),
+    // common
+    m_isFixedPayloadLength(parameters.payloadLength > 0),
+    m_payloadLength(parameters.payloadLength),
+    // Rx
     m_samplesNeeded(m_samplesPerFrame),
     m_fftInp(kMaxSamplesPerFrame),
     m_fftOut(2*kMaxSamplesPerFrame),
@@ -301,14 +307,36 @@ GGWave::GGWave(const Parameters & parameters) :
     m_hasNewRxData(false),
     m_lastRxDataLength(0),
     m_rxData(kMaxDataSize),
+    m_historyId(0),
     m_sampleAmplitudeAverage(kMaxSamplesPerFrame),
     m_sampleAmplitudeHistory(kMaxSpectrumHistory),
-    m_recordedAmplitude(kMaxRecordedFrames*kMaxSamplesPerFrame),
+    m_historyIdFixed(0),
+    // Tx
+    m_hasNewTxData(false),
+    m_sendVolume(0.1),
+    m_txDataLength(0),
     m_txData(kMaxDataSize),
     m_txDataEncoded(kMaxDataSize),
     m_outputBlock(kMaxSamplesPerFrame),
     m_outputBlockTmp(kMaxRecordedFrames*kMaxSamplesPerFrame*m_sampleSizeBytesOut),
     m_outputBlockI16(kMaxRecordedFrames*kMaxSamplesPerFrame) {
+
+    if (m_payloadLength > 0) {
+        // fixed payload length
+        if (m_payloadLength > kMaxLengthFixed) {
+            throw std::runtime_error("Invalid payload legnth");
+        }
+
+        m_txDataLength = m_payloadLength;
+
+        int totalLength = m_txDataLength + getECCBytesForLength(m_txDataLength);
+        int totalTxs = (totalLength + minBytesPerTx() - 1)/minBytesPerTx();
+
+        m_spectrumHistoryFixed.resize(totalTxs*maxFramesPerTx());
+    } else {
+        // variable payload length
+        m_recordedAmplitude.resize(kMaxRecordedFrames*kMaxSamplesPerFrame);
+    }
 
     if (m_sampleSizeBytesInp == 0) {
         throw std::runtime_error("Invalid or unsupported capture sample format");
@@ -351,9 +379,10 @@ bool GGWave::init(int dataSize, const char * dataBuffer, const TxProtocol & txPr
         return false;
     }
 
-    if (dataSize > kMaxLength) {
-        fprintf(stderr, "Truncating data from %d to 140 bytes\n", dataSize);
-        dataSize = kMaxLength;
+    auto maxLength = m_isFixedPayloadLength ? m_payloadLength : kMaxLengthVarible;
+    if (dataSize > maxLength) {
+        fprintf(stderr, "Truncating data from %d to %d bytes\n", dataSize, maxLength);
+        dataSize = maxLength;
     }
 
     if (volume < 0 || volume > 100) {
@@ -378,6 +407,10 @@ bool GGWave::init(int dataSize, const char * dataBuffer, const TxProtocol & txPr
         m_hasNewTxData = true;
     }
 
+    if (m_isFixedPayloadLength) {
+        m_txDataLength = m_payloadLength;
+    }
+
     // Rx
     m_receivingData = false;
     m_analyzingData = false;
@@ -399,6 +432,11 @@ bool GGWave::init(int dataSize, const char * dataBuffer, const TxProtocol & txPr
     for (int i = 0; i < m_samplesPerFrame; ++i) {
         m_fftOut[2*i + 0] = 0.0f;
         m_fftOut[2*i + 1] = 0.0f;
+    }
+
+    for (auto & s : m_spectrumHistoryFixed) {
+        s.resize(kMaxSamplesPerFrame);
+        std::fill(s.begin(), s.end(), 0);
     }
 
     return true;
@@ -425,6 +463,49 @@ uint32_t GGWave::encodeSize_samples() const {
 }
 
 bool GGWave::encode(const CBWaveformOut & cbWaveformOut) {
+    return m_isFixedPayloadLength ? encode_fixed(cbWaveformOut) : encode_variable(cbWaveformOut);
+}
+
+void GGWave::decode(const CBWaveformInp & cbWaveformInp) {
+    return m_isFixedPayloadLength ? decode_fixed(cbWaveformInp) : decode_variable(cbWaveformInp);
+}
+
+int GGWave::takeRxData(TxRxData & dst) {
+    if (m_lastRxDataLength == 0) return 0;
+
+    auto res = m_lastRxDataLength;
+    m_lastRxDataLength = 0;
+
+    if (res != -1) {
+        dst = m_rxData;
+    }
+
+    return res;
+}
+
+int GGWave::takeTxAmplitudeDataI16(AmplitudeDataI16 & dst) {
+    if (m_txAmplitudeDataI16.size() == 0) return 0;
+
+    int res = (int) m_txAmplitudeDataI16.size();
+    dst = std::move(m_txAmplitudeDataI16);
+
+    return res;
+}
+
+bool GGWave::takeSpectrum(SpectrumData & dst) {
+    if (m_hasNewSpectrum == false) return false;
+
+    m_hasNewSpectrum = false;
+    dst = m_sampleSpectrum;
+
+    return true;
+}
+
+//
+// Variable payload length
+//
+
+bool GGWave::encode_variable(const CBWaveformOut & cbWaveformOut) {
     int samplesPerFrameOut = (m_sampleRateOut/m_sampleRateInp)*m_samplesPerFrame;
 
     if (m_sampleRateOut != m_sampleRateInp) {
@@ -438,12 +519,6 @@ bool GGWave::encode(const CBWaveformOut & cbWaveformOut) {
     for (int k = 0; k < (int) phaseOffsets.size(); ++k) {
         phaseOffsets[k] = (M_PI*k)/(m_txProtocol.nDataBitsPerTx());
     }
-
-    // note : what is the purpose of this shuffle ? I forgot .. :(
-    //std::random_device rd;
-    //std::mt19937 g(rd());
-
-    //std::shuffle(phaseOffsets.begin(), phaseOffsets.end(), g);
 
     std::vector<bool> dataBits(kMaxDataBits);
 
@@ -474,10 +549,11 @@ bool GGWave::encode(const CBWaveformOut & cbWaveformOut) {
     int totalBytes = sendDataLength + nECCBytesPerTx;
     int totalDataFrames = ((totalBytes + m_txProtocol.bytesPerTx - 1)/m_txProtocol.bytesPerTx)*m_txProtocol.framesPerTx;
 
-    RS::ReedSolomon rsData = RS::ReedSolomon(m_txDataLength, nECCBytesPerTx);
     RS::ReedSolomon rsLength(1, m_encodedDataOffset - 1);
-
     rsLength.Encode(m_txData.data(), m_txDataEncoded.data());
+
+    // first byte of m_txData contains the length of the payload, so we skip it:
+    RS::ReedSolomon rsData = RS::ReedSolomon(m_txDataLength, nECCBytesPerTx);
     rsData.Encode(m_txData.data() + 1, m_txDataEncoded.data() + m_encodedDataOffset);
 
     while (m_hasNewTxData) {
@@ -647,7 +723,7 @@ bool GGWave::encode(const CBWaveformOut & cbWaveformOut) {
     return true;
 }
 
-void GGWave::decode(const CBWaveformInp & cbWaveformInp) {
+void GGWave::decode_variable(const CBWaveformInp & cbWaveformInp) {
     while (m_hasNewTxData == false) {
         // read capture data
         uint32_t nBytesNeeded = m_samplesNeeded*m_sampleSizeBytesInp;
@@ -943,9 +1019,10 @@ void GGWave::decode(const CBWaveformInp & cbWaveformInp) {
                     std::fill(m_rxData.begin(), m_rxData.end(), 0);
 
                     // max recieve duration
+                    int minBytesPerTxCur = 3; // todo : here we hardcode 3 because if we use the true min, the duration will be extremely long
                     m_recvDuration_frames =
                         2*m_nMarkerFrames + m_nPostMarkerFrames +
-                        maxFramesPerTx()*((kMaxLength + ::getECCBytesForLength(kMaxLength))/minBytesPerTx() + 1);
+                        maxFramesPerTx()*((kMaxLengthVarible + ::getECCBytesForLength(kMaxLengthVarible))/minBytesPerTxCur + 1);
 
                     m_framesToRecord = m_recvDuration_frames;
                     m_framesLeftToRecord = m_recvDuration_frames;
@@ -987,35 +1064,412 @@ void GGWave::decode(const CBWaveformInp & cbWaveformInp) {
     }
 }
 
-int GGWave::takeRxData(TxRxData & dst) {
-    if (m_lastRxDataLength == 0) return 0;
+//
+// Fixed payload length
 
-    auto res = m_lastRxDataLength;
-    m_lastRxDataLength = 0;
+bool GGWave::encode_fixed(const CBWaveformOut & cbWaveformOut) {
+    int samplesPerFrameOut = (m_sampleRateOut/m_sampleRateInp)*m_samplesPerFrame;
 
-    if (res != -1) {
-        dst = m_rxData;
+    if (m_sampleRateOut != m_sampleRateInp) {
+        fprintf(stderr, "Resampling from %d Hz to %d Hz\n", (int) m_sampleRateInp, (int) m_sampleRateOut);
     }
 
-    return res;
-}
+    int frameId = 0;
 
-int GGWave::takeTxAmplitudeDataI16(AmplitudeDataI16 & dst) {
-    if (m_txAmplitudeDataI16.size() == 0) return 0;
+    std::vector<double> phaseOffsets(kMaxDataBits);
 
-    int res = (int) m_txAmplitudeDataI16.size();
-    dst = std::move(m_txAmplitudeDataI16);
+    for (int k = 0; k < (int) phaseOffsets.size(); ++k) {
+        phaseOffsets[k] = (M_PI*k)/(m_txProtocol.nDataBitsPerTx());
+    }
 
-    return res;
-}
+    // note : what is the purpose of this shuffle ? I forgot .. :(
+    //std::random_device rd;
+    //std::mt19937 g(rd());
 
-bool GGWave::takeSpectrum(SpectrumData & dst) {
-    if (m_hasNewSpectrum == false) return false;
+    //std::shuffle(phaseOffsets.begin(), phaseOffsets.end(), g);
 
-    m_hasNewSpectrum = false;
-    dst = m_sampleSpectrum;
+    std::vector<bool> dataBits(kMaxDataBits);
+
+    std::vector<AmplitudeData> bit1Amplitude(kMaxDataBits);
+    std::vector<AmplitudeData> bit0Amplitude(kMaxDataBits);
+
+    for (int k = 0; k < (int) dataBits.size(); ++k) {
+        double freq = bitFreq(m_txProtocol, k);
+
+        bit1Amplitude[k].resize(kMaxSamplesPerFrame);
+        bit0Amplitude[k].resize(kMaxSamplesPerFrame);
+
+        double phaseOffset = phaseOffsets[k];
+        double curHzPerSample = m_sampleRateOut/m_samplesPerFrame;
+        double curIHzPerSample = 1.0/curHzPerSample;
+        for (int i = 0; i < m_samplesPerFrame; i++) {
+            double curi = i;
+            bit1Amplitude[k][i] = std::sin((2.0*M_PI)*(curi*m_isamplesPerFrame)*(freq*curIHzPerSample) + phaseOffset);
+        }
+        for (int i = 0; i < m_samplesPerFrame; i++) {
+            double curi = i;
+            bit0Amplitude[k][i] = std::sin((2.0*M_PI)*(curi*m_isamplesPerFrame)*((freq + m_hzPerSample*m_freqDelta_bin)*curIHzPerSample) + phaseOffset);
+        }
+    }
+
+    int nECCBytesPerTx = getECCBytesForLength(m_txDataLength);
+    int sendDataLength = m_txDataLength + m_encodedDataOffset;
+    int totalBytes = sendDataLength + nECCBytesPerTx;
+    int totalDataFrames = ((totalBytes + m_txProtocol.bytesPerTx - 1)/m_txProtocol.bytesPerTx)*m_txProtocol.framesPerTx;
+
+    // first byte of m_txData contains the length of the payload, so we skip it:
+    RS::ReedSolomon rsData = RS::ReedSolomon(m_txDataLength, nECCBytesPerTx);
+    rsData.Encode(m_txData.data() + 1, m_txDataEncoded.data());
+
+    while (m_hasNewTxData) {
+        std::fill(m_outputBlock.begin(), m_outputBlock.end(), 0.0f);
+
+        if (m_sampleRateOut != m_sampleRateInp) {
+            for (int k = 0; k < m_txProtocol.nDataBitsPerTx(); ++k) {
+                double freq = bitFreq(m_txProtocol, k);
+
+                double phaseOffset = phaseOffsets[k];
+                double curHzPerSample = m_sampleRateOut/m_samplesPerFrame;
+                double curIHzPerSample = 1.0/curHzPerSample;
+                for (int i = 0; i < samplesPerFrameOut; i++) {
+                    double curi = (i + frameId*samplesPerFrameOut);
+                    bit1Amplitude[k][i] = std::sin((2.0*M_PI)*(curi*m_isamplesPerFrame)*(freq*curIHzPerSample) + phaseOffset);
+                }
+                for (int i = 0; i < samplesPerFrameOut; i++) {
+                    double curi = (i + frameId*samplesPerFrameOut);
+                    bit0Amplitude[k][i] = std::sin((2.0*M_PI)*(curi*m_isamplesPerFrame)*((freq + m_hzPerSample*m_freqDelta_bin)*curIHzPerSample) + phaseOffset);
+                }
+            }
+        }
+
+        std::uint16_t nFreq = 0;
+        if (frameId < totalDataFrames) {
+            int dataOffset = frameId;
+            int cycleModMain = dataOffset%m_txProtocol.framesPerTx;
+            dataOffset /= m_txProtocol.framesPerTx;
+            dataOffset *= m_txProtocol.bytesPerTx;
+
+            std::fill(dataBits.begin(), dataBits.end(), 0);
+
+            for (int j = 0; j < m_txProtocol.bytesPerTx; ++j) {
+                {
+                    uint8_t d = m_txDataEncoded[dataOffset + j] & 15;
+                    dataBits[(2*j + 0)*16 + d] = 1;
+                }
+                {
+                    uint8_t d = m_txDataEncoded[dataOffset + j] & 240;
+                    dataBits[(2*j + 1)*16 + (d >> 4)] = 1;
+                }
+            }
+
+            for (int k = 0; k < 2*m_txProtocol.bytesPerTx*16; ++k) {
+                if (dataBits[k] == 0) continue;
+
+                ++nFreq;
+                if (k%2) {
+                    ::addAmplitudeSmooth(bit0Amplitude[k/2], m_outputBlock, m_sendVolume, 0, samplesPerFrameOut, cycleModMain, m_txProtocol.framesPerTx);
+                } else {
+                    ::addAmplitudeSmooth(bit1Amplitude[k/2], m_outputBlock, m_sendVolume, 0, samplesPerFrameOut, cycleModMain, m_txProtocol.framesPerTx);
+                }
+            }
+        } else {
+            m_hasNewTxData = false;
+            break;
+        }
+
+        if (nFreq == 0) nFreq = 1;
+        float scale = 1.0f/nFreq;
+        for (int i = 0; i < samplesPerFrameOut; ++i) {
+            m_outputBlock[i] *= scale;
+        }
+
+        uint32_t offset = frameId*samplesPerFrameOut;
+
+        // default output is in 16-bit signed int so we always compute it
+        for (int i = 0; i < samplesPerFrameOut; ++i) {
+            m_outputBlockI16[offset + i] = 32768*m_outputBlock[i];
+        }
+
+        // convert from 32-bit float
+        switch (m_sampleFormatOut) {
+            case GGWAVE_SAMPLE_FORMAT_UNDEFINED: break;
+            case GGWAVE_SAMPLE_FORMAT_U8:
+                {
+                    auto p = reinterpret_cast<uint8_t *>(m_outputBlockTmp.data());
+                    for (int i = 0; i < samplesPerFrameOut; ++i) {
+                        p[offset + i] = 128*(m_outputBlock[i] + 1.0f);
+                    }
+                } break;
+            case GGWAVE_SAMPLE_FORMAT_I8:
+                {
+                    auto p = reinterpret_cast<uint8_t *>(m_outputBlockTmp.data());
+                    for (int i = 0; i < samplesPerFrameOut; ++i) {
+                        p[offset + i] = 128*m_outputBlock[i];
+                    }
+                } break;
+            case GGWAVE_SAMPLE_FORMAT_U16:
+                {
+                    auto p = reinterpret_cast<uint16_t *>(m_outputBlockTmp.data());
+                    for (int i = 0; i < samplesPerFrameOut; ++i) {
+                        p[offset + i] = 32768*(m_outputBlock[i] + 1.0f);
+                    }
+                } break;
+            case GGWAVE_SAMPLE_FORMAT_I16:
+                {
+                    // skip because we already have the data in m_outputBlockI16
+                    //auto p = reinterpret_cast<uint16_t *>(m_outputBlockTmp.data());
+                    //for (int i = 0; i < samplesPerFrameOut; ++i) {
+                    //    p[offset + i] = 32768*m_outputBlock[i];
+                    //}
+                } break;
+            case GGWAVE_SAMPLE_FORMAT_F32:
+                {
+                    auto p = reinterpret_cast<float *>(m_outputBlockTmp.data());
+                    for (int i = 0; i < samplesPerFrameOut; ++i) {
+                        p[offset + i] = m_outputBlock[i];
+                    }
+                } break;
+        }
+
+        ++frameId;
+    }
+
+    switch (m_sampleFormatOut) {
+        case GGWAVE_SAMPLE_FORMAT_UNDEFINED: break;
+        case GGWAVE_SAMPLE_FORMAT_I16:
+            {
+                cbWaveformOut(m_outputBlockI16.data(), frameId*samplesPerFrameOut*m_sampleSizeBytesOut);
+            } break;
+        case GGWAVE_SAMPLE_FORMAT_U8:
+        case GGWAVE_SAMPLE_FORMAT_I8:
+        case GGWAVE_SAMPLE_FORMAT_U16:
+        case GGWAVE_SAMPLE_FORMAT_F32:
+            {
+                cbWaveformOut(m_outputBlockTmp.data(), frameId*samplesPerFrameOut*m_sampleSizeBytesOut);
+            } break;
+    }
+
+    m_txAmplitudeDataI16.resize(frameId*samplesPerFrameOut);
+    for (int i = 0; i < frameId*samplesPerFrameOut; ++i) {
+        m_txAmplitudeDataI16[i] = m_outputBlockI16[i];
+    }
 
     return true;
+}
+
+void GGWave::decode_fixed(const CBWaveformInp & cbWaveformInp) {
+    while (m_hasNewTxData == false) {
+        // read capture data
+        uint32_t nBytesNeeded = m_samplesNeeded*m_sampleSizeBytesInp;
+        uint32_t nBytesRecorded = 0;
+        uint32_t offset = m_samplesPerFrame - m_samplesNeeded;
+
+        switch (m_sampleFormatInp) {
+            case GGWAVE_SAMPLE_FORMAT_UNDEFINED: break;
+            case GGWAVE_SAMPLE_FORMAT_U8:
+            case GGWAVE_SAMPLE_FORMAT_I8:
+            case GGWAVE_SAMPLE_FORMAT_U16:
+            case GGWAVE_SAMPLE_FORMAT_I16:
+                {
+                    nBytesRecorded = cbWaveformInp(m_sampleAmplitudeTmp.data() + offset, nBytesNeeded);
+                } break;
+            case GGWAVE_SAMPLE_FORMAT_F32:
+                {
+                    nBytesRecorded = cbWaveformInp(m_sampleAmplitude.data() + offset, nBytesNeeded);
+                } break;
+        }
+
+        if (nBytesRecorded % m_sampleSizeBytesInp != 0) {
+            fprintf(stderr, "Failure during capture - provided bytes (%d) are not multiple of sample size (%d)\n",
+                    nBytesRecorded, m_sampleSizeBytesInp);
+            m_samplesNeeded = m_samplesPerFrame;
+            break;
+        }
+
+        if (nBytesRecorded > nBytesNeeded) {
+            fprintf(stderr, "Failure during capture - more samples were provided (%d) than requested (%d)\n",
+                    nBytesRecorded/m_sampleSizeBytesInp, nBytesNeeded/m_sampleSizeBytesInp);
+            m_samplesNeeded = m_samplesPerFrame;
+            break;
+        }
+
+        // convert to 32-bit float
+        switch (m_sampleFormatInp) {
+            case GGWAVE_SAMPLE_FORMAT_UNDEFINED: break;
+            case GGWAVE_SAMPLE_FORMAT_U8:
+                {
+                    constexpr float scale = 1.0f/128;
+                    int nSamplesRecorded = nBytesRecorded/m_sampleSizeBytesInp;
+                    auto p = reinterpret_cast<uint8_t *>(m_sampleAmplitudeTmp.data());
+                    for (int i = 0; i < nSamplesRecorded; ++i) {
+                        m_sampleAmplitude[offset + i] = float(int16_t(*(p + offset + i)) - 128)*scale;
+                    }
+                } break;
+            case GGWAVE_SAMPLE_FORMAT_I8:
+                {
+                    constexpr float scale = 1.0f/128;
+                    int nSamplesRecorded = nBytesRecorded/m_sampleSizeBytesInp;
+                    auto p = reinterpret_cast<int8_t *>(m_sampleAmplitudeTmp.data());
+                    for (int i = 0; i < nSamplesRecorded; ++i) {
+                        m_sampleAmplitude[offset + i] = float(*(p + offset + i))*scale;
+                    }
+                } break;
+            case GGWAVE_SAMPLE_FORMAT_U16:
+                {
+                    constexpr float scale = 1.0f/32768;
+                    int nSamplesRecorded = nBytesRecorded/m_sampleSizeBytesInp;
+                    auto p = reinterpret_cast<uint16_t *>(m_sampleAmplitudeTmp.data());
+                    for (int i = 0; i < nSamplesRecorded; ++i) {
+                        m_sampleAmplitude[offset + i] = float(int32_t(*(p + offset + i)) - 32768)*scale;
+                    }
+                } break;
+            case GGWAVE_SAMPLE_FORMAT_I16:
+                {
+                    constexpr float scale = 1.0f/32768;
+                    int nSamplesRecorded = nBytesRecorded/m_sampleSizeBytesInp;
+                    auto p = reinterpret_cast<int16_t *>(m_sampleAmplitudeTmp.data());
+                    for (int i = 0; i < nSamplesRecorded; ++i) {
+                        m_sampleAmplitude[offset + i] = float(*(p + offset + i))*scale;
+                    }
+                } break;
+            case GGWAVE_SAMPLE_FORMAT_F32: break;
+        }
+
+        // we have enough bytes to do analysis
+        if (nBytesRecorded == nBytesNeeded) {
+            m_samplesNeeded = m_samplesPerFrame;
+
+            // calculate spectrum
+            std::copy(m_sampleAmplitude.begin(), m_sampleAmplitude.begin() + m_samplesPerFrame, m_fftInp.data());
+
+            FFT(m_fftInp.data(), m_fftOut.data(), m_samplesPerFrame, 1.0);
+
+            for (int i = 0; i < m_samplesPerFrame; ++i) {
+                m_sampleSpectrum[i] = (m_fftOut[2*i + 0]*m_fftOut[2*i + 0] + m_fftOut[2*i + 1]*m_fftOut[2*i + 1]);
+            }
+            for (int i = 1; i < m_samplesPerFrame/2; ++i) {
+                m_sampleSpectrum[i] += m_sampleSpectrum[m_samplesPerFrame - i];
+            }
+
+            m_spectrumHistoryFixed[m_historyIdFixed] = m_sampleSpectrum;
+
+            if (++m_historyIdFixed >= (int) m_spectrumHistoryFixed.size()) {
+                m_historyIdFixed = 0;
+            }
+
+            for (int rxProtocolId = 0; rxProtocolId < (int) getTxProtocols().size(); ++rxProtocolId) {
+                const auto & rxProtocol = getTxProtocol(rxProtocolId);
+
+                const int binStart = rxProtocol.freqStart;
+                const int binDelta = 16;
+
+                const int totalLength = m_payloadLength + getECCBytesForLength(m_payloadLength);
+                const int totalTxs = (totalLength + rxProtocol.bytesPerTx - 1)/rxProtocol.bytesPerTx;
+
+                int historyStartId = m_historyIdFixed - totalTxs*rxProtocol.framesPerTx;
+                if (historyStartId < 0) {
+                    historyStartId += m_spectrumHistoryFixed.size();
+                }
+
+                const int nTones = 2*rxProtocol.bytesPerTx;
+                std::vector<int> detectedBins(2*totalLength);
+
+                struct ToneData {
+                    std::array<int, 16> nMax;
+                };
+
+                std::vector<ToneData> tones(nTones);
+
+                bool detectedSignal = true;
+                for (int k = 0; k < totalTxs; ++k) {
+                    for (auto & tone : tones) {
+                        std::fill(tone.nMax.begin(), tone.nMax.end(), 0);
+                    }
+
+                    for (int i = 0; i < rxProtocol.framesPerTx; ++i) {
+                        int historyId = historyStartId + k*rxProtocol.framesPerTx + i;
+                        if (historyId >= (int) m_spectrumHistoryFixed.size()) {
+                            historyId -= m_spectrumHistoryFixed.size();
+                        }
+
+                        for (int j = 0; j < rxProtocol.bytesPerTx; ++j) {
+                            int f0bin = -1;
+                            int f1bin = -1;
+
+                            double f0max = 0.0;
+                            double f1max = 0.0;
+
+                            for (int b = 0; b < 16; ++b) {
+                                {
+                                    const auto & v = m_spectrumHistoryFixed[historyId][binStart + 2*j*binDelta + b];
+
+                                    if (f0max <= v) {
+                                        f0max = v;
+                                        f0bin = b;
+                                    }
+                                }
+
+                                {
+                                    const auto & v = m_spectrumHistoryFixed[historyId][binStart + 2*j*binDelta + binDelta + b];
+
+                                    if (f1max <= v) {
+                                        f1max = v;
+                                        f1bin = b;
+                                    }
+                                }
+                            }
+
+                            tones[2*j + 0].nMax[f0bin]++;
+                            tones[2*j + 1].nMax[f1bin]++;
+                        }
+                    }
+
+                    int detectedTx = 0;
+                    int txNeeded = 0;
+                    for (int j = 0; j < rxProtocol.bytesPerTx; ++j) {
+                        if (k*rxProtocol.bytesPerTx + j > totalLength) break;
+                        txNeeded += 2;
+                        for (int b = 0; b < 16; ++b) {
+                            if (tones[2*j + 0].nMax[b] > rxProtocol.framesPerTx/2) {
+                                detectedBins[2*(k*rxProtocol.bytesPerTx + j) + 0] = b;
+                                detectedTx++;
+                            }
+                            if (tones[2*j + 1].nMax[b] > rxProtocol.framesPerTx/2) {
+                                detectedBins[2*(k*rxProtocol.bytesPerTx + j) + 1] = b;
+                                detectedTx++;
+                            }
+                        }
+                    }
+
+                    if (detectedTx < txNeeded) {
+                        detectedSignal = false;
+                    }
+                }
+
+                if (detectedSignal) {
+                    RS::ReedSolomon rsData(m_payloadLength, getECCBytesForLength(m_payloadLength));
+
+                    for (int j = 0; j < totalLength; ++j) {
+                        m_txDataEncoded[j] = (detectedBins[2*j + 1] << 4) + detectedBins[2*j + 0];
+                    }
+
+                    if (rsData.Decode(m_txDataEncoded.data(), m_rxData.data()) == 0) {
+                        if (m_rxData[0] != 0) {
+                            fprintf(stderr, "Received sound data successfully: '%s'\n", m_rxData.data());
+
+                            m_hasNewRxData = true;
+                            m_lastRxDataLength = m_payloadLength;
+                            m_rxProtocol = rxProtocol;
+                            m_rxProtocolId = TxProtocolId(rxProtocolId);
+                        }
+                    }
+                }
+            }
+        } else {
+            m_samplesNeeded -= nBytesRecorded/m_sampleSizeBytesInp;
+            break;
+        }
+    }
 }
 
 int GGWave::maxFramesPerTx() const {

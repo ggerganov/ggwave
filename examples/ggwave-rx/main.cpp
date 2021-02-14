@@ -3,6 +3,8 @@
 #include "ggwave-common.h"
 #include "ggwave-common-sdl2.h"
 
+#include <SDL.h>
+
 #include <cstdio>
 #include <thread>
 
@@ -25,6 +27,9 @@ int main(int argc, char** argv) {
     }
 
     GGWave_deinit();
+
+    SDL_CloseAudio();
+    SDL_Quit();
 
     return 0;
 }

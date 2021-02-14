@@ -188,6 +188,10 @@ struct State {
 struct Input {
     bool update = false;
     Message message;
+
+    bool reinit = false;
+    bool isSampleRateOffset = false;
+    int payloadLength = -1;
 };
 
 struct Buffer {
@@ -509,6 +513,7 @@ void updateCore() {
     static Input inputCurrent;
 
     static int lastRxDataLength = 0;
+    static float lastRxTimestamp = 0.0f;
     static GGWave::TxRxData lastRxData;
 
     {
@@ -517,6 +522,15 @@ void updateCore() {
             inputCurrent = std::move(g_buffer.inputCore);
             g_buffer.inputCore.update = false;
         }
+    }
+
+    if (inputCurrent.reinit) {
+        GGWave_deinit();
+        // todo : use the provided cli arguments for playback and capture device
+        GGWave_init(0, 0, inputCurrent.payloadLength, inputCurrent.isSampleRateOffset ? -512 : 0);
+        g_ggWave = GGWave_instance();
+
+        inputCurrent.reinit = false;
     }
 
     if (inputCurrent.update) {
@@ -543,7 +557,7 @@ void updateCore() {
             0,
             Message::Error,
         };
-    } else if (lastRxDataLength > 0) {
+    } else if (lastRxDataLength > 0 && ImGui::GetTime() - lastRxTimestamp > 0.5f) {
         auto message = std::string((char *) lastRxData.data(), lastRxDataLength);
         const Message::Type type = isFileBroadcastMessage(message) ? Message::FileBroadcast : Message::Text;
         g_buffer.stateCore.update = true;
@@ -556,6 +570,7 @@ void updateCore() {
             0,
             type,
         };
+        lastRxTimestamp = ImGui::GetTime();
     }
 
     if (g_ggWave->takeSpectrum(g_buffer.stateCore.spectrum)) {
@@ -663,6 +678,9 @@ void renderMain() {
 
     struct Settings {
         int protocolId = 1;
+        bool isFixedLength = false;
+        int payloadLength = 1;
+        bool isSampleRateOffset = false;
         float volume = 0.10f;
     };
 
@@ -817,14 +835,14 @@ void renderMain() {
         ImGui::BeginChild("Settings:main", ImGui::GetContentRegionAvail(), true);
         ImGui::Text("%s", "");
         ImGui::Text("%s", "");
-        ImGui::Text("Waver v1.3.2");
+        ImGui::Text("Waver v1.4.0");
         ImGui::Separator();
 
         ImGui::Text("%s", "");
         ImGui::Text("Sample rate (capture):  %g, %d B/sample", g_ggWave->getSampleRateInp(), g_ggWave->getSampleSizeBytesInp());
         ImGui::Text("Sample rate (playback): %g, %d B/sample", g_ggWave->getSampleRateOut(), g_ggWave->getSampleSizeBytesOut());
 
-        const float kLabelWidth = ImGui::CalcTextSize("Tx Protocol:  ").x;
+        const float kLabelWidth = ImGui::CalcTextSize("Fixed-length:  ").x;
 
         // volume
         ImGui::Text("%s", "");
@@ -879,6 +897,37 @@ void renderMain() {
             ImGui::SetCursorScreenPos(posSave);
         }
 
+        // fixed-length
+        ImGui::Text("%s", "");
+        {
+            auto posSave = ImGui::GetCursorScreenPos();
+            ImGui::Text("Fixed-length: ");
+            ImGui::SetCursorScreenPos({ posSave.x + kLabelWidth, posSave.y });
+        }
+        if (ImGui::Checkbox("##fixed-length", &settings.isFixedLength)) {
+            g_buffer.inputUI.update = true;
+            g_buffer.inputUI.reinit = true;
+            g_buffer.inputUI.isSampleRateOffset = settings.isSampleRateOffset;
+            g_buffer.inputUI.payloadLength = settings.isFixedLength ? settings.payloadLength : -1;
+        } else {
+            g_buffer.inputUI.reinit = false;
+            g_buffer.inputUI.isSampleRateOffset = false;
+        }
+
+        if (settings.isFixedLength) {
+            ImGui::SameLine();
+            ImGui::PushItemWidth(0.5*ImGui::GetContentRegionAvailWidth());
+            ImGui::SliderInt("Bytes", &settings.payloadLength, 1, 16);
+            ImGui::PopItemWidth();
+            ImGui::SameLine();
+            if (ImGui::Checkbox("Offset", &settings.isSampleRateOffset)) {
+                g_buffer.inputUI.update = true;
+                g_buffer.inputUI.reinit = true;
+                g_buffer.inputUI.isSampleRateOffset = settings.isSampleRateOffset;
+                g_buffer.inputUI.payloadLength = settings.isFixedLength ? settings.payloadLength : -1;
+            }
+        }
+
         // protocol
         ImGui::Text("%s", "");
         {
@@ -886,6 +935,12 @@ void renderMain() {
             ImGui::Text("%s", "");
             ImGui::SetCursorScreenPos({ posSave.x + kLabelWidth, posSave.y });
             ImGui::TextDisabled("[U] = ultrasound");
+        }
+        {
+            auto posSave = ImGui::GetCursorScreenPos();
+            ImGui::Text("%s", "");
+            ImGui::SetCursorScreenPos({ posSave.x + kLabelWidth, posSave.y });
+            ImGui::TextDisabled("[DT] = dual-tone");
         }
         {
             auto posSave = ImGui::GetCursorScreenPos();

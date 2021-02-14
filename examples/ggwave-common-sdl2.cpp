@@ -78,7 +78,8 @@ void GGWave_setDefaultCaptureDeviceName(std::string name) {
 bool GGWave_init(
         const int playbackId,
         const int captureId,
-        const int payloadLength) {
+        const int payloadLength,
+        const int sampleRateOffset) {
 
     if (g_devIdInp && g_devIdOut) {
         return false;
@@ -118,7 +119,7 @@ bool GGWave_init(
         SDL_AudioSpec playbackSpec;
         SDL_zero(playbackSpec);
 
-        playbackSpec.freq = GGWave::kBaseSampleRate;
+        playbackSpec.freq = GGWave::kBaseSampleRate + sampleRateOffset;
         playbackSpec.format = AUDIO_S16SYS;
         playbackSpec.channels = 1;
         playbackSpec.samples = 16*1024;
@@ -161,7 +162,7 @@ bool GGWave_init(
     if (g_devIdInp == 0) {
         SDL_AudioSpec captureSpec;
         captureSpec = g_obtainedSpecOut;
-        captureSpec.freq = GGWave::kBaseSampleRate;
+        captureSpec.freq = GGWave::kBaseSampleRate + sampleRateOffset;
         captureSpec.format = AUDIO_F32SYS;
         captureSpec.samples = 4096;
 
@@ -282,8 +283,9 @@ bool GGWave_deinit() {
     SDL_CloseAudioDevice(g_devIdInp);
     SDL_PauseAudioDevice(g_devIdOut, 1);
     SDL_CloseAudioDevice(g_devIdOut);
-    SDL_CloseAudio();
-    SDL_Quit();
+
+    g_devIdInp = 0;
+    g_devIdOut = 0;
 
     return true;
 }

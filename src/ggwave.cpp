@@ -1357,6 +1357,7 @@ void GGWave::decode_fixed(const CBWaveformInp & cbWaveformInp) {
                 m_historyIdFixed = 0;
             }
 
+            bool isValid = false;
             for (int rxProtocolId = 0; rxProtocolId < (int) getTxProtocols().size(); ++rxProtocolId) {
                 const auto & rxProtocol = getTxProtocol(rxProtocolId);
 
@@ -1375,7 +1376,7 @@ void GGWave::decode_fixed(const CBWaveformInp & cbWaveformInp) {
                 std::vector<int> detectedBins(2*totalLength);
 
                 struct ToneData {
-                    std::array<int, 16> nMax;
+                    int nMax[16];
                 };
 
                 std::vector<ToneData> tones(nTones);
@@ -1383,7 +1384,7 @@ void GGWave::decode_fixed(const CBWaveformInp & cbWaveformInp) {
                 bool detectedSignal = true;
                 for (int k = 0; k < totalTxs; ++k) {
                     for (auto & tone : tones) {
-                        std::fill(tone.nMax.begin(), tone.nMax.end(), 0);
+                        std::fill(tone.nMax, tone.nMax + 16, 0);
                     }
 
                     for (int i = 0; i < rxProtocol.framesPerTx; ++i) {
@@ -1457,12 +1458,17 @@ void GGWave::decode_fixed(const CBWaveformInp & cbWaveformInp) {
                         if (m_rxData[0] != 0) {
                             fprintf(stderr, "Received sound data successfully: '%s'\n", m_rxData.data());
 
+                            isValid = true;
                             m_hasNewRxData = true;
                             m_lastRxDataLength = m_payloadLength;
                             m_rxProtocol = rxProtocol;
                             m_rxProtocolId = TxProtocolId(rxProtocolId);
                         }
                     }
+                }
+
+                if (isValid) {
+                    break;
                 }
             }
         } else {

@@ -290,7 +290,7 @@ GGWave::GGWave(const Parameters & parameters) :
     m_freqDelta_bin(1),
     m_freqDelta_hz(2*m_hzPerSample),
     m_nBitsInMarker(16),
-    m_nMarkerFrames(16),
+    m_nMarkerFrames(parameters.payloadLength > 0 ? 0 : 16),
     m_nPostMarkerFrames(0),
     m_encodedDataOffset(parameters.payloadLength > 0 ? 0 : 3),
     // common
@@ -307,6 +307,7 @@ GGWave::GGWave(const Parameters & parameters) :
     m_hasNewRxData(false),
     m_lastRxDataLength(0),
     m_rxData(kMaxDataSize),
+    m_rxProtocols(getTxProtocols()),
     m_historyId(0),
     m_sampleAmplitudeAverage(kMaxSamplesPerFrame),
     m_sampleAmplitudeHistory(kMaxSpectrumHistory),
@@ -856,8 +857,12 @@ void GGWave::decode_variable(const CBWaveformInp & cbWaveformInp) {
                 const int step = m_samplesPerFrame/stepsPerFrame;
 
                 bool isValid = false;
-                for (int rxProtocolId = 0; rxProtocolId < (int) getTxProtocols().size(); ++rxProtocolId) {
-                    const auto & rxProtocol = getTxProtocol(rxProtocolId);
+                //for (int rxProtocolId = 0; rxProtocolId < (int) getTxProtocols().size(); ++rxProtocolId) {
+                //for (int rxProtocolId = (int) getTxProtocols().size() - 1; rxProtocolId >= 0; --rxProtocolId) {
+                    //const auto & rxProtocol = getTxProtocol(rxProtocolId);
+                for (const auto & rxProtocolPair : m_rxProtocols) {
+                    const auto & rxProtocolId = rxProtocolPair.first;
+                    const auto & rxProtocol = rxProtocolPair.second;
 
                     // skip Rx protocol if start frequency is different from detected one
                     if (rxProtocol.freqStart != m_markerFreqStart) {
@@ -873,6 +878,7 @@ void GGWave::decode_variable(const CBWaveformInp & cbWaveformInp) {
                     for (int ii = m_nMarkerFrames*stepsPerFrame - 1; ii >= 0; --ii) {
                         bool knownLength = false;
 
+                        int decodedLength = 0;
                         const int offsetStart = ii;
                         for (int itx = 0; itx < 1024; ++itx) {
                             int offsetTx = offsetStart + itx*rxProtocol.framesPerTx*stepsPerFrame;
@@ -884,6 +890,7 @@ void GGWave::decode_variable(const CBWaveformInp & cbWaveformInp) {
                                     m_recordedAmplitude.begin() + offsetTx*step,
                                     m_recordedAmplitude.begin() + offsetTx*step + m_samplesPerFrame, m_fftInp.data());
 
+                            // note : should we skip the first and last frame here as they are amplitude-smoothed?
                             for (int k = 1; k < rxProtocol.framesPerTx; ++k) {
                                 for (int i = 0; i < m_samplesPerFrame; ++i) {
                                     m_fftInp[i] += m_recordedAmplitude[(offsetTx + k*stepsPerFrame)*step + i];
@@ -926,26 +933,36 @@ void GGWave::decode_variable(const CBWaveformInp & cbWaveformInp) {
                                 RS::ReedSolomon rsLength(1, m_encodedDataOffset - 1);
                                 if ((rsLength.Decode(m_txDataEncoded.data(), m_rxData.data()) == 0) && (m_rxData[0] > 0 && m_rxData[0] <= 140)) {
                                     knownLength = true;
+                                    decodedLength = m_rxData[0];
+
+                                    const int nTotalBytesExpected = m_encodedDataOffset + decodedLength + ::getECCBytesForLength(decodedLength);
+                                    const int nTotalFramesExpected = 2*m_nMarkerFrames + ((nTotalBytesExpected + rxProtocol.bytesPerTx - 1)/rxProtocol.bytesPerTx)*rxProtocol.framesPerTx;
+                                    if (m_recvDuration_frames > nTotalFramesExpected ||
+                                        m_recvDuration_frames < nTotalFramesExpected - 2*m_nMarkerFrames) {
+                                        knownLength = false;
+                                        break;
+                                    }
                                 } else {
                                     break;
                                 }
                             }
 
-                            if (knownLength && itx*rxProtocol.bytesPerTx > m_encodedDataOffset + m_rxData[0] + ::getECCBytesForLength(m_rxData[0]) + 1) {
-                                break;
+                            {
+                                const int nTotalBytesExpected = m_encodedDataOffset + decodedLength + ::getECCBytesForLength(decodedLength);
+                                if (knownLength && itx*rxProtocol.bytesPerTx > nTotalBytesExpected + 1) {
+                                    break;
+                                }
                             }
                         }
 
                         if (knownLength) {
-                            int decodedLength = m_rxData[0];
-
                             RS::ReedSolomon rsData(decodedLength, ::getECCBytesForLength(decodedLength));
 
                             if (rsData.Decode(m_txDataEncoded.data() + m_encodedDataOffset, m_rxData.data()) == 0) {
                                 if (m_rxData[0] != 0) {
                                     std::string s((char *) m_rxData.data(), decodedLength);
 
-                                    fprintf(stderr, "Decoded length = %d\n", decodedLength);
+                                    fprintf(stderr, "Decoded length = %d, protocol = '%s' (%d)\n", decodedLength, rxProtocol.name, rxProtocolId);
                                     fprintf(stderr, "Received sound data successfully: '%s'\n", s.c_str());
 
                                     isValid = true;
@@ -969,7 +986,7 @@ void GGWave::decode_variable(const CBWaveformInp & cbWaveformInp) {
                 m_framesToRecord = 0;
 
                 if (isValid == false) {
-                    fprintf(stderr, "Failed to capture sound data. Please try again\n");
+                    fprintf(stderr, "Failed to capture sound data. Please try again (length = %d)\n", m_rxData[0]);
                     m_lastRxDataLength = -1;
                     m_framesToRecord = -1;
                 }
@@ -1012,6 +1029,15 @@ void GGWave::decode_variable(const CBWaveformInp & cbWaveformInp) {
                 }
 
                 if (isReceiving) {
+                    if (++m_nMarkersSuccess > 4) {
+                    } else {
+                        isReceiving = false;
+                    }
+                } else {
+                    m_nMarkersSuccess = 0;
+                }
+
+                if (isReceiving) {
                     std::time_t timestamp = std::time(nullptr);
                     fprintf(stderr, "%sReceiving sound data ...\n", std::asctime(std::localtime(&timestamp)));
 
@@ -1019,11 +1045,11 @@ void GGWave::decode_variable(const CBWaveformInp & cbWaveformInp) {
                     std::fill(m_rxData.begin(), m_rxData.end(), 0);
 
                     // max recieve duration
-                    int minBytesPerTxCur = 3; // todo : here we hardcode 3 because if we use the true min, the duration will be extremely long
                     m_recvDuration_frames =
                         2*m_nMarkerFrames + m_nPostMarkerFrames +
-                        maxFramesPerTx()*((kMaxLengthVarible + ::getECCBytesForLength(kMaxLengthVarible))/minBytesPerTxCur + 1);
+                        maxFramesPerTx()*((kMaxLengthVarible + ::getECCBytesForLength(kMaxLengthVarible))/minBytesPerTx() + 1);
 
+                    m_nMarkersSuccess = 0;
                     m_framesToRecord = m_recvDuration_frames;
                     m_framesLeftToRecord = m_recvDuration_frames;
                 }
@@ -1050,10 +1076,20 @@ void GGWave::decode_variable(const CBWaveformInp & cbWaveformInp) {
                     }
                 }
 
+                if (isEnded) {
+                    if (++m_nMarkersSuccess > 4) {
+                    } else {
+                        isEnded = false;
+                    }
+                } else {
+                    m_nMarkersSuccess = 0;
+                }
+
                 if (isEnded && m_framesToRecord > 1) {
                     std::time_t timestamp = std::time(nullptr);
-                    fprintf(stderr, "%sReceived end marker. Frames left = %d\n", std::asctime(std::localtime(&timestamp)), m_framesLeftToRecord);
                     m_recvDuration_frames -= m_framesLeftToRecord - 1;
+                    fprintf(stderr, "%sReceived end marker. Frames left = %d, recorded = %d\n", std::asctime(std::localtime(&timestamp)), m_framesLeftToRecord, m_recvDuration_frames);
+                    m_nMarkersSuccess = 0;
                     m_framesLeftToRecord = 1;
                 }
             }
@@ -1358,8 +1394,9 @@ void GGWave::decode_fixed(const CBWaveformInp & cbWaveformInp) {
             }
 
             bool isValid = false;
-            for (int rxProtocolId = 0; rxProtocolId < (int) getTxProtocols().size(); ++rxProtocolId) {
-                const auto & rxProtocol = getTxProtocol(rxProtocolId);
+            for (const auto & rxProtocolPair : m_rxProtocols) {
+                const auto & rxProtocolId = rxProtocolPair.first;
+                const auto & rxProtocol = rxProtocolPair.second;
 
                 const int binStart = rxProtocol.freqStart;
                 const int binDelta = 16;

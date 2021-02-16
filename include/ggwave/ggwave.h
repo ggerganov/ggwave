@@ -230,7 +230,7 @@ public:
     static constexpr auto kMaxLengthVarible = 140;
     static constexpr auto kMaxLengthFixed = 16;
     static constexpr auto kMaxSpectrumHistory = 4;
-    static constexpr auto kMaxRecordedFrames = 1024;
+    static constexpr auto kMaxRecordedFrames = 2048;
 
     using Parameters   = ggwave_Parameters;
     using SampleFormat = ggwave_SampleFormat;
@@ -338,6 +338,8 @@ public:
 
     // Rx
 
+    void setRxProtocols(const TxProtocols & rxProtocols) { m_rxProtocols = rxProtocols; }
+
     const TxRxData & getRxData()            const { return m_rxData; }
     const TxProtocol & getRxProtocol()      const { return m_rxProtocol; }
     const TxProtocolId & getRxProtocolId()  const { return m_rxProtocolId; }
@@ -388,6 +390,7 @@ private:
     bool m_receivingData;
     bool m_analyzingData;
 
+    int m_nMarkersSuccess;
     int m_markerFreqStart;
     int m_recvDuration_frames;
 
@@ -410,6 +413,7 @@ private:
     TxRxData m_rxData;
     TxProtocol m_rxProtocol;
     TxProtocolId m_rxProtocolId;
+    TxProtocols m_rxProtocols;
 
     int m_historyId;
     AmplitudeData m_sampleAmplitudeAverage;

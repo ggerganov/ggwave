@@ -291,7 +291,6 @@ GGWave::GGWave(const Parameters & parameters) :
     m_freqDelta_hz(2*m_hzPerSample),
     m_nBitsInMarker(16),
     m_nMarkerFrames(parameters.payloadLength > 0 ? 0 : 16),
-    m_nPostMarkerFrames(0),
     m_encodedDataOffset(parameters.payloadLength > 0 ? 0 : 3),
     // common
     m_isFixedPayloadLength(parameters.payloadLength > 0),
@@ -459,7 +458,7 @@ uint32_t GGWave::encodeSize_samples() const {
     int totalDataFrames = ((totalBytes + m_txProtocol.bytesPerTx - 1)/m_txProtocol.bytesPerTx)*m_txProtocol.framesPerTx;
 
     return (
-            m_nMarkerFrames + m_nPostMarkerFrames + totalDataFrames + m_nMarkerFrames
+            m_nMarkerFrames + totalDataFrames + m_nMarkerFrames
            )*samplesPerFrameOut;
 }
 
@@ -589,18 +588,8 @@ bool GGWave::encode_variable(const CBWaveformOut & cbWaveformOut) {
                     ::addAmplitudeSmooth(bit0Amplitude[i], m_outputBlock, m_sendVolume, 0, samplesPerFrameOut, frameId, m_nMarkerFrames);
                 }
             }
-        } else if (frameId < m_nMarkerFrames + m_nPostMarkerFrames) {
-            nFreq = m_nBitsInMarker;
-
-            for (int i = 0; i < m_nBitsInMarker; ++i) {
-                if (i%2 == 0) {
-                    ::addAmplitudeSmooth(bit0Amplitude[i], m_outputBlock, m_sendVolume, 0, samplesPerFrameOut, frameId - m_nMarkerFrames, m_nPostMarkerFrames);
-                } else {
-                    ::addAmplitudeSmooth(bit1Amplitude[i], m_outputBlock, m_sendVolume, 0, samplesPerFrameOut, frameId - m_nMarkerFrames, m_nPostMarkerFrames);
-                }
-            }
-        } else if (frameId < m_nMarkerFrames + m_nPostMarkerFrames + totalDataFrames) {
-            int dataOffset = frameId - m_nMarkerFrames - m_nPostMarkerFrames;
+        } else if (frameId < m_nMarkerFrames + totalDataFrames) {
+            int dataOffset = frameId - m_nMarkerFrames;
             int cycleModMain = dataOffset%m_txProtocol.framesPerTx;
             dataOffset /= m_txProtocol.framesPerTx;
             dataOffset *= m_txProtocol.bytesPerTx;
@@ -628,10 +617,10 @@ bool GGWave::encode_variable(const CBWaveformOut & cbWaveformOut) {
                     ::addAmplitudeSmooth(bit1Amplitude[k/2], m_outputBlock, m_sendVolume, 0, samplesPerFrameOut, cycleModMain, m_txProtocol.framesPerTx);
                 }
             }
-        } else if (frameId < m_nMarkerFrames + m_nPostMarkerFrames + totalDataFrames + m_nMarkerFrames) {
+        } else if (frameId < m_nMarkerFrames + totalDataFrames + m_nMarkerFrames) {
             nFreq = m_nBitsInMarker;
 
-            int fId = frameId - (m_nMarkerFrames + m_nPostMarkerFrames + totalDataFrames);
+            int fId = frameId - (m_nMarkerFrames + totalDataFrames);
             for (int i = 0; i < m_nBitsInMarker; ++i) {
                 if (i%2 == 0) {
                     addAmplitudeSmooth(bit0Amplitude[i], m_outputBlock, m_sendVolume, 0, samplesPerFrameOut, fId, m_nMarkerFrames);
@@ -1046,7 +1035,7 @@ void GGWave::decode_variable(const CBWaveformInp & cbWaveformInp) {
 
                     // max recieve duration
                     m_recvDuration_frames =
-                        2*m_nMarkerFrames + m_nPostMarkerFrames +
+                        2*m_nMarkerFrames +
                         maxFramesPerTx()*((kMaxLengthVarible + ::getECCBytesForLength(kMaxLengthVarible))/minBytesPerTx() + 1);
 
                     m_nMarkersSuccess = 0;

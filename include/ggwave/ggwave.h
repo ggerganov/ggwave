@@ -378,7 +378,6 @@ private:
 
     const int m_nBitsInMarker;
     const int m_nMarkerFrames;
-    const int m_nPostMarkerFrames;
     const int m_encodedDataOffset;
 
     // common

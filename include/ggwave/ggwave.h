@@ -218,13 +218,14 @@ extern "C" {
 #include <vector>
 #include <map>
 #include <string>
+#include <memory>
 
 class GGWave {
 public:
     static constexpr auto kBaseSampleRate = 48000;
     static constexpr auto kDefaultSamplesPerFrame = 1024;
     static constexpr auto kDefaultVolume = 10;
-    static constexpr auto kMaxSamplesPerFrame = 1024;
+    static constexpr auto kMaxSamplesPerFrame = 2048;
     static constexpr auto kMaxDataBits = 256;
     static constexpr auto kMaxDataSize = 256;
     static constexpr auto kMaxLengthVarible = 140;
@@ -405,6 +406,7 @@ private:
     bool m_hasNewSpectrum;
     SpectrumData m_sampleSpectrum;
     AmplitudeData m_sampleAmplitude;
+    AmplitudeData m_sampleAmplitudeResampled;
     TxRxData m_sampleAmplitudeTmp;
 
     bool m_hasNewRxData;
@@ -437,6 +439,11 @@ private:
     TxRxData m_outputBlockTmp;
     AmplitudeDataI16 m_outputBlockI16;
     AmplitudeDataI16 m_txAmplitudeDataI16;
+
+    // Impl
+    // todo : move all members inside Impl
+    struct Impl;
+    std::unique_ptr<Impl> m_impl;
 };
 
 #endif

@@ -189,16 +189,15 @@ int main(int argc, char ** argv) {
         CHECK_F(instance.init(payload.size(), payload.c_str(), 101));
     }
 
-    // capture / playback at different sample rates
-    {
+    // playback / capture at different sample rates
+    for (int srInp = GGWave::kBaseSampleRate/3; srInp <= 2*GGWave::kBaseSampleRate; srInp += 1100) {
         auto parameters = GGWave::getDefaultParameters();
 
-        std::string payload = "hello";
+        std::string payload = "hello123";
 
         // encode
         {
-            parameters.sampleRateInp = 48000;
-            parameters.sampleRateOut = 12000;
+            parameters.sampleRateOut = srInp;
             GGWave instanceOut(parameters);
 
             instanceOut.init(payload, 25);
@@ -211,10 +210,10 @@ int main(int argc, char ** argv) {
 
         // decode
         {
-            parameters.samplesPerFrame *= float(parameters.sampleRateOut)/parameters.sampleRateInp;
-            parameters.sampleRateInp = parameters.sampleRateOut;
+            parameters.sampleRateInp = srInp;
             GGWave instanceInp(parameters);
 
+            instanceInp.setRxProtocols({{instanceInp.getDefaultTxProtocolId(), instanceInp.getDefaultTxProtocol()}});
             instanceInp.decode(kCBWaveformInp.at(parameters.sampleFormatInp));
 
             GGWave::TxRxData result;

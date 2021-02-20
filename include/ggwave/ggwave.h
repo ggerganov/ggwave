@@ -437,6 +437,7 @@ private:
     TxProtocol m_txProtocol;
 
     AmplitudeData m_outputBlock;
+    AmplitudeData m_outputBlockResampled;
     TxRxData m_outputBlockTmp;
     AmplitudeDataI16 m_outputBlockI16;
     AmplitudeDataI16 m_txAmplitudeDataI16;

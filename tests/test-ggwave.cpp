@@ -190,7 +190,9 @@ int main(int argc, char ** argv) {
     }
 
     // playback / capture at different sample rates
-    for (int srInp = GGWave::kBaseSampleRate/3; srInp <= 2*GGWave::kBaseSampleRate; srInp += 1100) {
+    for (int srInp = GGWave::kBaseSampleRate/6; srInp <= 2*GGWave::kBaseSampleRate; srInp += 1371) {
+        printf("Testing: sample rate = %d\n", srInp);
+
         auto parameters = GGWave::getDefaultParameters();
         parameters.soundMarkerThreshold = 1.1f;
 
@@ -201,7 +203,7 @@ int main(int argc, char ** argv) {
             parameters.sampleRateOut = srInp;
             GGWave instanceOut(parameters);
 
-            instanceOut.init(payload, 25);
+            instanceOut.init(payload, instanceOut.getTxProtocol(GGWAVE_TX_PROTOCOL_DT_FASTEST), 25);
             auto expectedSize = instanceOut.encodeSize_samples();
             instanceOut.encode(kCBWaveformOut.at(parameters.sampleFormatOut));
             printf("Expected = %d, actual = %d\n", expectedSize, nSamples);
@@ -214,7 +216,7 @@ int main(int argc, char ** argv) {
             parameters.sampleRateInp = srInp;
             GGWave instanceInp(parameters);
 
-            instanceInp.setRxProtocols({{instanceInp.getDefaultTxProtocolId(), instanceInp.getDefaultTxProtocol()}});
+            instanceInp.setRxProtocols({{GGWAVE_TX_PROTOCOL_DT_FASTEST, instanceInp.getTxProtocol(GGWAVE_TX_PROTOCOL_DT_FASTEST)}});
             instanceInp.decode(kCBWaveformInp.at(parameters.sampleFormatInp));
 
             GGWave::TxRxData result;

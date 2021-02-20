@@ -2,7 +2,9 @@
 
 ## [Unreleased]
 
-## [0.2.0] - 2021-02-20
+- TBD
+
+## [v0.2.0] - 2021-02-20
 
 - Supported sampling rates: 6kHz - 96kHz
 - Variable-length payloads
@@ -11,4 +13,4 @@
 - Ultrasound support
 
 [unreleased]: https://github.com/ggerganov/hnterm/compare/ggwave-v0.2.0...HEAD
-[0.2.0]: https://github.com/ggerganov/hnterm/releases/tag/ggwave-v0.2.0
+[v0.2.0]: https://github.com/ggerganov/hnterm/releases/tag/ggwave-v0.2.0

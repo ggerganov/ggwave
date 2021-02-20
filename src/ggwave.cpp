@@ -313,6 +313,8 @@ GGWave::GGWave(const Parameters & parameters) :
     m_hasNewRxData(false),
     m_lastRxDataLength(0),
     m_rxData(kMaxDataSize),
+    m_rxProtocol(getDefaultTxProtocol()),
+    m_rxProtocolId(getDefaultTxProtocolId()),
     m_rxProtocols(getTxProtocols()),
     m_historyId(0),
     m_sampleAmplitudeAverage(kMaxSamplesPerFrame),

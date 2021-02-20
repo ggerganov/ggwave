@@ -21,6 +21,8 @@ endif()
 if (EMSCRIPTEN)
     set(GGWAVE_SUPPORT_SDL2_DEFAULT ON)
     set(BUILD_SHARED_LIBS_DEFAULT OFF)
+
+    option(GGWAVE_WASM_SINGLE_FILE "ggwave: embed WASM inside the generated ggwave.js" ON)
 else()
     set(GGWAVE_SUPPORT_SDL2_DEFAULT ON)
     set(BUILD_SHARED_LIBS_DEFAULT ON)

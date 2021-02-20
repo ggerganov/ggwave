@@ -349,11 +349,8 @@ public:
     bool takeSpectrum(SpectrumData & dst);
 
 private:
-    bool encode_fixed(const CBWaveformOut & cbWaveformOut);
-    void decode_fixed(const CBWaveformInp & cbWaveformInp);
-
-    bool encode_variable(const CBWaveformOut & cbWaveformOut);
-    void decode_variable(const CBWaveformInp & cbWaveformInp);
+    void decode_fixed();
+    void decode_variable();
 
     int maxFramesPerTx() const;
     int minBytesPerTx() const;

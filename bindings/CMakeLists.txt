@@ -49,7 +49,7 @@ if (GGWAVE_SUPPORT_PYTHON)
         DEPENDS ${GGWAVE_SOURCES}
         WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/python
         COMMAND make publish
-        COMMENT "Publishing Python module v${PROJECT_VERSION}"
+        COMMENT "Publishing Python module v${GGWAVE_VERSION_PYTHON}"
         VERBATIM
         )
 

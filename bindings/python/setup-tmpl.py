@@ -30,7 +30,7 @@ setup(
     name = "ggwave",
     description = "Tiny data-over-sound library.",
     long_description = long_description,
-    version = "@PROJECT_VERSION@",
+    version = "@GGWAVE_VERSION_PYTHON@",
     url = "https://github.com/ggerganov/ggwave",
     author = "Georgi Gerganov",
     author_email = "ggerganov@gmail.com",

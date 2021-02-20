@@ -1,6 +1,8 @@
 cmake_minimum_required (VERSION 3.0)
 project(ggwave VERSION 0.2.0)
 
+set(GGWAVE_VERSION_PYTHON 0.2.1)
+
 # configure project version
 configure_file(${CMAKE_SOURCE_DIR}/README-tmpl.md ${CMAKE_SOURCE_DIR}/README.md @ONLY)
 configure_file(${CMAKE_SOURCE_DIR}/bindings/python/setup-tmpl.py ${CMAKE_SOURCE_DIR}/bindings/python/setup.py @ONLY)

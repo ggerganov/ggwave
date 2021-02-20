@@ -49,8 +49,11 @@ int Resampler::resample(
             data_out = temp1;
         }
 
-        //printf("%8.8f %8.8f\n", data_in, data_out);
-        samplesOut[idxOut++] = data_out;
+        if (samplesOut) {
+            samplesOut[idxOut] = data_out;
+        }
+        ++idxOut;
+
         time_now += factor;
         last_time = int_time;
         int_time = time_now;
@@ -63,11 +66,6 @@ int Resampler::resample(
             new_data(data_in);
             last_time += 1;
         }
-        //                if (!(int_time % 1000)) printf("Sample # %li\n",int_time);
-        //if (!(int_time % 1000)) {
-        //    printf(".");
-        //    fflush(stdout);
-        //}
     }
 
     return idxOut;

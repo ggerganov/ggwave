@@ -7,6 +7,7 @@ public:
             int nSamples,
             const float * samplesInp,
             float * samplesOut);
+
 private:
     float gimme_data(long j) const;
     void new_data(float data);

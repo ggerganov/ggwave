@@ -67,10 +67,10 @@
             // initialize audio context and ggwave
             function init() {
                 if (!context) {
-                    // todo : query ggwave's base sample rate
                     context = new AudioContext({sampleRate: 48000});
 
                     parameters = ggwave.getDefaultParameters();
+                    parameters.sampleRateInp = context.sampleRate;
                     parameters.sampleRateOut = context.sampleRate;
                     instance = ggwave.init(parameters);
                 }
@@ -136,20 +136,27 @@
 
                     recorder.onaudioprocess = function (e) {
                         var source = e.inputBuffer;
-                        var offlineCtx = new OfflineAudioContext(source.numberOfChannels, 48000*source.duration, 48000);
-                        var offlineSource = offlineCtx.createBufferSource();
+                        var res = ggwave.decode(instance, convertTypedArray(new Float32Array(source.getChannelData(0)), Int8Array));
+                        if (res) {
+                            rxData.value = res;
+                        }
 
-                        offlineSource.buffer = source;
-                        offlineSource.connect(offlineCtx.destination);
-                        offlineSource.start();
-                        offlineCtx.startRendering();
-                        offlineCtx.oncomplete = function(e) {
-                            var resampled = e.renderedBuffer.getChannelData(0);
-                            var res = ggwave.decode(instance, convertTypedArray(new Float32Array(resampled), Int8Array));
-                            if (res) {
-                                rxData.value = res;
-                            }
-                        };
+                        // obsolete javascript resampling
+                        // since ggwave v0.2.0 the resampling is built-in ggwave
+                        //var offlineCtx = new OfflineAudioContext(source.numberOfChannels, 48000*source.duration, 48000);
+                        //var offlineSource = offlineCtx.createBufferSource();
+
+                        //offlineSource.buffer = source;
+                        //offlineSource.connect(offlineCtx.destination);
+                        //offlineSource.start();
+                        //offlineCtx.startRendering();
+                        //offlineCtx.oncomplete = function(e) {
+                        //    var resampled = e.renderedBuffer.getChannelData(0);
+                        //    var res = ggwave.decode(instance, convertTypedArray(new Float32Array(resampled), Int8Array));
+                        //    if (res) {
+                        //        rxData.value = res;
+                        //    }
+                        //};
                     }
 
                     mediaStream.connect(recorder);
@@ -167,6 +174,7 @@
                 if (recorder) {
                     recorder.disconnect(context.destination);
                     mediaStream.disconnect(recorder);
+                    recorder = null;
                 }
 
                 rxData.value = 'Audio capture is paused! Press the "Start capturing" button to analyze audio from the microphone';

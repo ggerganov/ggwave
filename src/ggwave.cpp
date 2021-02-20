@@ -33,6 +33,7 @@ ggwave_Instance ggwave_init(const ggwave_Parameters parameters) {
             parameters.sampleRateInp,
             parameters.sampleRateOut,
             parameters.samplesPerFrame,
+            parameters.soundMarkerThreshold,
             parameters.sampleFormatInp,
             parameters.sampleFormatOut});
 
@@ -275,6 +276,7 @@ const GGWave::Parameters & GGWave::getDefaultParameters() {
         kBaseSampleRate,
         kBaseSampleRate,
         kDefaultSamplesPerFrame,
+        kDefaultSoundMarkerThreshold,
         GGWAVE_SAMPLE_FORMAT_F32,
         GGWAVE_SAMPLE_FORMAT_F32,
     };
@@ -298,6 +300,7 @@ GGWave::GGWave(const Parameters & parameters) :
     m_nBitsInMarker(16),
     m_nMarkerFrames(parameters.payloadLength > 0 ? 0 : 16),
     m_encodedDataOffset(parameters.payloadLength > 0 ? 0 : 3),
+    m_soundMarkerThreshold(parameters.soundMarkerThreshold),
     // common
     m_isFixedPayloadLength(parameters.payloadLength > 0),
     m_payloadLength(parameters.payloadLength),
@@ -1047,9 +1050,9 @@ void GGWave::decode_variable() {
                 int bin = std::round(freq*m_ihzPerSample);
 
                 if (i%2 == 0) {
-                    if (m_sampleSpectrum[bin] <= 3.0f*m_sampleSpectrum[bin + m_freqDelta_bin]) --nDetectedMarkerBits;
+                    if (m_sampleSpectrum[bin] <= m_soundMarkerThreshold*m_sampleSpectrum[bin + m_freqDelta_bin]) --nDetectedMarkerBits;
                 } else {
-                    if (m_sampleSpectrum[bin] >= 3.0f*m_sampleSpectrum[bin + m_freqDelta_bin]) --nDetectedMarkerBits;
+                    if (m_sampleSpectrum[bin] >= m_soundMarkerThreshold*m_sampleSpectrum[bin + m_freqDelta_bin]) --nDetectedMarkerBits;
                 }
             }
 
@@ -1096,9 +1099,9 @@ void GGWave::decode_variable() {
                 int bin = std::round(freq*m_ihzPerSample);
 
                 if (i%2 == 0) {
-                    if (m_sampleSpectrum[bin] >= 3.0f*m_sampleSpectrum[bin + m_freqDelta_bin]) nDetectedMarkerBits--;
+                    if (m_sampleSpectrum[bin] >= m_soundMarkerThreshold*m_sampleSpectrum[bin + m_freqDelta_bin]) nDetectedMarkerBits--;
                 } else {
-                    if (m_sampleSpectrum[bin] <= 3.0f*m_sampleSpectrum[bin + m_freqDelta_bin]) nDetectedMarkerBits--;
+                    if (m_sampleSpectrum[bin] <= m_soundMarkerThreshold*m_sampleSpectrum[bin + m_freqDelta_bin]) nDetectedMarkerBits--;
                 }
             }
 

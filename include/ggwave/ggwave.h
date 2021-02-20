@@ -69,6 +69,7 @@ extern "C" {
         int sampleRateInp;                      // capture sample rate
         int sampleRateOut;                      // playback sample rate
         int samplesPerFrame;                    // number of samples per audio frame
+        float soundMarkerThreshold;             // sound marker detection threshold
         ggwave_SampleFormat sampleFormatInp;    // format of the captured audio samples
         ggwave_SampleFormat sampleFormatOut;    // format of the playback audio samples
     } ggwave_Parameters;
@@ -225,6 +226,7 @@ public:
     static constexpr auto kBaseSampleRate = 48000;
     static constexpr auto kDefaultSamplesPerFrame = 1024;
     static constexpr auto kDefaultVolume = 10;
+    static constexpr auto kDefaultSoundMarkerThreshold = 3.0f;
     static constexpr auto kMaxSamplesPerFrame = 2048;
     static constexpr auto kMaxDataBits = 256;
     static constexpr auto kMaxDataSize = 256;
@@ -377,6 +379,8 @@ private:
     const int m_nBitsInMarker;
     const int m_nMarkerFrames;
     const int m_encodedDataOffset;
+
+    const float m_soundMarkerThreshold;
 
     // common
 

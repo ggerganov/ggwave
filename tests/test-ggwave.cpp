@@ -192,6 +192,7 @@ int main(int argc, char ** argv) {
     // playback / capture at different sample rates
     for (int srInp = GGWave::kBaseSampleRate/3; srInp <= 2*GGWave::kBaseSampleRate; srInp += 1100) {
         auto parameters = GGWave::getDefaultParameters();
+        parameters.soundMarkerThreshold = 1.1f;
 
         std::string payload = "hello123";
 

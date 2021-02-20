@@ -220,6 +220,7 @@ bool GGWave_init(
             g_obtainedSpecInp.freq,
             g_obtainedSpecOut.freq,
             GGWave::kDefaultSamplesPerFrame,
+            GGWave::kDefaultSoundMarkerThreshold,
             sampleFormatInp,
             sampleFormatOut});
     }

@@ -1061,7 +1061,7 @@ void GGWave::decode_variable() {
         }
 
         if (isReceiving) {
-            if (++m_nMarkersSuccess >= 4) {
+            if (++m_nMarkersSuccess >= 1) {
             } else {
                 isReceiving = false;
             }
@@ -1109,7 +1109,7 @@ void GGWave::decode_variable() {
         }
 
         if (isEnded) {
-            if (++m_nMarkersSuccess >= 4) {
+            if (++m_nMarkersSuccess >= 1) {
             } else {
                 isEnded = false;
             }

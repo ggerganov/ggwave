@@ -4,6 +4,7 @@ set(TARGET ggwave)
 
 add_library(${TARGET}
     ggwave.cpp
+    resampler.cpp
     )
 
 target_include_directories(${TARGET} PUBLIC

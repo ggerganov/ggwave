@@ -1,5 +1,6 @@
 #include "ggwave/ggwave.h"
 
+#include <cstring>
 #include <limits>
 #include <string>
 #include <typeinfo>
@@ -71,7 +72,14 @@ void convert(const std::vector<S> & src, std::vector<D> & dst) {
     }
 }
 
-int main() {
+int main(int argc, char ** argv) {
+    bool full = false;
+    if (argc > 1) {
+        if (strcmp(argv[1], "--full") == 0) {
+            full = true;
+        }
+    }
+
     std::vector<uint8_t>  bufferU8;
     std::vector<int8_t>   bufferI8;
     std::vector<uint16_t> bufferU16;
@@ -181,16 +189,15 @@ int main() {
         CHECK_F(instance.init(payload.size(), payload.c_str(), 101));
     }
 
-    // capture / playback at different sample rates
-    {
+    // playback / capture at different sample rates
+    for (int srInp = GGWave::kBaseSampleRate/3; srInp <= 2*GGWave::kBaseSampleRate; srInp += 1100) {
         auto parameters = GGWave::getDefaultParameters();
 
-        std::string payload = "hello";
+        std::string payload = "hello123";
 
         // encode
         {
-            parameters.sampleRateInp = 48000;
-            parameters.sampleRateOut = 12000;
+            parameters.sampleRateOut = srInp;
             GGWave instanceOut(parameters);
 
             instanceOut.init(payload, 25);
@@ -203,10 +210,10 @@ int main() {
 
         // decode
         {
-            parameters.samplesPerFrame *= float(parameters.sampleRateOut)/parameters.sampleRateInp;
-            parameters.sampleRateInp = parameters.sampleRateOut;
+            parameters.sampleRateInp = srInp;
             GGWave instanceInp(parameters);
 
+            instanceInp.setRxProtocols({{instanceInp.getDefaultTxProtocolId(), instanceInp.getDefaultTxProtocol()}});
             instanceInp.decode(kCBWaveformInp.at(parameters.sampleFormatInp));
 
             GGWave::TxRxData result;
@@ -217,30 +224,67 @@ int main() {
         }
     }
 
-    for (const auto & txProtocol : GGWave::getTxProtocols()) {
-        for (const auto & formatOut : kFormats) {
-            for (const auto & formatInp : kFormats) {
+    std::string payload = "a0Z5kR2g";
+
+    // encode / decode using different sample formats and Tx protocols
+    for (const auto & formatOut : kFormats) {
+        for (const auto & formatInp : kFormats) {
+            if (full == false) {
+                if (formatOut != GGWAVE_SAMPLE_FORMAT_I16) continue;
+                if (formatInp != GGWAVE_SAMPLE_FORMAT_F32) continue;
+            }
+            for (const auto & txProtocol : GGWave::getTxProtocols()) {
                 printf("Testing: protocol = %s, in = %d, out = %d\n", txProtocol.second.name, formatInp, formatOut);
 
-                auto parameters = GGWave::getDefaultParameters();
-                parameters.sampleFormatInp = formatInp;
-                parameters.sampleFormatOut = formatOut;
-                GGWave instance(parameters);
+                for (int length = 1; length <= (int) payload.size(); ++length) {
+                    // variable payload length
+                    {
+                        auto parameters = GGWave::getDefaultParameters();
+                        parameters.sampleFormatInp = formatInp;
+                        parameters.sampleFormatOut = formatOut;
+                        GGWave instance(parameters);
 
-                std::string payload = "test";
+                        instance.setRxProtocols({{txProtocol.first, txProtocol.second}});
+                        instance.init(length, payload.data(), txProtocol.second, 25);
+                        auto expectedSize = instance.encodeSize_samples();
+                        instance.encode(kCBWaveformOut.at(formatOut));
+                        printf("Expected = %d, actual = %d\n", expectedSize, nSamples);
+                        CHECK(expectedSize == nSamples);
+                        convertHelper(formatOut, formatInp);
+                        instance.decode(kCBWaveformInp.at(formatInp));
 
-                instance.init(payload, txProtocol.second, 25);
-                auto expectedSize = instance.encodeSize_samples();
-                instance.encode(kCBWaveformOut.at(formatOut));
-                printf("Expected = %d, actual = %d\n", expectedSize, nSamples);
-                CHECK(expectedSize == nSamples);
-                convertHelper(formatOut, formatInp);
-                instance.decode(kCBWaveformInp.at(formatInp));
+                        GGWave::TxRxData result;
+                        CHECK(instance.takeRxData(result) == length);
+                        for (int i = 0; i < length; ++i) {
+                            CHECK(payload[i] == result[i]);
+                        }
+                    }
+                }
 
-                GGWave::TxRxData result;
-                CHECK(instance.takeRxData(result) == (int) payload.size());
-                for (int i = 0; i < (int) payload.size(); ++i) {
-                    CHECK(payload[i] == result[i]);
+                for (int length = 1; length <= (int) payload.size(); ++length) {
+                    // fixed payload length
+                    {
+                        auto parameters = GGWave::getDefaultParameters();
+                        parameters.payloadLength = length;
+                        parameters.sampleFormatInp = formatInp;
+                        parameters.sampleFormatOut = formatOut;
+                        GGWave instance(parameters);
+
+                        instance.setRxProtocols({{txProtocol.first, txProtocol.second}});
+                        instance.init(length, payload.data(), txProtocol.second, 10);
+                        auto expectedSize = instance.encodeSize_samples();
+                        instance.encode(kCBWaveformOut.at(formatOut));
+                        printf("Expected = %d, actual = %d\n", expectedSize, nSamples);
+                        CHECK(expectedSize == nSamples);
+                        convertHelper(formatOut, formatInp);
+                        instance.decode(kCBWaveformInp.at(formatInp));
+
+                        GGWave::TxRxData result;
+                        CHECK(instance.takeRxData(result) == length);
+                        for (int i = 0; i < length; ++i) {
+                            CHECK(payload[i] == result[i]);
+                        }
+                    }
                 }
             }
         }

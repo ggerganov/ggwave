@@ -31,16 +31,18 @@ struct FreqData {
 bool g_isCapturing = true;
 constexpr int g_nSamplesPerFrame = 1024;
 
-int g_binMin = 40;
-int g_binMax = 40 + 96;
+int g_binMin = 20;
+int g_binMax = 60;
 
-float g_scale = 5.0;
+float g_scale = 30.0;
 
 bool g_showControls = true;
 
 int g_freqDataHead = 0;
 int g_freqDataSize = 0;
 std::vector<FreqData> g_freqData;
+
+int g_sampleRateOffset = 0;
 
 }
 
@@ -90,7 +92,7 @@ bool GGWave_init(
         SDL_AudioSpec playbackSpec;
         SDL_zero(playbackSpec);
 
-        playbackSpec.freq = GGWave::kBaseSampleRate;
+        playbackSpec.freq = GGWave::kBaseSampleRate + g_sampleRateOffset;
         playbackSpec.format = AUDIO_S16SYS;
         playbackSpec.channels = 1;
         playbackSpec.samples = 16*1024;
@@ -133,7 +135,7 @@ bool GGWave_init(
     if (g_devIdInp == 0) {
         SDL_AudioSpec captureSpec;
         captureSpec = g_obtainedSpecOut;
-        captureSpec.freq = GGWave::kBaseSampleRate;
+        captureSpec.freq = GGWave::kBaseSampleRate + g_sampleRateOffset;
         captureSpec.format = AUDIO_F32SYS;
         captureSpec.samples = g_nSamplesPerFrame;
 
@@ -240,8 +242,9 @@ bool GGWave_deinit() {
     SDL_CloseAudioDevice(g_devIdInp);
     SDL_PauseAudioDevice(g_devIdOut, 1);
     SDL_CloseAudioDevice(g_devIdOut);
-    SDL_CloseAudio();
-    SDL_Quit();
+
+    g_devIdInp = 0;
+    g_devIdOut = 0;
 
     return true;
 }
@@ -474,6 +477,10 @@ int main(int argc, char** argv) {
             ImGui::DragInt("Min", &g_binMin, 1, 0, g_binMax - 1);
             ImGui::DragInt("Max", &g_binMax, 1, g_binMin + 1, g_nSamplesPerFrame/2);
             ImGui::DragFloat("Scale", &g_scale, 1.0f, 1.0f, 1000.0f);
+            if (ImGui::SliderInt("Offset", &g_sampleRateOffset, -2048, 2048)) {
+                GGWave_deinit();
+                GGWave_init(0, 0);
+            }
             if (ImGui::Button("Pause")) {
                 togglePause = true;
             }
@@ -515,6 +522,7 @@ int main(int argc, char** argv) {
 
     SDL_GL_DeleteContext(gl_context);
     SDL_DestroyWindow(window);
+    SDL_CloseAudio();
     SDL_Quit();
 
     return 0;

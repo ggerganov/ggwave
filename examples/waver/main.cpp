@@ -310,6 +310,7 @@ int main(int argc, char** argv) {
 
     SDL_GL_DeleteContext(gl_context);
     SDL_DestroyWindow(window);
+    SDL_CloseAudio();
     SDL_Quit();
 #endif
 

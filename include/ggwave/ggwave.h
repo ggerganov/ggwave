@@ -41,9 +41,21 @@ extern "C" {
         GGWAVE_TX_PROTOCOL_ULTRASOUND_NORMAL,
         GGWAVE_TX_PROTOCOL_ULTRASOUND_FAST,
         GGWAVE_TX_PROTOCOL_ULTRASOUND_FASTEST,
+        GGWAVE_TX_PROTOCOL_DT_NORMAL,
+        GGWAVE_TX_PROTOCOL_DT_FAST,
+        GGWAVE_TX_PROTOCOL_DT_FASTEST,
     } ggwave_TxProtocolId;
 
     // GGWave instance parameters
+    //
+    //   If payloadLength <= 0, then GGWave will transmit with variable payload length
+    //   depending on the provided payload. Sound markers are used to identify the
+    //   start and end of the transmission.
+    //
+    //   If payloadLength > 0, then the transmitted payload will be of the specified
+    //   fixed length. In this case, no sound markers are emitted and a slightly
+    //   different decoding scheme is applied. This is useful in cases where the
+    //   length of the payload is known in advance.
     //
     //   The sample rates are values typically between 8000 and 96000.
     //   Default value: GGWave::kBaseSampleRate
@@ -53,6 +65,7 @@ extern "C" {
     //   Default value: GGWave::kDefaultSamplesPerFrame
     //
     typedef struct {
+        int payloadLength;                      // payload length
         int sampleRateInp;                      // capture sample rate
         int sampleRateOut;                      // playback sample rate
         int samplesPerFrame;                    // number of samples per audio frame
@@ -205,18 +218,20 @@ extern "C" {
 #include <vector>
 #include <map>
 #include <string>
+#include <memory>
 
 class GGWave {
 public:
     static constexpr auto kBaseSampleRate = 48000;
     static constexpr auto kDefaultSamplesPerFrame = 1024;
     static constexpr auto kDefaultVolume = 10;
-    static constexpr auto kMaxSamplesPerFrame = 1024;
+    static constexpr auto kMaxSamplesPerFrame = 2048;
     static constexpr auto kMaxDataBits = 256;
     static constexpr auto kMaxDataSize = 256;
-    static constexpr auto kMaxLength = 140;
+    static constexpr auto kMaxLengthVarible = 140;
+    static constexpr auto kMaxLengthFixed = 16;
     static constexpr auto kMaxSpectrumHistory = 4;
-    static constexpr auto kMaxRecordedFrames = 1024;
+    static constexpr auto kMaxRecordedFrames = 2048;
 
     using Parameters   = ggwave_Parameters;
     using SampleFormat = ggwave_SampleFormat;
@@ -236,12 +251,15 @@ public:
 
     static const TxProtocols & getTxProtocols() {
         static const TxProtocols kTxProtocols {
-            { GGWAVE_TX_PROTOCOL_AUDIBLE_NORMAL,        { "Normal",      40,  9, 3, } },
-            { GGWAVE_TX_PROTOCOL_AUDIBLE_FAST,          { "Fast",        40,  6, 3, } },
-            { GGWAVE_TX_PROTOCOL_AUDIBLE_FASTEST,       { "Fastest",     40,  3, 3, } },
-            { GGWAVE_TX_PROTOCOL_ULTRASOUND_NORMAL,     { "[U] Normal",  320, 9, 3, } },
-            { GGWAVE_TX_PROTOCOL_ULTRASOUND_FAST,       { "[U] Fast",    320, 6, 3, } },
-            { GGWAVE_TX_PROTOCOL_ULTRASOUND_FASTEST,    { "[U] Fastest", 320, 3, 3, } },
+            { GGWAVE_TX_PROTOCOL_AUDIBLE_NORMAL,        { "Normal",       40,  9, 3, } },
+            { GGWAVE_TX_PROTOCOL_AUDIBLE_FAST,          { "Fast",         40,  6, 3, } },
+            { GGWAVE_TX_PROTOCOL_AUDIBLE_FASTEST,       { "Fastest",      40,  3, 3, } },
+            { GGWAVE_TX_PROTOCOL_ULTRASOUND_NORMAL,     { "[U] Normal",   320, 9, 3, } },
+            { GGWAVE_TX_PROTOCOL_ULTRASOUND_FAST,       { "[U] Fast",     320, 6, 3, } },
+            { GGWAVE_TX_PROTOCOL_ULTRASOUND_FASTEST,    { "[U] Fastest",  320, 3, 3, } },
+            { GGWAVE_TX_PROTOCOL_DT_NORMAL,             { "[DT] Normal",  24,  9, 1, } },
+            { GGWAVE_TX_PROTOCOL_DT_FAST,               { "[DT] Fast",    24,  6, 1, } },
+            { GGWAVE_TX_PROTOCOL_DT_FASTEST,            { "[DT] Fastest", 24,  3, 1, } },
         };
 
         return kTxProtocols;
@@ -321,6 +339,8 @@ public:
 
     // Rx
 
+    void setRxProtocols(const TxProtocols & rxProtocols) { m_rxProtocols = rxProtocols; }
+
     const TxRxData & getRxData()            const { return m_rxData; }
     const TxProtocol & getRxProtocol()      const { return m_rxProtocol; }
     const TxProtocolId & getRxProtocolId()  const { return m_rxProtocolId; }
@@ -329,6 +349,9 @@ public:
     bool takeSpectrum(SpectrumData & dst);
 
 private:
+    void decode_fixed();
+    void decode_variable();
+
     int maxFramesPerTx() const;
     int minBytesPerTx() const;
 
@@ -353,13 +376,18 @@ private:
 
     const int m_nBitsInMarker;
     const int m_nMarkerFrames;
-    const int m_nPostMarkerFrames;
     const int m_encodedDataOffset;
+
+    // common
+
+    bool m_isFixedPayloadLength;
+    int m_payloadLength;
 
     // Rx
     bool m_receivingData;
     bool m_analyzingData;
 
+    int m_nMarkersSuccess;
     int m_markerFreqStart;
     int m_recvDuration_frames;
 
@@ -369,12 +397,13 @@ private:
     int m_framesToRecord;
     int m_samplesNeeded;
 
-    std::vector<float> m_fftInp;  // real
+    std::vector<float> m_fftInp; // real
     std::vector<float> m_fftOut; // complex
 
     bool m_hasNewSpectrum;
     SpectrumData m_sampleSpectrum;
     AmplitudeData m_sampleAmplitude;
+    AmplitudeData m_sampleAmplitudeResampled;
     TxRxData m_sampleAmplitudeTmp;
 
     bool m_hasNewRxData;
@@ -382,12 +411,16 @@ private:
     TxRxData m_rxData;
     TxProtocol m_rxProtocol;
     TxProtocolId m_rxProtocolId;
+    TxProtocols m_rxProtocols;
 
-    int m_historyId = 0;
+    int m_historyId;
     AmplitudeData m_sampleAmplitudeAverage;
     std::vector<AmplitudeData> m_sampleAmplitudeHistory;
 
     RecordedData m_recordedAmplitude;
+
+    int m_historyIdFixed;
+    std::vector<SpectrumData> m_spectrumHistoryFixed;
 
     // Tx
     bool m_hasNewTxData;
@@ -403,6 +436,11 @@ private:
     TxRxData m_outputBlockTmp;
     AmplitudeDataI16 m_outputBlockI16;
     AmplitudeDataI16 m_txAmplitudeDataI16;
+
+    // Impl
+    // todo : move all members inside Impl
+    struct Impl;
+    std::unique_ptr<Impl> m_impl;
 };
 
 #endif

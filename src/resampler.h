@@ -2,6 +2,8 @@
 
 class Resampler {
 public:
+    Resampler();
+
     int resample(
             float factor,
             int nSamples,
@@ -28,6 +30,4 @@ private:
     float m_sincTable[kWidth*kSamplesPerZeroCrossing] = { 0.0 };
 
     float m_delayBuffer[3*kWidth] = { 0 };
-
-    float m_lastFactor = -1.0f;
 };

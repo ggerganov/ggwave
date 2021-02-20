@@ -9,16 +9,15 @@ double linear_interp(double first_number, double second_number, double fraction)
 }
 }
 
+Resampler::Resampler() {
+    make_sinc();
+}
+
 int Resampler::resample(
         float factor,
         int nSamples,
         const float * samplesInp,
         float * samplesOut) {
-    if (factor != m_lastFactor) {
-        make_sinc();
-        m_lastFactor = factor;
-    }
-
     int idxInp = 0;
     int idxOut = 0;
     int notDone = 1;
@@ -31,8 +30,8 @@ int Resampler::resample(
     double one_over_factor = 1.0;
     while (notDone) {
         double temp1 = 0.0;
-        long left_limit = time_now - kWidth + 1;      /* leftmost neighboring sample used for interp.*/
-        long right_limit = time_now + kWidth; /* rightmost leftmost neighboring sample used for interp.*/
+        long left_limit = time_now - kWidth + 1; /* leftmost neighboring sample used for interp.*/
+        long right_limit = time_now + kWidth;    /* rightmost leftmost neighboring sample used for interp.*/
         if (left_limit<0) left_limit = 0;
         if (right_limit>num_samples) right_limit = num_samples;
         if (factor<1.0) {
@@ -57,7 +56,7 @@ int Resampler::resample(
         time_now += factor;
         last_time = int_time;
         int_time = time_now;
-        while(last_time<int_time)      {
+        while (last_time<int_time) {
             if (++idxInp == nSamples) {
                 notDone = 0;
             } else {

@@ -1035,7 +1035,7 @@ void renderMain() {
                         {
                             auto col = ImVec4 { 1.0f, 0.0f, 0.0f, 1.0f };
                             col.w = interp;
-                            ImGui::TextColored(col, "Failed to received");
+                            ImGui::TextColored(col, "Failed to receive");
                         }
                         break;
                     case Message::Text:

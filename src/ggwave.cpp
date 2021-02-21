@@ -1200,6 +1200,8 @@ void GGWave::decode_fixed() {
         std::vector<ToneData> tones(nTones);
 
         bool detectedSignal = true;
+        int txDetectedTotal = 0;
+        int txNeededTotal = 0;
         for (int k = 0; k < totalTxs; ++k) {
             for (auto & tone : tones) {
                 std::fill(tone.nMax, tone.nMax + 16, 0);
@@ -1243,7 +1245,7 @@ void GGWave::decode_fixed() {
                 }
             }
 
-            int detectedTx = 0;
+            int txDetected = 0;
             int txNeeded = 0;
             for (int j = 0; j < rxProtocol.bytesPerTx; ++j) {
                 if (k*rxProtocol.bytesPerTx + j >= totalLength) break;
@@ -1251,18 +1253,25 @@ void GGWave::decode_fixed() {
                 for (int b = 0; b < 16; ++b) {
                     if (tones[2*j + 0].nMax[b] > rxProtocol.framesPerTx/2) {
                         detectedBins[2*(k*rxProtocol.bytesPerTx + j) + 0] = b;
-                        detectedTx++;
+                        txDetected++;
                     }
                     if (tones[2*j + 1].nMax[b] > rxProtocol.framesPerTx/2) {
                         detectedBins[2*(k*rxProtocol.bytesPerTx + j) + 1] = b;
-                        detectedTx++;
+                        txDetected++;
                     }
                 }
             }
 
-            if (detectedTx < txNeeded) {
-                detectedSignal = false;
-            }
+            txDetectedTotal += txDetected;
+            txNeededTotal += txNeeded;
+        }
+
+        //if (rxProtocolId == GGWAVE_TX_PROTOCOL_DT_FAST) {
+        //    printf("detected = %d, needed = %d\n", txDetectedTotal, txNeededTotal);
+        //}
+
+        if (txDetectedTotal < 0.75*txNeededTotal) {
+            detectedSignal = false;
         }
 
         if (detectedSignal) {

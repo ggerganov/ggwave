@@ -337,6 +337,8 @@ public:
 
     const float & getSampleRateInp()    const { return m_sampleRateInp; }
     const float & getSampleRateOut()    const { return m_sampleRateOut; }
+    const SampleFormat & getSampleFormatInp()  const { return m_sampleFormatInp; }
+    const SampleFormat & getSampleFormatOut()  const { return m_sampleFormatOut; }
 
     // Tx
 

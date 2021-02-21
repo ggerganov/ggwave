@@ -186,12 +186,12 @@ struct State {
 };
 
 struct Input {
-    bool update = false;
+    bool update = true;
     Message message;
 
-    bool reinit = false;
+    bool reinit = true;
     bool isSampleRateOffset = false;
-    int payloadLength = -1;
+    int payloadLength = 8;
 };
 
 struct Buffer {
@@ -205,7 +205,7 @@ struct Buffer {
 };
 
 std::atomic<bool> g_isRunning;
-GGWave * g_ggWave;
+GGWave *& g_ggWave = GGWave_instance();
 Buffer g_buffer;
 
 // file send data
@@ -455,7 +455,6 @@ std::thread initMainAndRunCore() {
 
 void initMain() {
     g_isRunning = true;
-    g_ggWave = GGWave_instance();
 
     GGSock::FileServer::Parameters p;
 #ifdef __EMSCRIPTEN__
@@ -525,10 +524,22 @@ void updateCore() {
     }
 
     if (inputCurrent.reinit) {
-        GGWave_deinit();
+        int oldSampleRateInp = g_ggWave->getSampleRateInp();
+        int oldSampleRateOut = g_ggWave->getSampleRateOut();
+        GGWave::SampleFormat oldSampleFormatInp = g_ggWave->getSampleFormatInp();
+        GGWave::SampleFormat oldSampleFormatOut = g_ggWave->getSampleFormatOut();
+
         // todo : use the provided cli arguments for playback and capture device
-        GGWave_init(0, 0, inputCurrent.payloadLength, inputCurrent.isSampleRateOffset ? -512 : 0);
-        g_ggWave = GGWave_instance();
+        if (g_ggWave) delete g_ggWave;
+
+        g_ggWave = new GGWave({
+            inputCurrent.payloadLength,
+            oldSampleRateInp,
+            oldSampleRateOut,
+            GGWave::kDefaultSamplesPerFrame,
+            GGWave::kDefaultSoundMarkerThreshold,
+            oldSampleFormatInp,
+            oldSampleFormatOut});
 
         inputCurrent.reinit = false;
     }
@@ -834,8 +845,6 @@ void renderMain() {
 
     if (windowId == WindowId::Settings) {
         ImGui::BeginChild("Settings:main", ImGui::GetContentRegionAvail(), true);
-        ImGui::Text("%s", "");
-        ImGui::Text("%s", "");
         ImGui::Text("Waver v1.4.0");
         ImGui::Separator();
 
@@ -918,7 +927,11 @@ void renderMain() {
         if (settings.isFixedLength) {
             ImGui::SameLine();
             ImGui::PushItemWidth(0.5*ImGui::GetContentRegionAvailWidth());
-            ImGui::SliderInt("Bytes", &settings.payloadLength, 1, 16);
+            if (ImGui::SliderInt("Bytes", &settings.payloadLength, 1, 16)) {
+                g_buffer.inputUI.update = true;
+                g_buffer.inputUI.reinit = true;
+                g_buffer.inputUI.payloadLength = settings.isFixedLength ? settings.payloadLength : -1;
+            }
             ImGui::PopItemWidth();
             ImGui::SameLine();
             if (ImGui::Checkbox("Offset", &settings.isSampleRateOffset)) {

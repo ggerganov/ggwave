@@ -228,7 +228,7 @@ bool GGWave_init(
     return true;
 }
 
-GGWave * GGWave_instance() { return g_ggWave; }
+GGWave *& GGWave_instance() { return g_ggWave; }
 
 bool GGWave_mainLoop() {
     if (g_devIdInp == 0 && g_devIdOut == 0) {

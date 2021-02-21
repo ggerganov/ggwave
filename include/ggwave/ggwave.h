@@ -294,9 +294,17 @@ public:
     bool init(int dataSize, const char * dataBuffer, const TxProtocol & txProtocol, const int volume = kDefaultVolume);
 
     // expected waveform size of the encoded Tx data in bytes
+    //
+    //   When the output sampling rate is not equal to kBaseSampleRate the result of this method is overestimation of
+    //   the actual number of bytes that would be produced
+    //
     uint32_t encodeSize_bytes() const;
 
     // expected waveform size of the encoded Tx data in samples
+    //
+    //   When the output sampling rate is not equal to kBaseSampleRate the result of this method is overestimation of
+    //   the actual number of samples that would be produced
+    //
     uint32_t encodeSize_samples() const;
 
     // encode Tx data into an audio waveform

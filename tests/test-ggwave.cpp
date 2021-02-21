@@ -8,6 +8,8 @@
 #include <vector>
 #include <set>
 
+float frand() { return float(rand()%RAND_MAX)/RAND_MAX; }
+
 #define CHECK(cond) \
     if (!(cond)) { \
         fprintf(stderr, "[%s:%d] Check failed: %s\n", __FILE__, __LINE__, #cond); \
@@ -145,7 +147,42 @@ int main(int argc, char ** argv) {
                     };
                 } break;
         };
+    };
 
+    auto addNoiseHelper = [&](float level, GGWave::SampleFormat format) {
+        switch (format) {
+            case GGWAVE_SAMPLE_FORMAT_UNDEFINED: CHECK(false); break;
+            case GGWAVE_SAMPLE_FORMAT_U8:
+                {
+                    for (auto & s : bufferU8) {
+                        s = std::max(0.0f, std::min(255.0f, (float) s + (frand() - 0.5f)*(level*256)));
+                    }
+                } break;
+            case GGWAVE_SAMPLE_FORMAT_I8:
+                {
+                    for (auto & s : bufferI8) {
+                        s = std::max(-128.0f, std::min(127.0f, (float) s + (frand() - 0.5f)*(level*256)));
+                    }
+                } break;
+            case GGWAVE_SAMPLE_FORMAT_U16:
+                {
+                    for (auto & s : bufferU16) {
+                        s = std::max(0.0f, std::min(65535.0f, (float) s + (frand() - 0.5f)*(level*65536)));
+                    }
+                } break;
+            case GGWAVE_SAMPLE_FORMAT_I16:
+                {
+                    for (auto & s : bufferI16) {
+                        s = std::max(-32768.0f, std::min(32767.0f, (float) s + (frand() - 0.5f)*(level*65536)));
+                    }
+                } break;
+            case GGWAVE_SAMPLE_FORMAT_F32:
+                {
+                    for (auto & s : bufferF32) {
+                        s = std::max(-1.0f, std::min(1.0f, (float) s + (frand() - 0.5f)*(level)));
+                    }
+                } break;
+        };
     };
 
     uint32_t nSamples = 0;
@@ -194,7 +231,7 @@ int main(int argc, char ** argv) {
         printf("Testing: sample rate = %d\n", srInp);
 
         auto parameters = GGWave::getDefaultParameters();
-        parameters.soundMarkerThreshold = 1.1f;
+        parameters.soundMarkerThreshold = 3.0f;
 
         std::string payload = "hello123";
 
@@ -207,7 +244,8 @@ int main(int argc, char ** argv) {
             auto expectedSize = instanceOut.encodeSize_samples();
             instanceOut.encode(kCBWaveformOut.at(parameters.sampleFormatOut));
             printf("Expected = %d, actual = %d\n", expectedSize, nSamples);
-            CHECK(expectedSize == nSamples);
+            CHECK(expectedSize >= nSamples);
+            addNoiseHelper(0.01, parameters.sampleFormatOut); // add some artificial noise
             convertHelper(parameters.sampleFormatOut, parameters.sampleFormatInp);
         }
 

@@ -190,7 +190,7 @@ struct Input {
     Message message;
 
     bool reinit = true;
-    bool isSampleRateOffset = false;
+    int sampleRateOffset = 0;
     int payloadLength = 8;
 };
 
@@ -524,8 +524,8 @@ void updateCore() {
     }
 
     if (inputCurrent.reinit) {
-        int oldSampleRateInp = g_ggWave->getSampleRateInp();
-        int oldSampleRateOut = g_ggWave->getSampleRateOut();
+        static int oldSampleRateInp = g_ggWave->getSampleRateInp();
+        static int oldSampleRateOut = g_ggWave->getSampleRateOut();
         GGWave::SampleFormat oldSampleFormatInp = g_ggWave->getSampleFormatInp();
         GGWave::SampleFormat oldSampleFormatOut = g_ggWave->getSampleFormatOut();
 
@@ -533,7 +533,7 @@ void updateCore() {
 
         g_ggWave = new GGWave({
             inputCurrent.payloadLength,
-            oldSampleRateInp,
+            oldSampleRateInp + inputCurrent.sampleRateOffset,
             oldSampleRateOut,
             GGWave::kDefaultSamplesPerFrame,
             GGWave::kDefaultSoundMarkerThreshold,
@@ -688,9 +688,10 @@ void renderMain() {
 
     struct Settings {
         int protocolId = GGWAVE_TX_PROTOCOL_DT_FASTEST;
-        bool isFixedLength = false;
-        int payloadLength = 8;
         bool isSampleRateOffset = false;
+        int sampleRateOffset = 512;
+        bool isFixedLength = true;
+        int payloadLength = 8;
         float volume = 0.10f;
     };
 
@@ -851,7 +852,7 @@ void renderMain() {
         ImGui::Text("Sample rate (capture):  %g, %d B/sample", g_ggWave->getSampleRateInp(), g_ggWave->getSampleSizeBytesInp());
         ImGui::Text("Sample rate (playback): %g, %d B/sample", g_ggWave->getSampleRateOut(), g_ggWave->getSampleSizeBytesOut());
 
-        const float kLabelWidth = ImGui::CalcTextSize("Fixed-length:  ").x;
+        const float kLabelWidth = ImGui::CalcTextSize("Inp. SR Offset:  ").x;
 
         // volume
         ImGui::Text("%s", "");
@@ -906,41 +907,6 @@ void renderMain() {
             ImGui::SetCursorScreenPos(posSave);
         }
 
-        // fixed-length
-        ImGui::Text("%s", "");
-        {
-            auto posSave = ImGui::GetCursorScreenPos();
-            ImGui::Text("Fixed-length: ");
-            ImGui::SetCursorScreenPos({ posSave.x + kLabelWidth, posSave.y });
-        }
-        if (ImGui::Checkbox("##fixed-length", &settings.isFixedLength)) {
-            g_buffer.inputUI.update = true;
-            g_buffer.inputUI.reinit = true;
-            g_buffer.inputUI.isSampleRateOffset = settings.isSampleRateOffset;
-            g_buffer.inputUI.payloadLength = settings.isFixedLength ? settings.payloadLength : -1;
-        } else {
-            g_buffer.inputUI.reinit = false;
-            g_buffer.inputUI.isSampleRateOffset = false;
-        }
-
-        if (settings.isFixedLength) {
-            ImGui::SameLine();
-            ImGui::PushItemWidth(0.5*ImGui::GetContentRegionAvailWidth());
-            if (ImGui::SliderInt("Bytes", &settings.payloadLength, 1, 16)) {
-                g_buffer.inputUI.update = true;
-                g_buffer.inputUI.reinit = true;
-                g_buffer.inputUI.payloadLength = settings.isFixedLength ? settings.payloadLength : -1;
-            }
-            ImGui::PopItemWidth();
-            ImGui::SameLine();
-            if (ImGui::Checkbox("Offset", &settings.isSampleRateOffset)) {
-                g_buffer.inputUI.update = true;
-                g_buffer.inputUI.reinit = true;
-                g_buffer.inputUI.isSampleRateOffset = settings.isSampleRateOffset;
-                g_buffer.inputUI.payloadLength = settings.isFixedLength ? settings.payloadLength : -1;
-            }
-        }
-
         // protocol
         ImGui::Text("%s", "");
         {
@@ -972,6 +938,56 @@ void renderMain() {
                 }
             }
             ImGui::EndCombo();
+        }
+
+        g_buffer.inputUI.reinit = false;
+
+        // fixed-length
+        ImGui::Text("%s", "");
+        {
+            auto posSave = ImGui::GetCursorScreenPos();
+            ImGui::Text("Fixed-length: ");
+            ImGui::SetCursorScreenPos({ posSave.x + kLabelWidth, posSave.y });
+        }
+        if (ImGui::Checkbox("##fixed-length", &settings.isFixedLength)) {
+            g_buffer.inputUI.update = true;
+            g_buffer.inputUI.reinit = true;
+            g_buffer.inputUI.payloadLength = settings.isFixedLength ? settings.payloadLength : -1;
+        }
+
+        if (settings.isFixedLength) {
+            ImGui::SameLine();
+            ImGui::PushItemWidth(0.5*ImGui::GetContentRegionAvailWidth());
+            if (ImGui::SliderInt("Bytes", &settings.payloadLength, 1, 16)) {
+                g_buffer.inputUI.update = true;
+                g_buffer.inputUI.reinit = true;
+                g_buffer.inputUI.payloadLength = settings.isFixedLength ? settings.payloadLength : -1;
+            }
+            ImGui::PopItemWidth();
+        }
+
+        // Input sample-rate offset
+        ImGui::Text("%s", "");
+        {
+            auto posSave = ImGui::GetCursorScreenPos();
+            ImGui::Text("Inp. SR Offset: ");
+            ImGui::SetCursorScreenPos({ posSave.x + kLabelWidth, posSave.y });
+        }
+        if (ImGui::Checkbox("##input-sample-rate-offset", &settings.isSampleRateOffset)) {
+            g_buffer.inputUI.update = true;
+            g_buffer.inputUI.reinit = true;
+            g_buffer.inputUI.sampleRateOffset = settings.isSampleRateOffset ? settings.sampleRateOffset : 0;
+        }
+
+        if (settings.isSampleRateOffset) {
+            ImGui::SameLine();
+            ImGui::PushItemWidth(0.5*ImGui::GetContentRegionAvailWidth());
+            if (ImGui::SliderInt("Samples", &settings.sampleRateOffset, -1000, 1000)) {
+                g_buffer.inputUI.update = true;
+                g_buffer.inputUI.reinit = true;
+                g_buffer.inputUI.sampleRateOffset = settings.isSampleRateOffset ? settings.sampleRateOffset : 0;
+            }
+            ImGui::PopItemWidth();
         }
 
         ImGui::EndChild();

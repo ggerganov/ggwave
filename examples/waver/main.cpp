@@ -304,9 +304,9 @@ int main(int argc, char** argv) {
     }
 
     deinitMain();
-    GGWave_deinit();
-
     worker.join();
+
+    GGWave_deinit();
 
     // Cleanup
     ImGui_Shutdown();

@@ -716,6 +716,7 @@ void renderMain() {
     static GGWave::SpectrumData spectrumCurrent;
     static GGWave::AmplitudeDataI16 txAmplitudeDataCurrent;
     static std::vector<Message> messageHistory;
+    static std::string lastInput = "";
 
     if (stateCurrent.update) {
         if (stateCurrent.flags.newMessage) {
@@ -1280,15 +1281,21 @@ void renderMain() {
         }
 
         ImGui::SameLine();
-        if ((ImGui::Button(sendButtonText) || doSendMessage) && inputBuf[0] != 0) {
-            g_buffer.inputUI.update = true;
-            g_buffer.inputUI.message = { false, std::chrono::system_clock::now(), std::string(inputBuf), settings.protocolId, settings.volume, Message::Text };
+        if ((ImGui::Button(sendButtonText) || doSendMessage)) {
+            if (inputBuf[0] == 0) {
+                strncpy(inputBuf, lastInput.data(), kMaxInputSize - 1);
+            }
+            if (inputBuf[0] != 0) {
+                lastInput = std::string(inputBuf);
+                g_buffer.inputUI.update = true;
+                g_buffer.inputUI.message = { false, std::chrono::system_clock::now(), std::string(inputBuf), settings.protocolId, settings.volume, Message::Text };
 
-            messageHistory.push_back(g_buffer.inputUI.message);
+                messageHistory.push_back(g_buffer.inputUI.message);
 
-            inputBuf[0] = 0;
-            doInputFocus = true;
-            scrollMessagesToBottom = true;
+                inputBuf[0] = 0;
+                doInputFocus = true;
+                scrollMessagesToBottom = true;
+            }
         }
         if (!ImGui::IsItemHovered() && requestStopTextInput) {
             SDL_StopTextInput();

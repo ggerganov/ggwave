@@ -1204,6 +1204,7 @@ void renderMain() {
 
                 auto posSave = ImGui::GetCursorScreenPos();
                 auto wSize = ImGui::GetContentRegionAvail();
+                wSize.x = ImGui::GetContentRegionAvailWidth() - ImGui::CalcTextSize(sendButtonText).x - 2*style.ItemSpacing.x;
                 wSize.y = ImGui::GetTextLineHeight();
 
                 ImGui::PushStyleColor(ImGuiCol_FrameBg, { 0.3f, 0.3f, 0.3f, 0.3f });
@@ -1281,7 +1282,12 @@ void renderMain() {
         }
 
         ImGui::SameLine();
-        if ((ImGui::Button(sendButtonText) || doSendMessage)) {
+        {
+            auto posCur = ImGui::GetCursorScreenPos();
+            posCur.y -= ImGui::GetTextLineHeightWithSpacing();
+            ImGui::SetCursorScreenPos(posCur);
+        }
+        if ((ImGui::Button(sendButtonText, { 0, 2*ImGui::GetTextLineHeightWithSpacing() }) || doSendMessage)) {
             if (inputBuf[0] == 0) {
                 strncpy(inputBuf, lastInput.data(), kMaxInputSize - 1);
             }

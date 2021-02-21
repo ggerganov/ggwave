@@ -1021,7 +1021,15 @@ void renderMain() {
             const auto msgStatus = message.received ? "Recv" : "Send";
             const auto msgColor = message.received ? ImVec4 { 0.0f, 1.0f, 0.0f, interp } : ImVec4 { 1.0f, 1.0f, 0.0f, interp };
 
-            ImGui::TextColored(msgColor, "[%s] %s (%s):", ::toTimeString(message.timestamp), msgStatus, g_ggWave->getTxProtocol(message.protocolId).name);
+            ImGui::TextDisabled("%s |", ::toTimeString(message.timestamp));
+            ImGui::SameLine();
+            ImGui::TextColored(msgColor, "%s", msgStatus);
+            ImGui::SameLine();
+            ImGui::TextDisabled("|");
+            ImGui::SameLine();
+            ImGui::TextColored({ 1.0f, 0.2f, 0.9f, interp }, "%s", g_ggWave->getTxProtocol(message.protocolId).name);
+            ImGui::SameLine();
+            ImGui::TextDisabled("|");
 
             {
                 auto p0 = ImGui::GetCursorScreenPos();

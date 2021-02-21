@@ -677,9 +677,9 @@ void renderMain() {
     };
 
     struct Settings {
-        int protocolId = 1;
+        int protocolId = GGWAVE_TX_PROTOCOL_DT_FASTEST;
         bool isFixedLength = false;
-        int payloadLength = 1;
+        int payloadLength = 8;
         bool isSampleRateOffset = false;
         float volume = 0.10f;
     };

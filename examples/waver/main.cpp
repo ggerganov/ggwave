@@ -18,6 +18,8 @@
 #include <vector>
 #include <functional>
 
+const float kGlobalImGuiScale = 1.25f;
+
 // ImGui helpers
 
 bool ImGui_tryLoadFont(const std::string & filename, float size = 14.0f, bool merge = false) {
@@ -148,6 +150,8 @@ bool ImGui_SetStyle() {
     style.Colors[ImGuiCol_TextSelectedBg]        = ImVec4(0.25f, 1.00f, 0.00f, 0.43f);
     style.Colors[ImGuiCol_ModalWindowDarkening]  = ImVec4(1.00f, 0.98f, 0.95f, 0.78f);
 
+    style.ScaleAllSizes(kGlobalImGuiScale);
+
     return true;
 }
 
@@ -222,13 +226,13 @@ int main(int argc, char** argv) {
     ImGui_Init(window, gl_context);
     ImGui::GetIO().IniFilename = nullptr;
 
-    ImGui_tryLoadFont(getBinaryPath() + "DroidSans.ttf", 14.0f, false);
-    ImGui_tryLoadFont(getBinaryPath() + "../examples/assets/fonts/DroidSans.ttf", 14.0f, false);
-    ImGui_tryLoadFont(getBinaryPath() + "../../examples/assets/fonts/DroidSans.ttf", 14.0f, false);
+    ImGui_tryLoadFont(getBinaryPath() + "DroidSans.ttf", kGlobalImGuiScale*14.0f, false);
+    ImGui_tryLoadFont(getBinaryPath() + "../examples/assets/fonts/DroidSans.ttf", kGlobalImGuiScale*14.0f, false);
+    ImGui_tryLoadFont(getBinaryPath() + "../../examples/assets/fonts/DroidSans.ttf", kGlobalImGuiScale*14.0f, false);
 
-    ImGui_tryLoadFont(getBinaryPath() + "fontawesome-webfont.ttf", 14.0f, true);
-    ImGui_tryLoadFont(getBinaryPath() + "../examples/assets/fonts/fontawesome-webfont.ttf", 14.0f, true);
-    ImGui_tryLoadFont(getBinaryPath() + "../../examples/assets/fonts/fontawesome-webfont.ttf", 14.0f, true);
+    ImGui_tryLoadFont(getBinaryPath() + "fontawesome-webfont.ttf", kGlobalImGuiScale*14.0f, true);
+    ImGui_tryLoadFont(getBinaryPath() + "../examples/assets/fonts/fontawesome-webfont.ttf", kGlobalImGuiScale*14.0f, true);
+    ImGui_tryLoadFont(getBinaryPath() + "../../examples/assets/fonts/fontawesome-webfont.ttf", kGlobalImGuiScale*14.0f, true);
 
     ImGui_SetStyle();
 

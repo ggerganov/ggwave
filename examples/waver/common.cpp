@@ -529,7 +529,6 @@ void updateCore() {
         GGWave::SampleFormat oldSampleFormatInp = g_ggWave->getSampleFormatInp();
         GGWave::SampleFormat oldSampleFormatOut = g_ggWave->getSampleFormatOut();
 
-        // todo : use the provided cli arguments for playback and capture device
         if (g_ggWave) delete g_ggWave;
 
         g_ggWave = new GGWave({

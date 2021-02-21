@@ -359,6 +359,7 @@ public:
 
     int takeRxData(TxRxData & dst);
     bool takeSpectrum(SpectrumData & dst);
+    bool takeAmplitude(AmplitudeData & dst);
 
 private:
     void decode_fixed();
@@ -415,6 +416,7 @@ private:
     std::vector<float> m_fftOut; // complex
 
     bool m_hasNewSpectrum;
+    bool m_hasNewAmplitude;
     SpectrumData m_sampleSpectrum;
     AmplitudeData m_sampleAmplitude;
     AmplitudeData m_sampleAmplitudeResampled;

@@ -309,6 +309,7 @@ GGWave::GGWave(const Parameters & parameters) :
     m_fftInp(kMaxSamplesPerFrame),
     m_fftOut(2*kMaxSamplesPerFrame),
     m_hasNewSpectrum(false),
+    m_hasNewAmplitude(false),
     m_sampleSpectrum(kMaxSamplesPerFrame),
     m_sampleAmplitude(kMaxSamplesPerFrame + 128), // small extra space because sometimes resampling needs a few more samples
     m_sampleAmplitudeResampled(8*kMaxSamplesPerFrame), // min input sampling rate is 0.125*kBaseSampleRate
@@ -848,6 +849,15 @@ bool GGWave::takeSpectrum(SpectrumData & dst) {
     return true;
 }
 
+bool GGWave::takeAmplitude(AmplitudeData & dst) {
+    if (m_hasNewAmplitude == false) return false;
+
+    m_hasNewAmplitude = false;
+    dst = m_sampleAmplitude;
+
+    return true;
+}
+
 //
 // Variable payload length
 //
@@ -1144,6 +1154,8 @@ void GGWave::decode_variable() {
 // Fixed payload length
 
 void GGWave::decode_fixed() {
+    m_hasNewSpectrum = true;
+
     // calculate spectrum
     std::copy(m_sampleAmplitude.begin(), m_sampleAmplitude.begin() + m_samplesPerFrame, m_fftInp.data());
 

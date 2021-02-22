@@ -681,9 +681,14 @@ void renderMain() {
         Spectrum,
     };
 
-    enum SubWindowId {
+    enum class SubWindowIdFiles {
         Send,
         Receive,
+    };
+
+    enum class SubWindowIdSpectrum {
+        Spectrum,
+        Spectrogram,
     };
 
     struct Settings {
@@ -696,7 +701,8 @@ void renderMain() {
     };
 
     static WindowId windowId = WindowId::Messages;
-    static SubWindowId subWindowId = SubWindowId::Send;
+    static SubWindowIdFiles subWindowIdFiles = SubWindowIdFiles::Send;
+    static SubWindowIdSpectrum subWindowIdSpectrum = SubWindowIdSpectrum::Spectrum;
 
     static Settings settings;
 
@@ -712,6 +718,8 @@ void renderMain() {
     static bool scrollMessagesToBottom = true;
     static bool hasAudioCaptureData = false;
     static bool hasNewMessages = false;
+    static bool hasNewSpectrum = false;
+    static bool showSpectrumSettings = true;
 #ifdef __EMSCRIPTEN__
     static bool hasFileSharingSupport = false;
 #else
@@ -737,6 +745,7 @@ void renderMain() {
         }
         if (stateCurrent.flags.newSpectrum) {
             spectrumCurrent = std::move(stateCurrent.spectrum);
+            hasNewSpectrum = true;
             hasAudioCaptureData = !spectrumCurrent.empty();
         }
         if (stateCurrent.flags.newTxAmplitudeData) {
@@ -767,7 +776,7 @@ void renderMain() {
 
     if (g_focusFileSend) {
         windowId = WindowId::Files;
-        subWindowId = SubWindowId::Send;
+        subWindowIdFiles = SubWindowIdFiles::Send;
         g_focusFileSend = false;
     }
 
@@ -835,6 +844,9 @@ void renderMain() {
     {
         auto posSave = ImGui::GetCursorScreenPos();
         if (ImGui::ButtonSelectable(ICON_FA_SIGNAL "  Spectrum", { 1.0f*ImGui::GetContentRegionAvailWidth(), menuButtonHeight }, windowId == WindowId::Spectrum)) {
+            if (windowId == WindowId::Spectrum) {
+                showSpectrumSettings = !showSpectrumSettings;
+            }
             windowId = WindowId::Spectrum;
         }
         auto radius = 0.3f*ImGui::GetTextLineHeight();
@@ -1164,7 +1176,7 @@ void renderMain() {
                     g_hasReceivedFiles = false;
 
                     windowId = WindowId::Files;
-                    subWindowId = SubWindowId::Receive;
+                    subWindowIdFiles = SubWindowIdFiles::Receive;
 
                     ImGui::CloseCurrentPopup();
                 }
@@ -1200,12 +1212,12 @@ void renderMain() {
                 ImGui::TextColored({ 0.0f, 1.0f, 0.0f, 1.0f }, "Analyzing ...");
                 ImGui::SameLine();
                 ImGui::ProgressBar(1.0f - float(statsCurrent.framesLeftToAnalyze)/statsCurrent.framesToAnalyze,
-                                   { ImGui::GetContentRegionAvailWidth(), ImGui::GetTextLineHeight() });
+                                   { ImGui::GetContentRegionAvailWidth() - ImGui::CalcTextSize(sendButtonText).x - 2*style.ItemSpacing.x, ImGui::GetTextLineHeight() });
             } else {
                 ImGui::TextColored({ 0.0f, 1.0f, 0.0f, 1.0f }, "Receiving ...");
                 ImGui::SameLine();
                 ImGui::ProgressBar(1.0f - float(statsCurrent.framesLeftToRecord)/statsCurrent.framesToRecord,
-                                   { ImGui::GetContentRegionAvailWidth(), ImGui::GetTextLineHeight() });
+                                   { ImGui::GetContentRegionAvailWidth() - ImGui::CalcTextSize(sendButtonText).x - 2*style.ItemSpacing.x, ImGui::GetTextLineHeight() });
             }
         } else {
             static float amax = 0.0f;
@@ -1341,17 +1353,17 @@ void renderMain() {
     if (windowId == WindowId::Files) {
         const float subWindowButtonHeight = menuButtonHeight;
 
-        if (ImGui::ButtonSelectable("Send", { 0.50f*ImGui::GetContentRegionAvailWidth(), subWindowButtonHeight }, subWindowId == SubWindowId::Send)) {
-            subWindowId = SubWindowId::Send;
+        if (ImGui::ButtonSelectable("Send", { 0.50f*ImGui::GetContentRegionAvailWidth(), subWindowButtonHeight }, subWindowIdFiles == SubWindowIdFiles::Send)) {
+            subWindowIdFiles = SubWindowIdFiles::Send;
         }
         ImGui::SameLine();
 
-        if (ImGui::ButtonSelectable("Receive", { 1.0f*ImGui::GetContentRegionAvailWidth(), subWindowButtonHeight }, subWindowId == SubWindowId::Receive)) {
-            subWindowId = SubWindowId::Receive;
+        if (ImGui::ButtonSelectable("Receive", { 1.0f*ImGui::GetContentRegionAvailWidth(), subWindowButtonHeight }, subWindowIdFiles == SubWindowIdFiles::Receive)) {
+            subWindowIdFiles = SubWindowIdFiles::Receive;
         }
 
-        switch (subWindowId) {
-            case SubWindowId::Send:
+        switch (subWindowIdFiles) {
+            case SubWindowIdFiles::Send:
                 {
                     const float statusWindowHeight = 2*style.ItemInnerSpacing.y + 4*ImGui::GetTextLineHeightWithSpacing();
 
@@ -1469,7 +1481,7 @@ void renderMain() {
                     }
                 }
                 break;
-            case SubWindowId::Receive:
+            case SubWindowIdFiles::Receive:
                 {
                     const float statusWindowHeight = 2*style.ItemInnerSpacing.y + 4*ImGui::GetTextLineHeightWithSpacing();
                     {
@@ -1592,34 +1604,133 @@ void renderMain() {
     }
 
     if (windowId == WindowId::Spectrum) {
-        ImGui::BeginChild("Spectrum:main", ImGui::GetContentRegionAvail(), true);
-        ImGui::PushTextWrapPos();
-        {
-            auto posSave = ImGui::GetCursorScreenPos();
-            ImGui::Text("FPS: %4.2f\n", ImGui::GetIO().Framerate);
-            ImGui::SetCursorScreenPos(posSave);
-        }
-        if (hasAudioCaptureData) {
-            auto wSize = ImGui::GetContentRegionAvail();
-            ImGui::PushStyleColor(ImGuiCol_FrameBg, { 0.3f, 0.3f, 0.3f, 0.3f });
-            if (statsCurrent.isReceiving) {
-                ImGui::PushStyleColor(ImGuiCol_PlotHistogram, { 1.0f, 0.0f, 0.0f, 1.0f });
-            } else {
-                ImGui::PushStyleColor(ImGuiCol_PlotHistogram, { 0.0f, 1.0f, 0.0f, 1.0f });
-            }
-            ImGui::PlotHistogram("##plotSpectrumCurrent",
-                                 spectrumCurrent.data() + 30,
-                                 g_ggWave->getSamplesPerFrame()/2 - 30, 0,
-                                 (std::string("Current Spectrum")).c_str(),
-                                 0.0f, FLT_MAX, wSize);
-            ImGui::PopStyleColor(2);
-        } else {
+        if (hasAudioCaptureData == false) {
             ImGui::Text("%s", "");
             ImGui::TextColored({ 1.0f, 0.0f, 0.0f, 1.0f }, "No capture data available!");
             ImGui::TextColored({ 1.0f, 0.0f, 0.0f, 1.0f }, "Please make sure you have allowed microphone access for this app.");
+        } else {
+            const int nBins = g_ggWave->getSamplesPerFrame()/2;
+
+            static int binMin = 20;
+            static int binMax = 100;
+
+            static float scale = 30.0f;
+
+            static bool showFPS = true;
+            static bool showSpectrogram = false;
+
+            // 3 seconds data
+            static int freqDataSize = (3.0f*g_ggWave->getSampleRateInp())/g_ggWave->getSamplesPerFrame();
+            static int freqDataHead = 0;
+
+            struct FreqData {
+                float freq;
+
+                std::vector<float> mag;
+            };
+
+            static std::vector<FreqData> freqData;
+            if (freqData.empty()) {
+                float df = g_ggWave->getSampleRateInp()/g_ggWave->getSamplesPerFrame();
+                freqData.resize(nBins);
+                for (int i = 0; i < nBins; ++i) {
+                    freqData[i].freq = df*i;
+                    freqData[i].mag.resize(freqDataSize);
+                }
+            }
+
+            if (hasNewSpectrum) {
+                for (int i = 0; i < (int) freqData.size(); ++i) {
+                    freqData[i].mag[freqDataHead] = spectrumCurrent[i];
+                }
+                if (++freqDataHead == freqDataSize) {
+                    freqDataHead = 0;
+                }
+
+                hasNewSpectrum = false;
+            }
+
+            if (showSpectrumSettings) {
+                auto width = ImGui::GetContentRegionAvailWidth();
+                ImGui::PushItemWidth(0.5*width);
+                static char buf[64];
+                snprintf(buf, 64, "Bin: %3d, Freq: %5.2f Hz", binMin, 0.5*binMin*g_ggWave->getSampleRateInp()/nBins);
+                ImGui::DragInt("##binMin", &binMin, 1, 0, binMax - 1, buf);
+                ImGui::SameLine();
+                ImGui::Checkbox("FPS", &showFPS);
+                ImGui::SameLine();
+                ImGui::Checkbox("Spectrogram", &showSpectrogram);
+                snprintf(buf, 64, "Bin: %3d, Freq: %5.2f Hz", binMax, 0.5*binMax*g_ggWave->getSampleRateInp()/nBins);
+                ImGui::DragInt("##binMax", &binMax, 1, binMin + 1, nBins, buf);
+                ImGui::SameLine();
+                ImGui::DragFloat("##scale", &scale, 1.0f, 1.0f, 1000.0f);
+                ImGui::PopItemWidth();
+            }
+
+            if (showSpectrogram) {
+                subWindowIdSpectrum = SubWindowIdSpectrum::Spectrogram;
+            } else {
+                subWindowIdSpectrum = SubWindowIdSpectrum::Spectrum;
+            }
+
+            switch (subWindowIdSpectrum) {
+                case SubWindowIdSpectrum::Spectrum:
+                    {
+                        ImGui::BeginChild("Spectrum:main", ImGui::GetContentRegionAvail(), true);
+                        ImGui::PushTextWrapPos();
+                        if (showFPS) {
+                            auto posSave = ImGui::GetCursorScreenPos();
+                            ImGui::Text("FPS: %4.2f\n", ImGui::GetIO().Framerate);
+                            ImGui::SetCursorScreenPos(posSave);
+                        }
+                        auto wSize = ImGui::GetContentRegionAvail();
+                        ImGui::PushStyleColor(ImGuiCol_FrameBg, { 0.3f, 0.3f, 0.3f, 0.3f });
+                        if (statsCurrent.isReceiving) {
+                            ImGui::PushStyleColor(ImGuiCol_PlotHistogram, { 1.0f, 0.0f, 0.0f, 1.0f });
+                        } else {
+                            ImGui::PushStyleColor(ImGuiCol_PlotHistogram, { 0.0f, 1.0f, 0.0f, 1.0f });
+                        }
+                        ImGui::PlotHistogram("##plotSpectrumCurrent",
+                                             spectrumCurrent.data() + binMin, binMax - binMin, 0,
+                                             (std::string("Current Spectrum")).c_str(),
+                                             0.0f, FLT_MAX, wSize);
+                        ImGui::PopStyleColor(2);
+                        ImGui::PopTextWrapPos();
+                        ImGui::EndChild();
+                    }
+                    break;
+                case SubWindowIdSpectrum::Spectrogram:
+                    {
+                        auto drawList = ImGui::GetWindowDrawList();
+
+                        float sum = 0.0;
+                        for (int i = binMin; i < binMax; ++i) {
+                            for (int j = 0; j < freqDataSize; ++j) {
+                                sum += freqData[i].mag[j];
+                            }
+                        }
+
+                        int nf = binMax - binMin;
+                        sum /= (nf*freqDataSize);
+
+                        const float dx = displaySize.x/(freqDataSize + 1);
+                        const float dy = displaySize.y/(nf + 1);
+
+                        auto p0 = ImGui::GetCursorScreenPos();
+                        for (int i = 0; i < nf; ++i) {
+                            for (int j = 0; j < freqDataSize; ++j) {
+                                int k = freqDataHead + j;
+                                if (k >= freqDataSize) k -= freqDataSize;
+                                auto v = freqData[binMin + i].mag[k];
+                                ImVec4 c = { 0.0f, 1.0f, 0.0, 0.0f };
+                                c.w = v/(scale*sum);
+                                drawList->AddRectFilled({ p0.x + j*dx, p0.y + i*dy }, { p0.x + j*dx + dx - 1, p0.y + i*dy + dy - 1 }, ImGui::ColorConvertFloat4ToU32(c));
+                            }
+                        }
+                    }
+                    break;
+            };
         }
-        ImGui::PopTextWrapPos();
-        ImGui::EndChild();
     }
 
     ImGui::End();

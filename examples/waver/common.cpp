@@ -142,8 +142,7 @@ struct State {
     struct Flags {
         bool newMessage = false;
         bool newSpectrum = false;
-        bool newAmplitude = false;
-        bool newTxAmplitudeData = false;
+        bool newTxAmplitude = false;
         bool newStats = false;
 
         void clear() { memset(this, 0, sizeof(Flags)); }
@@ -161,13 +160,13 @@ struct State {
         if (this->flags.newSpectrum) {
             dst.update = true;
             dst.flags.newSpectrum = true;
-            dst.spectrum = std::move(this->spectrum);
+            dst.rxSpectrum = std::move(this->rxSpectrum);
         }
 
-        if (this->flags.newTxAmplitudeData) {
+        if (this->flags.newTxAmplitude) {
             dst.update = true;
-            dst.flags.newTxAmplitudeData = true;
-            dst.txAmplitudeData = std::move(this->txAmplitudeData);
+            dst.flags.newTxAmplitude = true;
+            dst.txAmplitude = std::move(this->txAmplitude);
         }
 
         if (this->flags.newStats) {
@@ -181,18 +180,58 @@ struct State {
     }
 
     Message message;
-    GGWave::SpectrumData spectrum;
-    GGWave::AmplitudeDataI16 txAmplitudeData;
+    GGWave::SpectrumData rxSpectrum;
+    GGWave::AmplitudeData rxAmplitude;
+    GGWave::AmplitudeDataI16 txAmplitude;
     GGWaveStats stats;
 };
 
 struct Input {
     bool update = true;
+
+    struct Flags {
+        bool newMessage = false;
+        bool needReinit = false;
+        bool changeNeedSpectrum = false;
+
+        void clear() { memset(this, 0, sizeof(Flags)); }
+    } flags;
+
+    void apply(Input & dst) {
+        if (update == false) return;
+
+        if (this->flags.newMessage) {
+            dst.update = true;
+            dst.flags.newMessage = true;
+            dst.message = std::move(this->message);
+        }
+
+        if (this->flags.needReinit) {
+            dst.update = true;
+            dst.flags.needReinit = true;
+            dst.sampleRateOffset = std::move(this->sampleRateOffset);
+            dst.payloadLength = std::move(this->payloadLength);
+        }
+
+        if (this->flags.changeNeedSpectrum) {
+            dst.update = true;
+            dst.flags.changeNeedSpectrum = true;
+            dst.needSpectrum = std::move(this->needSpectrum);
+        }
+
+        flags.clear();
+        update = false;
+    }
+
+    // message
     Message message;
 
-    bool reinit = true;
+    // reinit
     int sampleRateOffset = 0;
     int payloadLength = 8;
+
+    // spectrum
+    bool needSpectrum = false;
 };
 
 struct Buffer {
@@ -512,52 +551,55 @@ void initMain() {
 void updateCore() {
     static Input inputCurrent;
 
-    static int lastRxDataLength = 0;
-    static float lastRxTimestamp = 0.0f;
-    static GGWave::TxRxData lastRxData;
+    static bool needSpectrum = false;
+    static int rxDataLengthLast = 0;
+    static float rxTimestampLast = 0.0f;
+    static GGWave::TxRxData rxDataLast;
 
     {
         std::lock_guard<std::mutex> lock(g_buffer.mutex);
-        if (g_buffer.inputCore.update) {
-            inputCurrent = std::move(g_buffer.inputCore);
-            g_buffer.inputCore.update = false;
-        }
-    }
-
-    if (inputCurrent.reinit) {
-        static int oldSampleRateInp = g_ggWave->getSampleRateInp();
-        static int oldSampleRateOut = g_ggWave->getSampleRateOut();
-        GGWave::SampleFormat oldSampleFormatInp = g_ggWave->getSampleFormatInp();
-        GGWave::SampleFormat oldSampleFormatOut = g_ggWave->getSampleFormatOut();
-
-        if (g_ggWave) delete g_ggWave;
-
-        g_ggWave = new GGWave({
-            inputCurrent.payloadLength,
-            oldSampleRateInp + inputCurrent.sampleRateOffset,
-            oldSampleRateOut,
-            GGWave::kDefaultSamplesPerFrame,
-            GGWave::kDefaultSoundMarkerThreshold,
-            oldSampleFormatInp,
-            oldSampleFormatOut});
-
-        inputCurrent.reinit = false;
+        g_buffer.inputCore.apply(inputCurrent);
     }
 
     if (inputCurrent.update) {
-        g_ggWave->init(
-                (int) inputCurrent.message.data.size(),
-                inputCurrent.message.data.data(),
-                g_ggWave->getTxProtocol(inputCurrent.message.protocolId),
-                100*inputCurrent.message.volume);
+        if (inputCurrent.flags.newMessage) {
+            g_ggWave->init(
+                    (int) inputCurrent.message.data.size(),
+                    inputCurrent.message.data.data(),
+                    g_ggWave->getTxProtocol(inputCurrent.message.protocolId),
+                    100*inputCurrent.message.volume);
+        }
 
+        if (inputCurrent.flags.needReinit) {
+            static int oldSampleRateInp = g_ggWave->getSampleRateInp();
+            static int oldSampleRateOut = g_ggWave->getSampleRateOut();
+            GGWave::SampleFormat oldSampleFormatInp = g_ggWave->getSampleFormatInp();
+            GGWave::SampleFormat oldSampleFormatOut = g_ggWave->getSampleFormatOut();
+
+            if (g_ggWave) delete g_ggWave;
+
+            g_ggWave = new GGWave({
+                inputCurrent.payloadLength,
+                oldSampleRateInp + inputCurrent.sampleRateOffset,
+                oldSampleRateOut,
+                GGWave::kDefaultSamplesPerFrame,
+                GGWave::kDefaultSoundMarkerThreshold,
+                oldSampleFormatInp,
+                oldSampleFormatOut});
+        }
+
+        if (inputCurrent.flags.changeNeedSpectrum) {
+            needSpectrum = inputCurrent.needSpectrum;
+        }
+
+        inputCurrent.flags.clear();
         inputCurrent.update = false;
     }
 
     GGWave_mainLoop();
 
-    lastRxDataLength = g_ggWave->takeRxData(lastRxData);
-    if (lastRxDataLength == -1) {
+    rxDataLengthLast = g_ggWave->takeRxData(rxDataLast);
+    if (rxDataLengthLast == -1) {
         g_buffer.stateCore.update = true;
         g_buffer.stateCore.flags.newMessage = true;
         g_buffer.stateCore.message = {
@@ -568,8 +610,8 @@ void updateCore() {
             0,
             Message::Error,
         };
-    } else if (lastRxDataLength > 0 && ImGui::GetTime() - lastRxTimestamp > 0.5f) {
-        auto message = std::string((char *) lastRxData.data(), lastRxDataLength);
+    } else if (rxDataLengthLast > 0 && ImGui::GetTime() - rxTimestampLast > 0.5f) {
+        auto message = std::string((char *) rxDataLast.data(), rxDataLengthLast);
         const Message::Type type = isFileBroadcastMessage(message) ? Message::FileBroadcast : Message::Text;
         g_buffer.stateCore.update = true;
         g_buffer.stateCore.flags.newMessage = true;
@@ -581,17 +623,36 @@ void updateCore() {
             0,
             type,
         };
-        lastRxTimestamp = ImGui::GetTime();
+        rxTimestampLast = ImGui::GetTime();
     }
 
-    if (g_ggWave->takeRxSpectrum(g_buffer.stateCore.spectrum)) {
-        g_buffer.stateCore.update = true;
-        g_buffer.stateCore.flags.newSpectrum = true;
+    if (needSpectrum) {
+        if (g_ggWave->takeRxSpectrum(g_buffer.stateCore.rxSpectrum)) {
+            g_buffer.stateCore.update = true;
+            g_buffer.stateCore.flags.newSpectrum = true;
+        } else if (g_ggWave->takeRxAmplitude(g_buffer.stateCore.rxAmplitude)) {
+            static const int NMax = GGWave::kMaxSamplesPerFrame;
+            static float tmp[2*NMax];
+
+            int N = g_ggWave->getSamplesPerFrame();
+            g_ggWave->computeFFTR(g_buffer.stateCore.rxAmplitude.data(), tmp, N, 1.0);
+
+            g_buffer.stateCore.rxSpectrum.resize(N);
+            for (int i = 0; i < N; ++i) {
+                g_buffer.stateCore.rxSpectrum[i] = (tmp[2*i + 0]*tmp[2*i + 0] + tmp[2*i + 1]*tmp[2*i + 1]);
+            }
+            for (int i = 1; i < N/2; ++i) {
+                g_buffer.stateCore.rxSpectrum[i] += g_buffer.stateCore.rxSpectrum[N - i];
+            }
+
+            g_buffer.stateCore.update = true;
+            g_buffer.stateCore.flags.newSpectrum = true;
+        }
     }
 
-    if (g_ggWave->takeTxAmplitudeI16(g_buffer.stateCore.txAmplitudeData)) {
+    if (g_ggWave->takeTxAmplitudeI16(g_buffer.stateCore.txAmplitude)) {
         g_buffer.stateCore.update = true;
-        g_buffer.stateCore.flags.newTxAmplitudeData = true;
+        g_buffer.stateCore.flags.newTxAmplitude = true;
     }
 
     if (true) {
@@ -696,25 +757,26 @@ void renderMain() {
         int protocolId = GGWAVE_TX_PROTOCOL_DT_FASTEST;
         bool isSampleRateOffset = false;
         int sampleRateOffset = 512;
-        bool isFixedLength = true;
+        bool isFixedLength = false;
         int payloadLength = 8;
         float volume = 0.10f;
     };
 
     static WindowId windowId = WindowId::Messages;
+    static WindowId windowIdLast = windowId;
     static SubWindowIdFiles subWindowIdFiles = SubWindowIdFiles::Send;
     static SubWindowIdSpectrum subWindowIdSpectrum = SubWindowIdSpectrum::Spectrum;
 
     static Settings settings;
 
-    const double tHoldContextPopup = 0.5f;
+    const double tHoldContextPopup = 0.2f;
 
     const int kMaxInputSize = 140;
     static char inputBuf[kMaxInputSize];
 
     static bool doInputFocus = false;
     static bool doSendMessage = false;
-    static bool lastMouseButtonLeft = 0;
+    static bool mouseButtonLeftLast = 0;
     static bool isTextInput = false;
     static bool scrollMessagesToBottom = true;
     static bool hasAudioCaptureData = false;
@@ -736,7 +798,7 @@ void renderMain() {
     static GGWave::SpectrumData spectrumCurrent;
     static GGWave::AmplitudeDataI16 txAmplitudeDataCurrent;
     static std::vector<Message> messageHistory;
-    static std::string lastInput = "";
+    static std::string inputLast = "";
 
     if (stateCurrent.update) {
         if (stateCurrent.flags.newMessage) {
@@ -745,12 +807,12 @@ void renderMain() {
             hasNewMessages = true;
         }
         if (stateCurrent.flags.newSpectrum) {
-            spectrumCurrent = std::move(stateCurrent.spectrum);
+            spectrumCurrent = std::move(stateCurrent.rxSpectrum);
             hasNewSpectrum = true;
             hasAudioCaptureData = !spectrumCurrent.empty();
         }
-        if (stateCurrent.flags.newTxAmplitudeData) {
-            txAmplitudeDataCurrent = std::move(stateCurrent.txAmplitudeData);
+        if (stateCurrent.flags.newTxAmplitude) {
+            txAmplitudeDataCurrent = std::move(stateCurrent.txAmplitude);
 
             tStartTx = ImGui::GetTime() + (16.0f*1024.0f)/g_ggWave->getSampleRateOut();
             tLengthTx = txAmplitudeDataCurrent.size()/g_ggWave->getSampleRateOut();
@@ -781,10 +843,10 @@ void renderMain() {
         g_focusFileSend = false;
     }
 
-    if (lastMouseButtonLeft == 0 && ImGui::GetIO().MouseDown[0] == 1) {
+    if (mouseButtonLeftLast == 0 && ImGui::GetIO().MouseDown[0] == 1) {
         ImGui::GetIO().MouseDelta = { 0.0, 0.0 };
     }
-    lastMouseButtonLeft = ImGui::GetIO().MouseDown[0];
+    mouseButtonLeftLast = ImGui::GetIO().MouseDown[0];
 
     const auto& displaySize = ImGui::GetIO().DisplaySize;
     auto& style = ImGui::GetStyle();
@@ -854,6 +916,14 @@ void renderMain() {
         posSave.x += 2.0f*radius;
         posSave.y += 2.0f*radius;
         ImGui::GetWindowDrawList()->AddCircleFilled(posSave, radius, hasAudioCaptureData ? ImGui::ColorConvertFloat4ToU32({ 0.0f, 1.0f, 0.0f, 1.0f }) : ImGui::ColorConvertFloat4ToU32({ 1.0f, 0.0f, 0.0f, 1.0f }), 16);
+    }
+
+    if ((windowIdLast != windowId) || (hasAudioCaptureData == false)) {
+        g_buffer.inputUI.update = true;
+        g_buffer.inputUI.flags.changeNeedSpectrum = true;
+        g_buffer.inputUI.needSpectrum = (windowId == WindowId::Spectrum) || (hasAudioCaptureData == false);
+
+        windowIdLast = windowId;
     }
 
     if (windowId == WindowId::Settings) {
@@ -953,8 +1023,6 @@ void renderMain() {
             ImGui::EndCombo();
         }
 
-        g_buffer.inputUI.reinit = false;
-
         // fixed-length
         ImGui::Text("%s", "");
         {
@@ -964,7 +1032,7 @@ void renderMain() {
         }
         if (ImGui::Checkbox("##fixed-length", &settings.isFixedLength)) {
             g_buffer.inputUI.update = true;
-            g_buffer.inputUI.reinit = true;
+            g_buffer.inputUI.flags.needReinit = true;
             g_buffer.inputUI.payloadLength = settings.isFixedLength ? settings.payloadLength : -1;
         }
 
@@ -973,7 +1041,7 @@ void renderMain() {
             ImGui::PushItemWidth(0.5*ImGui::GetContentRegionAvailWidth());
             if (ImGui::SliderInt("Bytes", &settings.payloadLength, 1, 16)) {
                 g_buffer.inputUI.update = true;
-                g_buffer.inputUI.reinit = true;
+                g_buffer.inputUI.flags.needReinit = true;
                 g_buffer.inputUI.payloadLength = settings.isFixedLength ? settings.payloadLength : -1;
             }
             ImGui::PopItemWidth();
@@ -988,7 +1056,7 @@ void renderMain() {
         }
         if (ImGui::Checkbox("##input-sample-rate-offset", &settings.isSampleRateOffset)) {
             g_buffer.inputUI.update = true;
-            g_buffer.inputUI.reinit = true;
+            g_buffer.inputUI.flags.needReinit = true;
             g_buffer.inputUI.sampleRateOffset = settings.isSampleRateOffset ? settings.sampleRateOffset : 0;
         }
 
@@ -997,7 +1065,7 @@ void renderMain() {
             ImGui::PushItemWidth(0.5*ImGui::GetContentRegionAvailWidth());
             if (ImGui::SliderInt("Samples", &settings.sampleRateOffset, -1000, 1000)) {
                 g_buffer.inputUI.update = true;
-                g_buffer.inputUI.reinit = true;
+                g_buffer.inputUI.flags.needReinit = true;
                 g_buffer.inputUI.sampleRateOffset = settings.isSampleRateOffset ? settings.sampleRateOffset : 0;
             }
             ImGui::PopItemWidth();
@@ -1144,6 +1212,7 @@ void renderMain() {
 
             if (ImGui::ButtonDisablable("Resend", {}, messageSelected.type != Message::Text)) {
                 g_buffer.inputUI.update = true;
+                g_buffer.inputUI.flags.newMessage = true;
                 g_buffer.inputUI.message = { false, std::chrono::system_clock::now(), messageSelected.data, messageSelected.protocolId, settings.volume, Message::Text };
 
                 messageHistory.push_back(g_buffer.inputUI.message);
@@ -1330,11 +1399,12 @@ void renderMain() {
         }
         if ((ImGui::Button(sendButtonText, { 0, 2*ImGui::GetTextLineHeightWithSpacing() }) || doSendMessage)) {
             if (inputBuf[0] == 0) {
-                strncpy(inputBuf, lastInput.data(), kMaxInputSize - 1);
+                strncpy(inputBuf, inputLast.data(), kMaxInputSize - 1);
             }
             if (inputBuf[0] != 0) {
-                lastInput = std::string(inputBuf);
+                inputLast = std::string(inputBuf);
                 g_buffer.inputUI.update = true;
+                g_buffer.inputUI.flags.newMessage = true;
                 g_buffer.inputUI.message = { false, std::chrono::system_clock::now(), std::string(inputBuf), settings.protocolId, settings.volume, Message::Text };
 
                 messageHistory.push_back(g_buffer.inputUI.message);
@@ -1453,6 +1523,7 @@ void renderMain() {
                     {
                         if (ImGui::Button("Broadcast", { 0.40f*ImGui::GetContentRegionAvailWidth(), subWindowButtonHeight })) {
                             g_buffer.inputUI.update = true;
+                            g_buffer.inputUI.flags.newMessage = true;
                             g_buffer.inputUI.message = {
                                 false,
                                 std::chrono::system_clock::now(),
@@ -1741,10 +1812,7 @@ void renderMain() {
 
     {
         std::lock_guard<std::mutex> lock(g_buffer.mutex);
-        if (g_buffer.inputUI.update) {
-            g_buffer.inputCore = std::move(g_buffer.inputUI);
-            g_buffer.inputUI.update = false;
-        }
+        g_buffer.inputUI.apply(g_buffer.inputCore);
     }
 }
 

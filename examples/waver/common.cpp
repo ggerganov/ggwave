@@ -45,18 +45,23 @@ char * toTimeString(const std::chrono::system_clock::time_point & tp) {
     return buffer;
 }
 
-void ScrollWhenDraggingOnVoid(const ImVec2& delta, ImGuiMouseButton mouse_button) {
+bool ScrollWhenDraggingOnVoid(const ImVec2& delta, ImGuiMouseButton mouse_button) {
     ImGuiContext& g = *ImGui::GetCurrentContext();
     ImGuiWindow* window = g.CurrentWindow;
     bool hovered = false;
     bool held = false;
+    bool dragging = false;
     ImGuiButtonFlags button_flags = (mouse_button == 0) ? ImGuiButtonFlags_MouseButtonLeft : (mouse_button == 1) ? ImGuiButtonFlags_MouseButtonRight : ImGuiButtonFlags_MouseButtonMiddle;
     if (g.HoveredId == 0) // If nothing hovered so far in the frame (not same as IsAnyItemHovered()!)
         ImGui::ButtonBehavior(window->Rect(), window->GetID("##scrolldraggingoverlay"), &hovered, &held, button_flags);
-    if (held && delta.x != 0.0f)
+    if (held && delta.x != 0.0f) {
         ImGui::SetScrollX(window, window->Scroll.x + delta.x);
-    if (held && delta.y != 0.0f)
+    }
+    if (held && delta.y != 0.0f) {
         ImGui::SetScrollY(window, window->Scroll.y + delta.y);
+        dragging = true;
+    }
+    return dragging;
 }
 
 }
@@ -1104,6 +1109,7 @@ void renderMain() {
 
         ImGui::BeginChild("Messages:history", wSize, true, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
 
+        static bool isDragging = false;
         static bool isHoldingMessage = false;
         static bool isHoldingInput = false;
         static int messageIdHolding = 0;
@@ -1197,7 +1203,7 @@ void renderMain() {
             ImGui::PopID();
         }
 
-        if (ImGui::IsMouseReleased(0) && isHoldingMessage) {
+        if (ImGui::IsMouseReleased(0) && isHoldingMessage && isDragging == false) {
             auto pos = ImGui::GetMousePos();
             pos.x -= 1.0f*ImGui::CalcTextSize("Resend | Copy").x;
             pos.y -= 1.0f*ImGui::GetTextLineHeightWithSpacing();
@@ -1274,7 +1280,14 @@ void renderMain() {
             ImGui::SetCursorScreenPos(posSave);
         }
 
-        ScrollWhenDraggingOnVoid(ImVec2(0.0f, -mouse_delta.y), ImGuiMouseButton_Left);
+        {
+            bool isDraggingCur = ScrollWhenDraggingOnVoid(ImVec2(0.0f, -mouse_delta.y), ImGuiMouseButton_Left);
+            if (isDraggingCur && ImGui::IsMouseDown(0)) {
+                isDragging = true;
+            } else if (isDraggingCur == false && ImGui::IsMouseDown(0) == false) {
+                isDragging = false;
+            }
+        }
         ImGui::EndChild();
 
         if (statsCurrent.isReceiving) {

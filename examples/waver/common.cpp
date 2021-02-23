@@ -1143,7 +1143,7 @@ void renderMain() {
             ImGui::SameLine();
             ImGui::TextDisabled("|");
             ImGui::SameLine();
-            ImGui::TextColored({ 1.0f, 0.2f, 0.9f, interp }, "%s", g_ggWave->getTxProtocol(message.protocolId).name);
+            ImGui::TextColored({ 0.0f, 0.6f, 0.4f, interp }, "%s", g_ggWave->getTxProtocol(message.protocolId).name);
             ImGui::SameLine();
             ImGui::TextDisabled("|");
 
@@ -1352,7 +1352,11 @@ void renderMain() {
                                      0.0f, amax, wSize);
                 ImGui::PopStyleColor(2);
             } else {
-                ImGui::TextDisabled("Listening for waves ...\n");
+                if (settings.isFixedLength) {
+                    ImGui::TextDisabled("Listening for waves (fixed-length %d bytes)", settings.payloadLength);
+                } else {
+                    ImGui::TextDisabled("Listening for waves (variable-length)");
+                }
             }
         }
 
@@ -1362,12 +1366,24 @@ void renderMain() {
         }
 
         doSendMessage = false;
-        ImGui::PushItemWidth(ImGui::GetContentRegionAvailWidth() - ImGui::CalcTextSize(sendButtonText).x - 2*style.ItemSpacing.x);
-        if (ImGui::InputText("##Messages:Input", inputBuf, kMaxInputSize, ImGuiInputTextFlags_EnterReturnsTrue)) {
-            doSendMessage = true;
+        {
+            auto pos0 = ImGui::GetCursorScreenPos();
+            ImGui::PushItemWidth(ImGui::GetContentRegionAvailWidth() - ImGui::CalcTextSize(sendButtonText).x - 2*style.ItemSpacing.x);
+            if (ImGui::InputText("##Messages:Input", inputBuf, kMaxInputSize, ImGuiInputTextFlags_EnterReturnsTrue)) {
+                doSendMessage = true;
+            }
+            ImGui::PopItemWidth();
+
+            if (isTextInput == false && inputBuf[0] == 0) {
+                auto drawList = ImGui::GetWindowDrawList();
+                pos0.x += style.ItemInnerSpacing.x;
+                pos0.y += 0.5*style.ItemInnerSpacing.y;
+                static char tmp[128];
+                snprintf(tmp, 128, "Send message using '%s'", g_ggWave->getTxProtocol(settings.protocolId).name);
+                drawList->AddText(pos0, ImGui::ColorConvertFloat4ToU32({0.0f, 0.6f, 0.4f, 1.0f}), tmp);
+            }
         }
 
-        ImGui::PopItemWidth();
         if (ImGui::IsItemActive() && isTextInput == false) {
             SDL_StartTextInput();
             isTextInput = true;

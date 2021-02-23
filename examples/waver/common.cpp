@@ -142,6 +142,7 @@ struct State {
     struct Flags {
         bool newMessage = false;
         bool newSpectrum = false;
+        bool newAmplitude = false;
         bool newTxAmplitudeData = false;
         bool newStats = false;
 
@@ -583,12 +584,12 @@ void updateCore() {
         lastRxTimestamp = ImGui::GetTime();
     }
 
-    if (g_ggWave->takeSpectrum(g_buffer.stateCore.spectrum)) {
+    if (g_ggWave->takeRxSpectrum(g_buffer.stateCore.spectrum)) {
         g_buffer.stateCore.update = true;
         g_buffer.stateCore.flags.newSpectrum = true;
     }
 
-    if (g_ggWave->takeTxAmplitudeDataI16(g_buffer.stateCore.txAmplitudeData)) {
+    if (g_ggWave->takeTxAmplitudeI16(g_buffer.stateCore.txAmplitudeData)) {
         g_buffer.stateCore.update = true;
         g_buffer.stateCore.flags.newTxAmplitudeData = true;
     }

@@ -799,6 +799,8 @@ void GGWave::decode(const CBWaveformInp & cbWaveformInp) {
 
         // we have enough bytes to do analysis
         if (nSamplesRecorded >= m_samplesPerFrame) {
+            m_hasNewAmplitude = true;
+
             if (m_isFixedPayloadLength) {
                 decode_fixed();
             } else {
@@ -818,6 +820,14 @@ void GGWave::decode(const CBWaveformInp & cbWaveformInp) {
     }
 }
 
+bool GGWave::takeTxAmplitudeI16(AmplitudeDataI16 & dst) {
+    if (m_txAmplitudeDataI16.size() == 0) return false;
+
+    dst = std::move(m_txAmplitudeDataI16);
+
+    return true;
+}
+
 int GGWave::takeRxData(TxRxData & dst) {
     if (m_lastRxDataLength == 0) return 0;
 
@@ -831,16 +841,7 @@ int GGWave::takeRxData(TxRxData & dst) {
     return res;
 }
 
-int GGWave::takeTxAmplitudeDataI16(AmplitudeDataI16 & dst) {
-    if (m_txAmplitudeDataI16.size() == 0) return 0;
-
-    int res = (int) m_txAmplitudeDataI16.size();
-    dst = std::move(m_txAmplitudeDataI16);
-
-    return res;
-}
-
-bool GGWave::takeSpectrum(SpectrumData & dst) {
+bool GGWave::takeRxSpectrum(SpectrumData & dst) {
     if (m_hasNewSpectrum == false) return false;
 
     m_hasNewSpectrum = false;
@@ -849,7 +850,7 @@ bool GGWave::takeSpectrum(SpectrumData & dst) {
     return true;
 }
 
-bool GGWave::takeAmplitude(AmplitudeData & dst) {
+bool GGWave::takeRxAmplitude(AmplitudeData & dst) {
     if (m_hasNewAmplitude == false) return false;
 
     m_hasNewAmplitude = false;
@@ -885,9 +886,7 @@ void GGWave::decode_variable() {
         }
 
         // calculate spectrum
-        std::copy(m_sampleAmplitudeAverage.begin(), m_sampleAmplitudeAverage.begin() + m_samplesPerFrame, m_fftInp.data());
-
-        FFT(m_fftInp.data(), m_fftOut.data(), m_samplesPerFrame, 1.0);
+        FFT(m_sampleAmplitudeAverage.data(), m_fftOut.data(), m_samplesPerFrame, 1.0);
 
         for (int i = 0; i < m_samplesPerFrame; ++i) {
             m_sampleSpectrum[i] = (m_fftOut[2*i + 0]*m_fftOut[2*i + 0] + m_fftOut[2*i + 1]*m_fftOut[2*i + 1]);
@@ -1157,9 +1156,7 @@ void GGWave::decode_fixed() {
     m_hasNewSpectrum = true;
 
     // calculate spectrum
-    std::copy(m_sampleAmplitude.begin(), m_sampleAmplitude.begin() + m_samplesPerFrame, m_fftInp.data());
-
-    FFT(m_fftInp.data(), m_fftOut.data(), m_samplesPerFrame, 1.0);
+    FFT(m_sampleAmplitude.data(), m_fftOut.data(), m_samplesPerFrame, 1.0);
 
     for (int i = 0; i < m_samplesPerFrame; ++i) {
         m_sampleSpectrum[i] = (m_fftOut[2*i + 0]*m_fftOut[2*i + 0] + m_fftOut[2*i + 1]*m_fftOut[2*i + 1]);

@@ -347,7 +347,7 @@ public:
     static const TxProtocol & getTxProtocol(int id)  { return getTxProtocols().at(TxProtocolId(id)); }
     static const TxProtocol & getTxProtocol(TxProtocolId id) { return getTxProtocols().at(id); }
 
-    int takeTxAmplitudeDataI16(AmplitudeDataI16 & dst);
+    bool takeTxAmplitudeI16(AmplitudeDataI16 & dst);
 
     // Rx
 
@@ -358,8 +358,8 @@ public:
     const TxProtocolId & getRxProtocolId()  const { return m_rxProtocolId; }
 
     int takeRxData(TxRxData & dst);
-    bool takeSpectrum(SpectrumData & dst);
-    bool takeAmplitude(AmplitudeData & dst);
+    bool takeRxSpectrum(SpectrumData & dst);
+    bool takeRxAmplitude(AmplitudeData & dst);
 
 private:
     void decode_fixed();

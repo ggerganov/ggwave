@@ -153,7 +153,7 @@ int reverse(int N, int n) {
 }
 
 void ordina(float * f1, int N) {
-    float f2[2*GGWave::kMaxSamplesPerFrame];
+    static thread_local float f2[2*GGWave::kMaxSamplesPerFrame];
     for (int i = 0; i < N; i++) {
         int ir = reverse(N, i);
         f2[2*i + 0] = f1[2*ir + 0];
@@ -210,7 +210,7 @@ void FFT(float * f, int N, float d) {
     }
 }
 
-void FFT(float * src, float * dst, int N, float d) {
+void FFT(const float * src, float * dst, int N, float d) {
     for (int i = 0; i < N; ++i) {
         dst[2*i + 0] = src[i];
         dst[2*i + 1] = 0.0f;
@@ -855,6 +855,17 @@ bool GGWave::takeRxAmplitude(AmplitudeData & dst) {
 
     m_hasNewAmplitude = false;
     dst = m_sampleAmplitude;
+
+    return true;
+}
+
+bool GGWave::computeFFTR(const float * src, float * dst, int N, float d) {
+    if (N > kMaxSamplesPerFrame) {
+        fprintf(stderr, "computeFFTR: N (%d) must be <= %d\n", N, GGWave::kMaxSamplesPerFrame);
+        return false;
+    }
+
+    FFT(src, dst, N, d);
 
     return true;
 }

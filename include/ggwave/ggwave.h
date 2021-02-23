@@ -361,6 +361,16 @@ public:
     bool takeRxSpectrum(SpectrumData & dst);
     bool takeRxAmplitude(AmplitudeData & dst);
 
+    // compute FFT of real values
+    //
+    //   src - input real-valued data, size is N
+    //   dst - output complex-valued data, size is 2*N
+    //
+    //   d is scaling factor
+    //   N must be <= kMaxSamplesPerFrame
+    //
+    static bool computeFFTR(const float * src, float * dst, int N, float d);
+
 private:
     void decode_fixed();
     void decode_variable();

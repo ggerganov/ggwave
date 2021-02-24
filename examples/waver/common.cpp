@@ -1536,6 +1536,7 @@ void renderMain() {
 #else
                             ImGui::TextColored({ 1.0f, 1.0f, 0.0f, 1.0f }, "Drag and drop some files on this window to be able to broadcast them to nearby devices through sound.");
 #endif
+                            ImGui::TextColored({ 1.0f, 0.6f, 0.0f, 1.0f }, "File sharing works only between peers in the same local network!");
                         }
                         ImGui::PopTextWrapPos();
 

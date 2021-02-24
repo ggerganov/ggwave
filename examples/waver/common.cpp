@@ -585,8 +585,8 @@ void updateCore() {
 
             g_ggWave = new GGWave({
                 inputCurrent.payloadLength,
-                oldSampleRateInp + inputCurrent.sampleRateOffset,
-                oldSampleRateOut,
+                oldSampleRateInp,
+                oldSampleRateOut + inputCurrent.sampleRateOffset,
                 GGWave::kDefaultSamplesPerFrame,
                 GGWave::kDefaultSoundMarkerThreshold,
                 oldSampleFormatInp,
@@ -761,7 +761,7 @@ void renderMain() {
     struct Settings {
         int protocolId = GGWAVE_TX_PROTOCOL_DT_FASTEST;
         bool isSampleRateOffset = false;
-        int sampleRateOffset = 512;
+        int sampleRateOffset = -512;
         bool isFixedLength = false;
         int payloadLength = 8;
         float volume = 0.10f;
@@ -1071,14 +1071,14 @@ void renderMain() {
             ImGui::PopItemWidth();
         }
 
-        // Input sample-rate offset
+        // Output sample-rate offset
         ImGui::Text("%s", "");
         {
             auto posSave = ImGui::GetCursorScreenPos();
-            ImGui::Text("Inp. SR Offset: ");
+            ImGui::Text("Out. SR Offset: ");
             ImGui::SetCursorScreenPos({ posSave.x + kLabelWidth, posSave.y });
         }
-        if (ImGui::Checkbox("##input-sample-rate-offset", &settings.isSampleRateOffset)) {
+        if (ImGui::Checkbox("##output-sample-rate-offset", &settings.isSampleRateOffset)) {
             g_buffer.inputUI.update = true;
             g_buffer.inputUI.flags.needReinit = true;
             g_buffer.inputUI.sampleRateOffset = settings.isSampleRateOffset ? settings.sampleRateOffset : 0;

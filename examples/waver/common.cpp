@@ -1794,6 +1794,16 @@ void renderMain() {
                 subWindowIdSpectrum = SubWindowIdSpectrum::Spectrum;
             }
 
+            auto p0 = ImGui::GetCursorScreenPos();
+            auto p1 = ImGui::GetContentRegionAvail();
+            p1.x += p0.x;
+            p1.y += p0.y;
+            if (ImGui::IsMouseHoveringRect(p0, p1) && ImGui::IsMouseClicked(0)) {
+                g_buffer.inputUI.update = true;
+                g_buffer.inputUI.flags.changeNeedSpectrum = true;
+                g_buffer.inputUI.needSpectrum = !g_buffer.inputUI.needSpectrum;
+            }
+
             switch (subWindowIdSpectrum) {
                 case SubWindowIdSpectrum::Spectrum:
                     {
@@ -1822,6 +1832,12 @@ void renderMain() {
                     break;
                 case SubWindowIdSpectrum::Spectrogram:
                     {
+                        if (showFPS) {
+                            auto posSave = ImGui::GetCursorScreenPos();
+                            ImGui::Text("FPS: %4.2f\n", ImGui::GetIO().Framerate);
+                            ImGui::SetCursorScreenPos(posSave);
+                        }
+
                         auto drawList = ImGui::GetWindowDrawList();
 
                         float sum = 0.0;

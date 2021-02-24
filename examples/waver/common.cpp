@@ -1027,6 +1027,25 @@ void renderMain() {
             }
             ImGui::EndCombo();
         }
+        {
+            auto posSave = ImGui::GetCursorScreenPos();
+            ImGui::Text("Frequencies: ");
+            ImGui::SetCursorScreenPos({ posSave.x + kLabelWidth, posSave.y });
+        }
+        {
+            const float df = float(g_ggWave->kBaseSampleRate)/g_ggWave->getSamplesPerFrame();
+            const auto & protocol = g_ggWave->getTxProtocol(settings.protocolId);
+            ImGui::Text("%6.2f Hz - %6.2f Hz", df*protocol.freqStart, df*(protocol.freqStart + 2*16*protocol.bytesPerTx));
+        }
+        {
+            auto posSave = ImGui::GetCursorScreenPos();
+            ImGui::Text("Bandwidth: ");
+            ImGui::SetCursorScreenPos({ posSave.x + kLabelWidth, posSave.y });
+        }
+        {
+            const auto & protocol = g_ggWave->getTxProtocol(settings.protocolId);
+            ImGui::Text("%4.2f B/s", (float(0.715f*protocol.bytesPerTx)/(protocol.framesPerTx*g_ggWave->getSamplesPerFrame()))*g_ggWave->kBaseSampleRate);
+        }
 
         // fixed-length
         ImGui::Text("%s", "");

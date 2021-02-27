@@ -351,6 +351,7 @@ public:
 
     // Rx
 
+    bool stopReceiving();
     void setRxProtocols(const TxProtocols & rxProtocols) { m_rxProtocols = rxProtocols; }
 
     const TxRxData & getRxData()            const { return m_rxData; }

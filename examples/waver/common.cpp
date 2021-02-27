@@ -212,6 +212,7 @@ struct Input {
         bool newMessage = false;
         bool needReinit = false;
         bool changeNeedSpectrum = false;
+        bool stopReceiving = false;
 
         void clear() { memset(this, 0, sizeof(Flags)); }
     } flags;
@@ -236,6 +237,11 @@ struct Input {
             dst.update = true;
             dst.flags.changeNeedSpectrum = true;
             dst.needSpectrum = std::move(this->needSpectrum);
+        }
+
+        if (this->flags.stopReceiving) {
+            dst.update = true;
+            dst.flags.stopReceiving = true;
         }
 
         flags.clear();
@@ -610,6 +616,10 @@ void updateCore() {
 
         if (inputCurrent.flags.changeNeedSpectrum) {
             needSpectrum = inputCurrent.needSpectrum;
+        }
+
+        if (inputCurrent.flags.stopReceiving) {
+            ggWave->stopReceiving();
         }
 
         inputCurrent.flags.clear();
@@ -1369,6 +1379,11 @@ void renderMain() {
                                    { ImGui::GetContentRegionAvailWidth() - ImGui::CalcTextSize(sendButtonText).x - 2*style.ItemSpacing.x, ImGui::GetTextLineHeight() });
             } else {
                 ImGui::TextColored({ 0.0f, 1.0f, 0.0f, 1.0f }, "Receiving ...");
+                ImGui::SameLine();
+                if (ImGui::SmallButton("Stop")) {
+                    g_buffer.inputUI.update = true;
+                    g_buffer.inputUI.flags.stopReceiving = true;
+                }
                 ImGui::SameLine();
                 ImGui::ProgressBar(1.0f - float(statsCurrent.framesLeftToRecord)/statsCurrent.framesToRecord,
                                    { ImGui::GetContentRegionAvailWidth() - ImGui::CalcTextSize(sendButtonText).x - 2*style.ItemSpacing.x, ImGui::GetTextLineHeight() });

@@ -828,6 +828,16 @@ bool GGWave::takeTxAmplitudeI16(AmplitudeDataI16 & dst) {
     return true;
 }
 
+bool GGWave::stopReceiving() {
+    if (m_receivingData == false) {
+        return false;
+    }
+
+    m_receivingData = false;
+
+    return true;
+}
+
 int GGWave::takeRxData(TxRxData & dst) {
     if (m_lastRxDataLength == 0) return 0;
 

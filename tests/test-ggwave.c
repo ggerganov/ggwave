@@ -30,7 +30,7 @@ int main() {
     ret = ggwave_encode(instance, payload, 4, GGWAVE_TX_PROTOCOL_AUDIBLE_FAST, 50, waveform, 0);
     CHECK(ret > 0);
 
-    ret = ggwave_decode(instance, waveform, sizeof(signed)*ret, decoded);
+    ret = ggwave_decode(instance, waveform, sizeof(signed short)*ret, decoded);
     CHECK(ret == 4);
 
     CHECK(strcmp(decoded, payload) == 0);

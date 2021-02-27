@@ -46,6 +46,7 @@
       source: https://github.com/ggerganov/ggwave
       source-type: git
       plugin: cmake
+      configflags: [-DBUILD_SHARED_LIBS=OFF]
       build-packages:
         - g++
         - make

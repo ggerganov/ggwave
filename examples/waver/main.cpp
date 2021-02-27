@@ -108,7 +108,7 @@ bool ImGui_SetStyle() {
 
     style.Colors[ImGuiCol_Text]                  = ImVec4(1.00f, 1.00f, 1.00f, 1.00f);
     style.Colors[ImGuiCol_TextDisabled]          = ImVec4(0.24f, 0.41f, 0.41f, 1.00f);
-    style.Colors[ImGuiCol_WindowBg]              = ImVec4(0.48f, 0.35f, 0.50f, 0.24f);
+    style.Colors[ImGuiCol_WindowBg]              = ImVec4(0.11f, 0.15f, 0.20f, 0.60f);
     //style.Colors[ImGuiCol_ChildWindowBg]         = ImVec4(0.07f, 0.07f, 0.09f, 1.00f);
     style.Colors[ImGuiCol_PopupBg]               = ImVec4(0.07f, 0.07f, 0.09f, 1.00f);
     style.Colors[ImGuiCol_Border]                = ImVec4(0.31f, 0.31f, 0.31f, 0.71f);

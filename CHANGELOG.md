@@ -2,7 +2,9 @@
 
 ## [Unreleased]
 
-- TBD
+- Resampling fixes
+- Add `soundMarkerThreshold` parameter
+- Sampling rates are now consistently represented as float instead of int
 
 ## [v0.2.0] - 2021-02-20
 

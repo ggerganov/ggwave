@@ -238,6 +238,7 @@ public:
     using Parameters   = ggwave_Parameters;
     using SampleFormat = ggwave_SampleFormat;
     using TxProtocolId = ggwave_TxProtocolId;
+    using RxProtocolId = ggwave_TxProtocolId;
 
     struct TxProtocol {
         const char * name;  // string identifier of the protocol
@@ -249,7 +250,10 @@ public:
         int nDataBitsPerTx() const { return 8*bytesPerTx; }
     };
 
+    using RxProtocol = TxProtocol;
+
     using TxProtocols = std::map<TxProtocolId, TxProtocol>;
+    using RxProtocols = std::map<RxProtocolId, RxProtocol>;
 
     static const TxProtocols & getTxProtocols() {
         static const TxProtocols kTxProtocols {
@@ -352,11 +356,12 @@ public:
     // Rx
 
     bool stopReceiving();
-    void setRxProtocols(const TxProtocols & rxProtocols) { m_rxProtocols = rxProtocols; }
+    void setRxProtocols(const RxProtocols & rxProtocols) { m_rxProtocols = rxProtocols; }
+    const RxProtocols & getRxProtocols() const { return m_rxProtocols; }
 
     const TxRxData & getRxData()            const { return m_rxData; }
-    const TxProtocol & getRxProtocol()      const { return m_rxProtocol; }
-    const TxProtocolId & getRxProtocolId()  const { return m_rxProtocolId; }
+    const RxProtocol & getRxProtocol()      const { return m_rxProtocol; }
+    const RxProtocolId & getRxProtocolId()  const { return m_rxProtocolId; }
 
     int takeRxData(TxRxData & dst);
     bool takeRxSpectrum(SpectrumData & dst);

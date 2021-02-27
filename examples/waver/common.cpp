@@ -213,6 +213,7 @@ struct Input {
         bool needReinit = false;
         bool changeNeedSpectrum = false;
         bool stopReceiving = false;
+        bool changeRxProtocols = false;
 
         void clear() { memset(this, 0, sizeof(Flags)); }
     } flags;
@@ -244,6 +245,12 @@ struct Input {
             dst.flags.stopReceiving = true;
         }
 
+        if (this->flags.changeRxProtocols) {
+            dst.update = true;
+            dst.flags.changeRxProtocols = true;
+            dst.rxProtocols = std::move(this->rxProtocols);
+        }
+
         flags.clear();
         update = false;
     }
@@ -257,6 +264,9 @@ struct Input {
 
     // spectrum
     bool needSpectrum = false;
+
+    // rx protocols
+    GGWave::RxProtocols rxProtocols;
 };
 
 struct Buffer {
@@ -597,21 +607,24 @@ void updateCore() {
         }
 
         if (inputCurrent.flags.needReinit) {
-            static int oldSampleRateInp = ggWave->getSampleRateInp();
-            static int oldSampleRateOut = ggWave->getSampleRateOut();
-            GGWave::SampleFormat oldSampleFormatInp = ggWave->getSampleFormatInp();
-            GGWave::SampleFormat oldSampleFormatOut = ggWave->getSampleFormatOut();
+            static int sampleRateInpOld = ggWave->getSampleRateInp();
+            static int sampleRateOutOld = ggWave->getSampleRateOut();
+            GGWave::SampleFormat sampleFormatInpOld = ggWave->getSampleFormatInp();
+            GGWave::SampleFormat sampleFormatOutOld = ggWave->getSampleFormatOut();
+            auto rxProtocolsOld = ggWave->getRxProtocols();
 
             if (ggWave) delete ggWave;
 
             ggWave = new GGWave({
                 inputCurrent.payloadLength,
-                oldSampleRateInp,
-                oldSampleRateOut + inputCurrent.sampleRateOffset,
+                sampleRateInpOld,
+                sampleRateOutOld + inputCurrent.sampleRateOffset,
                 GGWave::kDefaultSamplesPerFrame,
                 GGWave::kDefaultSoundMarkerThreshold,
-                oldSampleFormatInp,
-                oldSampleFormatOut});
+                sampleFormatInpOld,
+                sampleFormatOutOld});
+
+            ggWave->setRxProtocols(rxProtocolsOld);
         }
 
         if (inputCurrent.flags.changeNeedSpectrum) {
@@ -620,6 +633,10 @@ void updateCore() {
 
         if (inputCurrent.flags.stopReceiving) {
             ggWave->stopReceiving();
+        }
+
+        if (inputCurrent.flags.changeRxProtocols) {
+            ggWave->setRxProtocols(inputCurrent.rxProtocols);
         }
 
         inputCurrent.flags.clear();
@@ -806,6 +823,9 @@ void renderMain() {
         float volume = 0.10f;
 
         GGWave::TxProtocols txProtocols;
+
+        GGWave::RxProtocols rxProtocols;
+        std::map<GGWave::RxProtocolId, bool> rxProtocolSelected;
     };
 
     static WindowId windowId = WindowId::Messages;
@@ -881,6 +901,10 @@ void renderMain() {
         }
         if (stateCurrent.flags.newTxProtocols) {
             settings.txProtocols = std::move(stateCurrent.txProtocols);
+            settings.rxProtocols = settings.txProtocols;
+            for (auto & rxProtocol : settings.rxProtocols) {
+                settings.rxProtocolSelected[rxProtocol.first] = true;
+            }
         }
         stateCurrent.flags.clear();
         stateCurrent.update = false;
@@ -976,7 +1000,7 @@ void renderMain() {
     }
 
     if (windowId == WindowId::Settings) {
-        ImGui::BeginChild("Settings:main", ImGui::GetContentRegionAvail(), true);
+        ImGui::BeginChild("Settings:main", ImGui::GetContentRegionAvail(), true, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
         ImGui::Text("Waver v1.4.0");
         ImGui::Separator();
 
@@ -1039,7 +1063,7 @@ void renderMain() {
             ImGui::SetCursorScreenPos(posSave);
         }
 
-        // protocol
+        // tx protocol
         ImGui::Text("%s", "");
         {
             auto posSave = ImGui::GetCursorScreenPos();
@@ -1058,7 +1082,7 @@ void renderMain() {
             ImGui::Text("Tx Protocol: ");
             ImGui::SetCursorScreenPos({ posSave.x + kLabelWidth, posSave.y });
         }
-        if (ImGui::BeginCombo("##protocol", settings.txProtocols.at(GGWave::TxProtocolId(settings.protocolId)).name)) {
+        if (ImGui::BeginCombo("##txProtocol", settings.txProtocols.at(GGWave::TxProtocolId(settings.protocolId)).name)) {
             for (int i = 0; i < (int) settings.txProtocols.size(); ++i) {
                 const bool isSelected = (settings.protocolId == i);
                 if (ImGui::Selectable(settings.txProtocols.at(GGWave::TxProtocolId(i)).name, isSelected)) {
@@ -1156,6 +1180,47 @@ void renderMain() {
             }
             ImGui::PopItemWidth();
         }
+
+        // rx protocols
+        bool updateRxProtocols = false;
+        ImGui::Text("%s", "");
+        {
+            auto posSave = ImGui::GetCursorScreenPos();
+            ImGui::Text("%s", "");
+            ImGui::SetCursorScreenPos({ posSave.x + kLabelWidth, posSave.y });
+            ImGui::PushTextWrapPos();
+            ImGui::TextDisabled("Waver will receive only the selected protocols:");
+            ImGui::PopTextWrapPos();
+        }
+        {
+            auto posSave = ImGui::GetCursorScreenPos();
+            ImGui::Text("Rx Protocols: ");
+            ImGui::SetCursorScreenPos(posSave);
+        }
+        {
+            ImGui::PushID("RxProtocols");
+            for (const auto & rxProtocol : settings.rxProtocols) {
+                auto posSave = ImGui::GetCursorScreenPos();
+                ImGui::Text("%s", "");
+                ImGui::SetCursorScreenPos({ posSave.x + kLabelWidth, posSave.y });
+                if (ImGui::Checkbox(rxProtocol.second.name, &settings.rxProtocolSelected.at(rxProtocol.first))) {
+                    updateRxProtocols = true;
+                }
+            }
+            ImGui::PopID();
+        }
+
+        if (updateRxProtocols) {
+            g_buffer.inputUI.update = true;
+            g_buffer.inputUI.flags.changeRxProtocols = true;
+            g_buffer.inputUI.rxProtocols.clear();
+            for (const auto & rxProtocol : settings.rxProtocols) {
+                if (settings.rxProtocolSelected.at(rxProtocol.first) == false) continue;
+                g_buffer.inputUI.rxProtocols[rxProtocol.first] = rxProtocol.second;
+            }
+        }
+
+        ScrollWhenDraggingOnVoid(ImVec2(0.0f, -mouse_delta.y), ImGuiMouseButton_Left);
 
         ImGui::EndChild();
     }

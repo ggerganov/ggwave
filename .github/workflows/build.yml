@@ -143,7 +143,7 @@ jobs:
                 make
                 ctest --output-on-failure
 
-    Emscripten:
+    emscripten:
         runs-on: ubuntu-18.04
 
         strategy:
@@ -174,3 +174,29 @@ jobs:
                 popd
                 emcmake cmake . -DCMAKE_BUILD_TYPE=${{ matrix.build }}
                 make && ctest --output-on-failure
+
+    windows-msys2:
+        runs-on: windows-latest
+        defaults:
+            run:
+                shell: msys2 {0}
+        steps:
+            - name: Clone
+              uses: actions/checkout@v1
+              with:
+                  submodules: recursive
+
+            - name: Dependencies
+              uses: msys2/setup-msys2@v2
+              with:
+                  msystem: MINGW64
+                  update: true
+                  install: cmake make mingw-w64-x86_64-dlfcn mingw-w64-x86_64-gcc mingw-w64-x86_64-SDL2
+
+            - name: Configure
+              run: cmake . -DCMAKE_BUILD_TYPE=${{ matrix.build }}
+
+            - name: Build
+              run: |
+                  make
+                  ctest --output-on-failure

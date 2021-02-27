@@ -1992,34 +1992,34 @@ void renderMain() {
 
                         const auto wSize = ImGui::GetContentRegionAvail();
 
-                        const float dx = wSize.x/(freqDataSize + 1);
-                        const float dy = wSize.y/(nf + 1);
+                        const float dx = wSize.x/nf;
+                        const float dy = wSize.y/freqDataSize;
 
                         auto p0 = ImGui::GetCursorScreenPos();
 
                         int nChildWindows = 0;
-                        int nFreqPerChild = 64;
+                        int nFreqPerChild = 32;
                         ImGui::PushID(nChildWindows++);
                         ImGui::BeginChild("Spectrogram", { wSize.x, (nFreqPerChild + 1)*dy }, true);
                         auto drawList = ImGui::GetWindowDrawList();
 
-                        for (int i = 0; i < nf; ++i) {
-                            if (i > 0 && i % nFreqPerChild == 0) {
+                        for (int j = 0; j < freqDataSize; ++j) {
+                            if (j > 0 && j % nFreqPerChild == 0) {
                                 ImGui::EndChild();
                                 ImGui::PopID();
 
                                 ImGui::PushID(nChildWindows++);
-                                ImGui::SetCursorScreenPos({ p0.x, p0.y + nFreqPerChild*int(i/nFreqPerChild)*dy });
+                                ImGui::SetCursorScreenPos({ p0.x, p0.y + nFreqPerChild*int(j/nFreqPerChild)*dy });
                                 ImGui::BeginChild("Spectrogram", { wSize.x, (nFreqPerChild + 1)*dy }, true);
                                 drawList = ImGui::GetWindowDrawList();
                             }
-                            for (int j = 0; j < freqDataSize; ++j) {
+                            for (int i = 0; i < nf; ++i) {
                                 int k = freqDataHead + j;
                                 if (k >= freqDataSize) k -= freqDataSize;
                                 auto v = freqData[binMin + i].mag[k];
                                 ImVec4 c = { 0.0f, 1.0f, 0.0, 0.0f };
                                 c.w = v/(scale*sum);
-                                drawList->AddRectFilled({ p0.x + j*dx, p0.y + i*dy }, { p0.x + j*dx + dx - 1, p0.y + i*dy + dy }, ImGui::ColorConvertFloat4ToU32(c));
+                                drawList->AddRectFilled({ p0.x + i*dx, p0.y + j*dy }, { p0.x + i*dx + dx, p0.y + j*dy + dy }, ImGui::ColorConvertFloat4ToU32(c));
                             }
                         }
 

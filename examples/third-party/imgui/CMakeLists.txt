@@ -55,7 +55,7 @@ if (GGWAVE_SUPPORT_SDL2)
 
         target_link_libraries(imgui-sdl2 PUBLIC
             imgui
-	    opengl32
+            opengl32
             ${SDL2_LIBRARIES}
 	    stdc++
             )

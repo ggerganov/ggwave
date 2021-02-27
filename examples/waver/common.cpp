@@ -1869,7 +1869,7 @@ void renderMain() {
 
             static float scale = 30.0f;
 
-            static bool showFPS = true;
+            static bool showFPS = false;
             static bool showSpectrogram = false;
 
             // 3 seconds data
@@ -1908,7 +1908,7 @@ void renderMain() {
                 ImGui::PushItemWidth(0.5*width);
                 static char buf[64];
                 snprintf(buf, 64, "Bin: %3d, Freq: %5.2f Hz", binMin, 0.5*binMin*statsCurrent.sampleRateInp/nBins);
-                ImGui::DragInt("##binMin", &binMin, 1, 0, binMax - 1, buf);
+                ImGui::DragInt("##binMin", &binMin, 1, 0, binMax - 2, buf);
                 ImGui::SameLine();
                 ImGui::Checkbox("FPS", &showFPS);
                 ImGui::SameLine();
@@ -1936,10 +1936,21 @@ void renderMain() {
                 g_buffer.inputUI.needSpectrum = !g_buffer.inputUI.needSpectrum;
             }
 
+            auto itemSpacingSave = style.ItemSpacing;
+            style.ItemSpacing.x = 0.0f;
+            style.ItemSpacing.y = 0.0f;
+
+            auto windowPaddingSave = style.WindowPadding;
+            style.WindowPadding.x = 0.0f;
+            style.WindowPadding.y = 0.0f;
+
+            auto childBorderSizeSave = style.ChildBorderSize;
+            style.ChildBorderSize = 0.0f;
+
+            ImGui::BeginChild("Spectrum:main", ImGui::GetContentRegionAvail(), true, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
             switch (subWindowIdSpectrum) {
                 case SubWindowIdSpectrum::Spectrum:
                     {
-                        ImGui::BeginChild("Spectrum:main", ImGui::GetContentRegionAvail(), true);
                         ImGui::PushTextWrapPos();
                         if (showFPS) {
                             auto posSave = ImGui::GetCursorScreenPos();
@@ -1959,7 +1970,6 @@ void renderMain() {
                                              0.0f, FLT_MAX, wSize);
                         ImGui::PopStyleColor(2);
                         ImGui::PopTextWrapPos();
-                        ImGui::EndChild();
                     }
                     break;
                 case SubWindowIdSpectrum::Spectrogram:
@@ -1969,8 +1979,6 @@ void renderMain() {
                             ImGui::Text("FPS: %4.2f\n", ImGui::GetIO().Framerate);
                             ImGui::SetCursorScreenPos(posSave);
                         }
-
-                        auto drawList = ImGui::GetWindowDrawList();
 
                         float sum = 0.0;
                         for (int i = binMin; i < binMax; ++i) {
@@ -1982,23 +1990,49 @@ void renderMain() {
                         int nf = binMax - binMin;
                         sum /= (nf*freqDataSize);
 
-                        const float dx = displaySize.x/(freqDataSize + 1);
-                        const float dy = displaySize.y/(nf + 1);
+                        const auto wSize = ImGui::GetContentRegionAvail();
+
+                        const float dx = wSize.x/(freqDataSize + 1);
+                        const float dy = wSize.y/(nf + 1);
 
                         auto p0 = ImGui::GetCursorScreenPos();
+
+                        int nChildWindows = 0;
+                        int nFreqPerChild = 64;
+                        ImGui::PushID(nChildWindows++);
+                        ImGui::BeginChild("Spectrogram", { wSize.x, (nFreqPerChild + 1)*dy }, true);
+                        auto drawList = ImGui::GetWindowDrawList();
+
                         for (int i = 0; i < nf; ++i) {
+                            if (i > 0 && i % nFreqPerChild == 0) {
+                                ImGui::EndChild();
+                                ImGui::PopID();
+
+                                ImGui::PushID(nChildWindows++);
+                                ImGui::SetCursorScreenPos({ p0.x, p0.y + nFreqPerChild*int(i/nFreqPerChild)*dy });
+                                ImGui::BeginChild("Spectrogram", { wSize.x, (nFreqPerChild + 1)*dy }, true);
+                                drawList = ImGui::GetWindowDrawList();
+                            }
                             for (int j = 0; j < freqDataSize; ++j) {
                                 int k = freqDataHead + j;
                                 if (k >= freqDataSize) k -= freqDataSize;
                                 auto v = freqData[binMin + i].mag[k];
                                 ImVec4 c = { 0.0f, 1.0f, 0.0, 0.0f };
                                 c.w = v/(scale*sum);
-                                drawList->AddRectFilled({ p0.x + j*dx, p0.y + i*dy }, { p0.x + j*dx + dx - 1, p0.y + i*dy + dy - 1 }, ImGui::ColorConvertFloat4ToU32(c));
+                                drawList->AddRectFilled({ p0.x + j*dx, p0.y + i*dy }, { p0.x + j*dx + dx - 1, p0.y + i*dy + dy }, ImGui::ColorConvertFloat4ToU32(c));
                             }
                         }
+
+                        ImGui::EndChild();
+                        ImGui::PopID();
                     }
                     break;
             };
+            ImGui::EndChild();
+
+            style.ItemSpacing = itemSpacingSave;
+            style.WindowPadding = windowPaddingSave;
+            style.ChildBorderSize = childBorderSizeSave;
         }
     }
 

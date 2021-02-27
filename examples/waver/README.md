@@ -20,7 +20,7 @@ The main purpose of this app is to showcase the capabilities of the [ggwave](htt
 sudo snap install waver
 sudo snap connect waver:audio-record :audio-record
 ```
-  
+
 #### Mac OS
 
 ```bash

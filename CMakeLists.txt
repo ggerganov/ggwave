@@ -5,6 +5,7 @@ set(GGWAVE_VERSION_PYTHON 0.2.1)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS "on")
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
+set(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/lib")
 
 if(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
     set(GGWAVE_STANDALONE ON)
@@ -96,4 +97,18 @@ endif()
 
 if (GGWAVE_BUILD_EXAMPLES)
     add_subdirectory(examples)
+endif()
+
+install(TARGETS ggwave RUNTIME)
+install(TARGETS ggwave-common RUNTIME)
+install(TARGETS ggsock RUNTIME)
+
+if (GGWAVE_SUPPORT_SDL2)
+    install(TARGETS ggwave-common-sdl2 RUNTIME)
+    install(TARGETS imgui RUNTIME)
+    install(TARGETS imgui-sdl2 RUNTIME)
+    install(TARGETS waver RUNTIME)
+
+    install(FILES ${PROJECT_SOURCE_DIR}/examples/assets/fonts/DroidSans.ttf DESTINATION bin)
+    install(FILES ${PROJECT_SOURCE_DIR}/examples/assets/fonts/fontawesome-webfont.ttf DESTINATION bin)
 endif()

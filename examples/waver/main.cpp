@@ -23,10 +23,13 @@ const float kGlobalImGuiScale = 1.25f;
 // ImGui helpers
 
 bool ImGui_tryLoadFont(const std::string & filename, float size = 14.0f, bool merge = false) {
+    printf("Trying to load font from '%s' ..\n", filename.c_str());
     std::ifstream f(filename);
     if (f.good() == false) {
+        printf(" - failed\n");
         return false;
     }
+    printf(" - success\n");
     if (merge) {
         // todo : ugly static !!!
         static ImWchar ranges[] = { 0xf000, 0xf3ff, 0 };
@@ -227,10 +230,12 @@ int main(int argc, char** argv) {
     ImGui::GetIO().IniFilename = nullptr;
 
     ImGui_tryLoadFont(getBinaryPath() + "DroidSans.ttf", kGlobalImGuiScale*14.0f, false);
+    ImGui_tryLoadFont(getBinaryPath() + "../bin/DroidSans.ttf", kGlobalImGuiScale*14.0f, false);
     ImGui_tryLoadFont(getBinaryPath() + "../examples/assets/fonts/DroidSans.ttf", kGlobalImGuiScale*14.0f, false);
     ImGui_tryLoadFont(getBinaryPath() + "../../examples/assets/fonts/DroidSans.ttf", kGlobalImGuiScale*14.0f, false);
 
     ImGui_tryLoadFont(getBinaryPath() + "fontawesome-webfont.ttf", kGlobalImGuiScale*14.0f, true);
+    ImGui_tryLoadFont(getBinaryPath() + "../bin/fontawesome-webfont.ttf", kGlobalImGuiScale*14.0f, true);
     ImGui_tryLoadFont(getBinaryPath() + "../examples/assets/fonts/fontawesome-webfont.ttf", kGlobalImGuiScale*14.0f, true);
     ImGui_tryLoadFont(getBinaryPath() + "../../examples/assets/fonts/fontawesome-webfont.ttf", kGlobalImGuiScale*14.0f, true);
 

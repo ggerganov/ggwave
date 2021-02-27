@@ -1053,6 +1053,14 @@ void renderMain() {
         ImGui::Text("%s", "");
         {
             auto posSave = ImGui::GetCursorScreenPos();
+            ImGui::Text("%s", "");
+            ImGui::SetCursorScreenPos({ posSave.x + kLabelWidth, posSave.y });
+            ImGui::PushTextWrapPos();
+            ImGui::TextDisabled("Fixed-length Tx/Rx does not use sound-markers");
+            ImGui::PopTextWrapPos();
+        }
+        {
+            auto posSave = ImGui::GetCursorScreenPos();
             ImGui::Text("Fixed-length: ");
             ImGui::SetCursorScreenPos({ posSave.x + kLabelWidth, posSave.y });
         }
@@ -1077,7 +1085,15 @@ void renderMain() {
         ImGui::Text("%s", "");
         {
             auto posSave = ImGui::GetCursorScreenPos();
-            ImGui::Text("Out. SR Offset: ");
+            ImGui::Text("%s", "");
+            ImGui::SetCursorScreenPos({ posSave.x + kLabelWidth, posSave.y });
+            ImGui::PushTextWrapPos();
+            ImGui::TextDisabled("Modify the output Sampling Rate");
+            ImGui::PopTextWrapPos();
+        }
+        {
+            auto posSave = ImGui::GetCursorScreenPos();
+            ImGui::Text("Pitch shift: ");
             ImGui::SetCursorScreenPos({ posSave.x + kLabelWidth, posSave.y });
         }
         if (ImGui::Checkbox("##output-sample-rate-offset", &settings.isSampleRateOffset)) {

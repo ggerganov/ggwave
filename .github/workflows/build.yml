@@ -2,6 +2,179 @@ name: CI
 on: [push]
 
 jobs:
+    ubuntu-18_04-gcc:
+        runs-on: ubuntu-18.04
+
+        strategy:
+            matrix:
+                build: [Debug, Release]
+
+        steps:
+            - name: Clone
+              uses: actions/checkout@v1
+              with:
+                  submodules: recursive
+
+            - name: Dependencies
+              run: |
+                  sudo apt-get update
+                  sudo apt-get install build-essential xorg-dev libglu1-mesa-dev
+                  sudo apt-get install cmake;
+                  sudo apt-get install libsdl2-dev;
+
+            - name: Configure
+              run: cmake . -DCMAKE_BUILD_TYPE=${{ matrix.build }}
+
+            - name: Build
+              run: |
+                make
+                ctest --output-on-failure
+
+    ubuntu-18_04-python:
+        runs-on: ubuntu-18.04
+
+        strategy:
+            matrix:
+                python-version: [3.5, 3.6, 3.7, 3.8]
+
+        steps:
+            - name: Clone
+              uses: actions/checkout@v1
+              with:
+                  submodules: recursive
+
+            - name: Set up Python ${{ matrix.python-version }}
+              uses: actions/setup-python@v2
+              with:
+                  python-version: ${{ matrix.python-version }}
+
+            - name: Dependencies
+              run: |
+                  sudo apt-get update
+                  sudo apt-get install build-essential
+                  sudo apt-get install cmake;
+
+            - name: Configure
+              run: cmake . -DGGWAVE_SUPPORT_PYTHON=ON -DGGWAVE_BUILD_EXAMPLES=OFF -DCMAKE_BUILD_TYPE=${{ matrix.build }}
+
+            - name: Build
+              run: |
+                make
+                ctest --output-on-failure
+
+    ubuntu-18_04-gcc-sanitized:
+        runs-on: ubuntu-18.04
+
+        strategy:
+            matrix:
+                sanitizer: [ADDRESS, THREAD, UNDEFINED]
+
+        steps:
+            - name: Clone
+              uses: actions/checkout@v1
+              with:
+                  submodules: recursive
+
+            - name: Dependencies
+              run: |
+                  sudo apt-get update
+                  sudo apt-get install build-essential
+                  sudo apt-get install cmake;
+
+            - name: Configure
+              run: cmake . -DCMAKE_BUILD_TYPE=Debug -DGGWAVE_BUILD_EXAMPLES=OFF -DGGWAVE_SANITIZE_${{ matrix.sanitizer }}=ON
+
+            - name: Build
+              run: |
+                make
+                ctest --output-on-failure
+
+    ubuntu-18_04-clang:
+        runs-on: ubuntu-18.04
+
+        strategy:
+            matrix:
+                build: [Release]
+
+        steps:
+            - name: Clone
+              uses: actions/checkout@v1
+              with:
+                  submodules: recursive
+
+            - name: Dependencies
+              run: |
+                  sudo apt-get update
+                  sudo apt-get install build-essential xorg-dev libglu1-mesa-dev
+                  sudo apt-get install cmake;
+                  sudo apt-get install libsdl2-dev;
+
+            - name: Configure
+              run: cmake . -DCMAKE_BUILD_TYPE=${{ matrix.build }} -DCMAKE_CXX_COMPILER=clang++ -DCMAKE_C_COMPILER=clang
+
+            - name: Build
+              run: |
+                make
+                ctest --output-on-failure
+
+    macOS-10_14-clang:
+        runs-on: macOS-10.14
+
+        strategy:
+            matrix:
+                build: [Release]
+
+        steps:
+            - name: Clone
+              uses: actions/checkout@v1
+              with:
+                  submodules: recursive
+
+            - name: Dependencies
+              run: |
+                  brew update
+                  brew install sdl2
+
+            - name: Configure
+              run: cmake . -DCMAKE_BUILD_TYPE=${{ matrix.build }}
+
+            - name: Build
+              run: |
+                make
+                ctest --output-on-failure
+
+    Emscripten:
+        runs-on: ubuntu-18.04
+
+        strategy:
+            matrix:
+                build: [Release]
+
+        steps:
+            - name: Clone
+              uses: actions/checkout@v1
+              with:
+                  submodules: recursive
+
+            - name: Dependencies
+              run: |
+                wget -q https://github.com/emscripten-core/emsdk/archive/master.tar.gz
+                tar -xvf master.tar.gz
+                emsdk-master/emsdk update
+                emsdk-master/emsdk install latest
+                emsdk-master/emsdk activate latest
+
+            - name: Configure
+              run: echo "tmp"
+
+            - name: Build
+              run: |
+                pushd emsdk-master
+                source ./emsdk_env.sh
+                popd
+                emcmake cmake . -DCMAKE_BUILD_TYPE=${{ matrix.build }}
+                make && ctest --output-on-failure
+
     windows-msys2:
         runs-on: windows-latest
         defaults:

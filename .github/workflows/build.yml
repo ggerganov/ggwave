@@ -185,8 +185,8 @@ jobs:
             - uses: msys2/setup-msys2@v2
               with:
                   msystem: MINGW64
-              update: true
-              install: cmake make mingw-w64-x86_64-dlfcn mingw-w64-x86_64-gcc mingw-w64-x86_64-SDL2
+                  update: true
+                  install: cmake make mingw-w64-x86_64-dlfcn mingw-w64-x86_64-gcc mingw-w64-x86_64-SDL2
 
             - name: Configure
               run: cmake . -DCMAKE_BUILD_TYPE=${{ matrix.build }}

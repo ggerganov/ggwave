@@ -20,13 +20,18 @@ EMSCRIPTEN_BINDINGS(ggwave) {
         .value("GGWAVE_TX_PROTOCOL_ULTRASOUND_NORMAL",  GGWAVE_TX_PROTOCOL_ULTRASOUND_NORMAL)
         .value("GGWAVE_TX_PROTOCOL_ULTRASOUND_FAST",    GGWAVE_TX_PROTOCOL_ULTRASOUND_FAST)
         .value("GGWAVE_TX_PROTOCOL_ULTRASOUND_FASTEST", GGWAVE_TX_PROTOCOL_ULTRASOUND_FASTEST)
+        .value("GGWAVE_TX_PROTOCOL_DT_NORMAL",          GGWAVE_TX_PROTOCOL_DT_NORMAL)
+        .value("GGWAVE_TX_PROTOCOL_DT_FAST",            GGWAVE_TX_PROTOCOL_DT_FAST)
+        .value("GGWAVE_TX_PROTOCOL_DT_FASTEST",         GGWAVE_TX_PROTOCOL_DT_FASTEST)
         ;
 
     emscripten::class_<ggwave_Parameters>("Parameters")
         .constructor<>()
+        .property("payloadLength", &ggwave_Parameters::payloadLength)
         .property("sampleRateInp", &ggwave_Parameters::sampleRateInp)
         .property("sampleRateOut", &ggwave_Parameters::sampleRateOut)
         .property("samplesPerFrame", &ggwave_Parameters::samplesPerFrame)
+        .property("soundMarkerThreshold", &ggwave_Parameters::soundMarkerThreshold)
         .property("sampleFormatInp", &ggwave_Parameters::sampleFormatInp)
         .property("sampleFormatOut", &ggwave_Parameters::sampleFormatOut)
         ;

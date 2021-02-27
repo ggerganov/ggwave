@@ -7,6 +7,7 @@
 #include <typeindex>
 #include <vector>
 #include <set>
+#include <cstdint>
 
 float frand() { return float(rand()%RAND_MAX)/RAND_MAX; }
 

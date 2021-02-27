@@ -31,6 +31,12 @@ target_link_libraries(imgui PRIVATE
     ${ADDITIONAL_LIBRARIES}
     )
 
+if (MINGW)
+    target_link_libraries(imgui PUBLIC
+        stdc++
+        )
+endif()
+
 if (GGWAVE_SUPPORT_SDL2)
     if (MINGW)
         find_package(PkgConfig REQUIRED)
@@ -57,7 +63,6 @@ if (GGWAVE_SUPPORT_SDL2)
             imgui
             opengl32
             ${SDL2_LIBRARIES}
-	    stdc++
             )
 
         target_link_libraries(imgui-sdl2 PRIVATE

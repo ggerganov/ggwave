@@ -47,9 +47,9 @@ std::vector<char> readFile(const char* filename) {
 }
 
 std::string getBinaryPath() {
-#ifdef __EMSCRIPTEN__
+#if defined(__EMSCRIPTEN__) || defined(_WIN32)
     return "";
-#endif
+#else
     std::string result;
     void* p = reinterpret_cast<void*>(dummy);
 
@@ -73,4 +73,5 @@ std::string getBinaryPath() {
     }
 
     return result;
+#endif
 }

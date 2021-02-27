@@ -52,6 +52,12 @@ target_link_libraries(ggwave-common PRIVATE
     ${CMAKE_DL_LIBS}
     )
 
+if (MINGW)
+    target_link_libraries(ggwave-common PUBLIC
+        stdc++
+    )
+endif()
+
 if (GGWAVE_SUPPORT_SDL2)
     # ggwave-common-sdl2
 

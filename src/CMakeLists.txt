@@ -21,3 +21,9 @@ if (BUILD_SHARED_LIBS)
         GGWAVE_SHARED
         )
 endif()
+
+if (MINGW)
+    target_link_libraries(${TARGET} PUBLIC
+        stdc++
+        )
+endif()

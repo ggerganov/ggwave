@@ -1289,7 +1289,7 @@ void renderMain() {
             ImGui::SameLine();
             ImGui::TextDisabled("|");
             ImGui::SameLine();
-            ImGui::TextColored({ 0.0f, 0.6f, 0.4f, interp }, "%s", settings.txProtocols.at(GGWave::TxProtocolId(settings.protocolId)).name);
+            ImGui::TextColored({ 0.0f, 0.6f, 0.4f, interp }, "%s", settings.txProtocols.at(GGWave::TxProtocolId(message.protocolId)).name);
             ImGui::SameLine();
             ImGui::TextDisabled("|");
 

@@ -99,3 +99,9 @@ if (GGWAVE_SUPPORT_SDL2)
     add_subdirectory(waver)
     add_subdirectory(spectrogram)
 endif()
+
+install(TARGETS ggwave-common LIBRARY DESTINATION lib)
+
+if (GGWAVE_SUPPORT_SDL2)
+    install(TARGETS ggwave-common-sdl2 LIBRARY DESTINATION lib)
+endif()

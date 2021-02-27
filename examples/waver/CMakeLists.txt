@@ -43,4 +43,9 @@ else()
         imgui-sdl2
         ${CMAKE_THREAD_LIBS_INIT}
         )
+
+    install(FILES ${PROJECT_SOURCE_DIR}/examples/assets/fonts/DroidSans.ttf DESTINATION bin)
+    install(FILES ${PROJECT_SOURCE_DIR}/examples/assets/fonts/fontawesome-webfont.ttf DESTINATION bin)
 endif()
+
+install(TARGETS ${TARGET} RUNTIME DESTINATION bin)

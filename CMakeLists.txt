@@ -98,17 +98,3 @@ endif()
 if (GGWAVE_BUILD_EXAMPLES)
     add_subdirectory(examples)
 endif()
-
-install(TARGETS ggwave RUNTIME)
-install(TARGETS ggwave-common RUNTIME)
-install(TARGETS ggsock RUNTIME)
-
-if (GGWAVE_SUPPORT_SDL2)
-    install(TARGETS ggwave-common-sdl2 RUNTIME)
-    install(TARGETS imgui RUNTIME)
-    install(TARGETS imgui-sdl2 RUNTIME)
-    install(TARGETS waver RUNTIME)
-
-    install(FILES ${PROJECT_SOURCE_DIR}/examples/assets/fonts/DroidSans.ttf DESTINATION bin)
-    install(FILES ${PROJECT_SOURCE_DIR}/examples/assets/fonts/fontawesome-webfont.ttf DESTINATION bin)
-endif()

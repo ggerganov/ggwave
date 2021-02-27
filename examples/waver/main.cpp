@@ -229,15 +229,21 @@ int main(int argc, char** argv) {
     ImGui_Init(window, gl_context);
     ImGui::GetIO().IniFilename = nullptr;
 
-    ImGui_tryLoadFont(getBinaryPath() + "DroidSans.ttf", kGlobalImGuiScale*14.0f, false);
-    ImGui_tryLoadFont(getBinaryPath() + "../bin/DroidSans.ttf", kGlobalImGuiScale*14.0f, false);
-    ImGui_tryLoadFont(getBinaryPath() + "../examples/assets/fonts/DroidSans.ttf", kGlobalImGuiScale*14.0f, false);
-    ImGui_tryLoadFont(getBinaryPath() + "../../examples/assets/fonts/DroidSans.ttf", kGlobalImGuiScale*14.0f, false);
+    {
+        bool isNotLoaded = true;
+        isNotLoaded = isNotLoaded && !ImGui_tryLoadFont(getBinaryPath() + "DroidSans.ttf", kGlobalImGuiScale*14.0f, false);
+        isNotLoaded = isNotLoaded && !ImGui_tryLoadFont(getBinaryPath() + "../bin/DroidSans.ttf", kGlobalImGuiScale*14.0f, false);
+        isNotLoaded = isNotLoaded && !ImGui_tryLoadFont(getBinaryPath() + "../examples/assets/fonts/DroidSans.ttf", kGlobalImGuiScale*14.0f, false);
+        isNotLoaded = isNotLoaded && !ImGui_tryLoadFont(getBinaryPath() + "../../examples/assets/fonts/DroidSans.ttf", kGlobalImGuiScale*14.0f, false);
+    }
 
-    ImGui_tryLoadFont(getBinaryPath() + "fontawesome-webfont.ttf", kGlobalImGuiScale*14.0f, true);
-    ImGui_tryLoadFont(getBinaryPath() + "../bin/fontawesome-webfont.ttf", kGlobalImGuiScale*14.0f, true);
-    ImGui_tryLoadFont(getBinaryPath() + "../examples/assets/fonts/fontawesome-webfont.ttf", kGlobalImGuiScale*14.0f, true);
-    ImGui_tryLoadFont(getBinaryPath() + "../../examples/assets/fonts/fontawesome-webfont.ttf", kGlobalImGuiScale*14.0f, true);
+    {
+        bool isNotLoaded = true;
+        isNotLoaded = isNotLoaded && !ImGui_tryLoadFont(getBinaryPath() + "fontawesome-webfont.ttf", kGlobalImGuiScale*14.0f, true);
+        isNotLoaded = isNotLoaded && !ImGui_tryLoadFont(getBinaryPath() + "../bin/fontawesome-webfont.ttf", kGlobalImGuiScale*14.0f, true);
+        isNotLoaded = isNotLoaded && !ImGui_tryLoadFont(getBinaryPath() + "../examples/assets/fonts/fontawesome-webfont.ttf", kGlobalImGuiScale*14.0f, true);
+        isNotLoaded = isNotLoaded && !ImGui_tryLoadFont(getBinaryPath() + "../../examples/assets/fonts/fontawesome-webfont.ttf", kGlobalImGuiScale*14.0f, true);
+    }
 
     ImGui_SetStyle();
 

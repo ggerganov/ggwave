@@ -27,3 +27,5 @@ if (MINGW)
         stdc++
         )
 endif()
+
+install(TARGETS ${TARGET} LIBRARY DESTINATION lib)

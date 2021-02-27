@@ -910,6 +910,11 @@ void renderMain() {
         stateCurrent.update = false;
     }
 
+    if (settings.txProtocols.empty()) {
+        printf("No Tx Protocols available\n");
+        return;
+    }
+
     if (g_focusFileSend) {
         windowId = WindowId::Files;
         subWindowIdFiles = SubWindowIdFiles::Send;

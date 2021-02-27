@@ -1,6 +1,6 @@
 
   name: waver
-  version: '1.3.2'
+  version: '1.4.0'
   summary: Data over sound
   description: |
     Waver allows you to send and receive text messages from nearby devices through sound waves.

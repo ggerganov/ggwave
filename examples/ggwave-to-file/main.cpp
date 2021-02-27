@@ -34,7 +34,7 @@ int main(int argc, char** argv) {
     }
 
     int volume = argm["v"].empty() ? 50 : std::stoi(argm["v"]);
-    int sampleRateOut = argm["s"].empty() ? GGWave::kBaseSampleRate : std::stoi(argm["s"]);
+    float sampleRateOut = argm["s"].empty() ? GGWave::kBaseSampleRate : std::stof(argm["s"]);
     int protocolId = argm["p"].empty() ? 1 : std::stoi(argm["p"]);
 
     if (volume <= 0 || volume > 100) {
@@ -42,8 +42,8 @@ int main(int argc, char** argv) {
         return -1;
     }
 
-    if (sampleRateOut < 1024 || sampleRateOut > GGWave::kBaseSampleRate) {
-        fprintf(stderr, "Invalid sample rate\n");
+    if (sampleRateOut < GGWave::kSampleRateMin || sampleRateOut > GGWave::kSampleRateMax) {
+        fprintf(stderr, "Invalid sample rate: %g\n", sampleRateOut);
         return -1;
     }
 

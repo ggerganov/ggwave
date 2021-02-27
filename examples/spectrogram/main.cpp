@@ -42,7 +42,7 @@ int g_freqDataHead = 0;
 int g_freqDataSize = 0;
 std::vector<FreqData> g_freqData;
 
-int g_sampleRateOffset = 0;
+float g_sampleRateOffset = 0;
 
 }
 
@@ -83,8 +83,6 @@ bool GGWave_init(
             }
         }
     }
-
-    bool reinit = false;
 
     if (g_devIdOut == 0) {
         printf("Initializing playback ...\n");
@@ -127,8 +125,6 @@ bool GGWave_init(
 
                 return false;
             }
-
-            reinit = true;
         }
     }
 
@@ -158,31 +154,7 @@ bool GGWave_init(
             printf("    - Format:            %d (required: %d)\n", g_obtainedSpecInp.format, captureSpec.format);
             printf("    - Channels:          %d (required: %d)\n", g_obtainedSpecInp.channels, captureSpec.channels);
             printf("    - Samples per frame: %d\n", g_obtainedSpecInp.samples);
-
-            reinit = true;
         }
-    }
-
-    GGWave::SampleFormat sampleFormatInp = GGWAVE_SAMPLE_FORMAT_UNDEFINED;
-    GGWave::SampleFormat sampleFormatOut = GGWAVE_SAMPLE_FORMAT_UNDEFINED;
-
-    switch (g_obtainedSpecInp.format) {
-        case AUDIO_U8:      sampleFormatInp = GGWAVE_SAMPLE_FORMAT_U8;  break;
-        case AUDIO_S8:      sampleFormatInp = GGWAVE_SAMPLE_FORMAT_I8;  break;
-        case AUDIO_U16SYS:  sampleFormatInp = GGWAVE_SAMPLE_FORMAT_U16; break;
-        case AUDIO_S16SYS:  sampleFormatInp = GGWAVE_SAMPLE_FORMAT_I16; break;
-        case AUDIO_S32SYS:  sampleFormatInp = GGWAVE_SAMPLE_FORMAT_F32; break;
-        case AUDIO_F32SYS:  sampleFormatInp = GGWAVE_SAMPLE_FORMAT_F32; break;
-    }
-
-    switch (g_obtainedSpecOut.format) {
-        case AUDIO_U8:      sampleFormatOut = GGWAVE_SAMPLE_FORMAT_U8;  break;
-        case AUDIO_S8:      sampleFormatOut = GGWAVE_SAMPLE_FORMAT_I8;  break;
-        case AUDIO_U16SYS:  sampleFormatOut = GGWAVE_SAMPLE_FORMAT_U16; break;
-        case AUDIO_S16SYS:  sampleFormatOut = GGWAVE_SAMPLE_FORMAT_I16; break;
-        case AUDIO_S32SYS:  sampleFormatOut = GGWAVE_SAMPLE_FORMAT_F32; break;
-        case AUDIO_F32SYS:  sampleFormatOut = GGWAVE_SAMPLE_FORMAT_F32; break;
-            break;
     }
 
     return true;
@@ -477,7 +449,7 @@ int main(int argc, char** argv) {
             ImGui::DragInt("Min", &g_binMin, 1, 0, g_binMax - 1);
             ImGui::DragInt("Max", &g_binMax, 1, g_binMin + 1, g_nSamplesPerFrame/2);
             ImGui::DragFloat("Scale", &g_scale, 1.0f, 1.0f, 1000.0f);
-            if (ImGui::SliderInt("Offset", &g_sampleRateOffset, -2048, 2048)) {
+            if (ImGui::SliderFloat("Offset", &g_sampleRateOffset, -2048, 2048)) {
                 GGWave_deinit();
                 GGWave_init(0, 0);
             }

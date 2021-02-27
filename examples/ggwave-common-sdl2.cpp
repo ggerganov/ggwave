@@ -45,7 +45,7 @@ extern "C" {
         }
 
     EMSCRIPTEN_KEEPALIVE
-        int getSampleRate()             { return g_ggWave->getSampleRateInp(); }
+        float getSampleRate()           { return g_ggWave->getSampleRateInp(); }
 
     EMSCRIPTEN_KEEPALIVE
         int getFramesToRecord()         { return g_ggWave->getFramesToRecord(); }
@@ -79,7 +79,7 @@ bool GGWave_init(
         const int playbackId,
         const int captureId,
         const int payloadLength,
-        const int sampleRateOffset) {
+        const float sampleRateOffset) {
 
     if (g_devIdInp && g_devIdOut) {
         return false;
@@ -217,8 +217,8 @@ bool GGWave_init(
 
         g_ggWave = new GGWave({
             payloadLength,
-            g_obtainedSpecInp.freq,
-            g_obtainedSpecOut.freq,
+            (float) g_obtainedSpecInp.freq,
+            (float) g_obtainedSpecOut.freq,
             GGWave::kDefaultSamplesPerFrame,
             GGWave::kDefaultSoundMarkerThreshold,
             sampleFormatInp,

@@ -66,8 +66,8 @@ extern "C" {
     //
     typedef struct {
         int payloadLength;                      // payload length
-        int sampleRateInp;                      // capture sample rate
-        int sampleRateOut;                      // playback sample rate
+        float sampleRateInp;                    // capture sample rate
+        float sampleRateOut;                    // playback sample rate
         int samplesPerFrame;                    // number of samples per audio frame
         float soundMarkerThreshold;             // sound marker detection threshold
         ggwave_SampleFormat sampleFormatInp;    // format of the captured audio samples
@@ -223,7 +223,9 @@ extern "C" {
 
 class GGWave {
 public:
-    static constexpr auto kBaseSampleRate = 48000;
+    static constexpr auto kBaseSampleRate = 48000.0f;
+    static constexpr auto kSampleRateMin = 6000.0f;
+    static constexpr auto kSampleRateMax = 96000.0f;
     static constexpr auto kDefaultSamplesPerFrame = 1024;
     static constexpr auto kDefaultVolume = 10;
     static constexpr auto kDefaultSoundMarkerThreshold = 3.0f;

@@ -293,7 +293,7 @@ GGWave::GGWave(const Parameters & parameters) :
     m_sampleSizeBytesOut(bytesForSampleFormat(parameters.sampleFormatOut)),
     m_sampleFormatInp(parameters.sampleFormatInp),
     m_sampleFormatOut(parameters.sampleFormatOut),
-    m_hzPerSample(float(kBaseSampleRate)/parameters.samplesPerFrame),
+    m_hzPerSample(kBaseSampleRate/parameters.samplesPerFrame),
     m_ihzPerSample(1.0f/m_hzPerSample),
     m_freqDelta_bin(1),
     m_freqDelta_hz(2*m_hzPerSample),
@@ -365,13 +365,13 @@ GGWave::GGWave(const Parameters & parameters) :
         throw std::runtime_error("Invalid samples per frame");
     }
 
-    if (m_sampleRateInp < 0.125*kBaseSampleRate) {
-        fprintf(stderr, "Error: capture sample rate (%d Hz) must be >= %d Hz\n", (int) m_sampleRateInp, (int) 0.125*kBaseSampleRate);
+    if (m_sampleRateInp < kSampleRateMin) {
+        fprintf(stderr, "Error: capture sample rate (%g Hz) must be >= %g Hz\n", m_sampleRateInp, kSampleRateMin);
         throw std::runtime_error("Invalid capture/playback sample rate");
     }
 
-    if (m_sampleRateInp > 2.0*kBaseSampleRate) {
-        fprintf(stderr, "Error: capture sample rate (%d Hz) must be <= %d Hz\n", (int) m_sampleRateInp, (int) 2.0*kBaseSampleRate);
+    if (m_sampleRateInp > kSampleRateMax) {
+        fprintf(stderr, "Error: capture sample rate (%g Hz) must be <= %g Hz\n", m_sampleRateInp, kSampleRateMax);
         throw std::runtime_error("Invalid capture/playback sample rate");
     }
 
@@ -474,7 +474,7 @@ uint32_t GGWave::encodeSize_samples() const {
     float factor = 1.0f;
     int samplesPerFrameOut = m_samplesPerFrame;
     if (m_sampleRateOut != kBaseSampleRate) {
-        factor = float(kBaseSampleRate)/m_sampleRateOut;
+        factor = kBaseSampleRate/m_sampleRateOut;
         // note : +1 extra sample in order to overestimate the buffer size
         samplesPerFrameOut = m_impl->resampler.resample(factor, m_samplesPerFrame, m_outputBlock.data(), nullptr) + 1;
     }
@@ -543,7 +543,7 @@ bool GGWave::encode(const CBWaveformOut & cbWaveformOut) {
     RS::ReedSolomon rsData = RS::ReedSolomon(m_txDataLength, nECCBytesPerTx);
     rsData.Encode(m_txData.data() + 1, m_txDataEncoded.data() + m_encodedDataOffset);
 
-    float factor = float(kBaseSampleRate)/m_sampleRateOut;
+    float factor = kBaseSampleRate/m_sampleRateOut;
     uint32_t offset = 0;
 
     while (m_hasNewTxData) {

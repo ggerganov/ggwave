@@ -18,8 +18,8 @@ cdef extern from "ggwave.h" nogil:
 
     ctypedef struct ggwave_Parameters:
         int payloadLength
-        int sampleRateInp
-        int sampleRateOut
+        float sampleRateInp
+        float sampleRateOut
         int samplesPerFrame
         float soundMarkerThreshold
         ggwave_SampleFormat sampleFormatInp

@@ -5,7 +5,7 @@ Output a generated waveform to an uncompressed WAV file.
 ```
 Usage: ./bin/ggwave-to-file [-vN] [-sN] [-pN]
     -vN - output volume, N in (0, 100], (default: 50)
-    -sN - output sample rate, N in [1024, 48000], (default: 48000)
+    -sN - output sample rate, N in [6000, 96000], (default: 48000)
     -pN - select the transmission protocol (default: 1)
 
     Available protocols:
@@ -59,11 +59,11 @@ curl -sS 'https://ggwave-to-file.ggerganov.com/?m=Hello world!&p=4' --output hel
 ### browser
 
 - Audible example
-  
+
   https://ggwave-to-file.ggerganov.com/?m=Hello%20world%21
 
 - Ultrasound example
-  
+
   https://ggwave-to-file.ggerganov.com/?m=Hello%20world%21&p=4
 
 
@@ -72,7 +72,7 @@ curl -sS 'https://ggwave-to-file.ggerganov.com/?m=Hello world!&p=4' --output hel
 ```python
 import requests
 
-def ggwave(message: str, protocolId: int = 1, sampleRate: int = 48000, volume: int = 50):
+def ggwave(message: str, protocolId: int = 1, sampleRate: float = 48000, volume: int = 50):
 
     url = 'https://ggwave-to-file.ggerganov.com/'
 

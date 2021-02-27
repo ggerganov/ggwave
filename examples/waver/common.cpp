@@ -259,7 +259,7 @@ struct Input {
     Message message;
 
     // reinit
-    int sampleRateOffset = 0;
+    float sampleRateOffset = 0;
     int payloadLength = -1;
 
     // spectrum
@@ -607,8 +607,8 @@ void updateCore() {
         }
 
         if (inputCurrent.flags.needReinit) {
-            static int sampleRateInpOld = ggWave->getSampleRateInp();
-            static int sampleRateOutOld = ggWave->getSampleRateOut();
+            static auto sampleRateInpOld = ggWave->getSampleRateInp();
+            static auto sampleRateOutOld = ggWave->getSampleRateOut();
             GGWave::SampleFormat sampleFormatInpOld = ggWave->getSampleFormatInp();
             GGWave::SampleFormat sampleFormatOutOld = ggWave->getSampleFormatOut();
             auto rxProtocolsOld = ggWave->getRxProtocols();
@@ -817,7 +817,7 @@ void renderMain() {
     struct Settings {
         int protocolId = GGWAVE_TX_PROTOCOL_AUDIBLE_FAST;
         bool isSampleRateOffset = false;
-        int sampleRateOffset = -512;
+        float sampleRateOffset = -512.0f;
         bool isFixedLength = false;
         int payloadLength = 8;
         float volume = 0.10f;
@@ -1112,7 +1112,7 @@ void renderMain() {
             ImGui::SetCursorScreenPos({ posSave.x + kLabelWidth, posSave.y });
         }
         {
-            const float df = float(statsCurrent.sampleRateBase)/statsCurrent.samplesPerFrame;
+            const float df = statsCurrent.sampleRateBase/statsCurrent.samplesPerFrame;
             const auto & protocol = settings.txProtocols.at(GGWave::TxProtocolId(settings.protocolId));
             ImGui::Text("%6.2f Hz - %6.2f Hz", df*protocol.freqStart, df*(protocol.freqStart + 2*16*protocol.bytesPerTx));
         }
@@ -1173,7 +1173,7 @@ void renderMain() {
         if (settings.isSampleRateOffset) {
             ImGui::SameLine();
             ImGui::PushItemWidth(0.5*ImGui::GetContentRegionAvailWidth());
-            if (ImGui::SliderInt("Samples", &settings.sampleRateOffset, -1000, 1000)) {
+            if (ImGui::SliderFloat("Samples", &settings.sampleRateOffset, -1000, 1000, "%.0f")) {
                 g_buffer.inputUI.update = true;
                 g_buffer.inputUI.flags.needReinit = true;
                 g_buffer.inputUI.sampleRateOffset = settings.isSampleRateOffset ? settings.sampleRateOffset : 0;

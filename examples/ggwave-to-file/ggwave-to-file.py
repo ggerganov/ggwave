@@ -1,7 +1,7 @@
 import sys
 import requests
 
-def ggwave(message: str, protocolId: int = 1, sampleRate: int = 48000, volume: int = 50):
+def ggwave(message: str, protocolId: int = 1, sampleRate: float = 48000, volume: int = 50):
 
     url = 'https://ggwave-to-file.ggerganov.com/'
 

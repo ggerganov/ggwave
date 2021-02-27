@@ -8,8 +8,13 @@ jobs:
             run:
                 shell: msys2 {0}
         steps:
-            - uses: actions/checkout@v2
-            - uses: msys2/setup-msys2@v2
+            - name: Clone
+              uses: actions/checkout@v1
+              with:
+                  submodules: recursive
+
+            - name: Dependencies
+              uses: msys2/setup-msys2@v2
               with:
                   msystem: MINGW64
                   update: true

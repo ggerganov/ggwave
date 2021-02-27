@@ -12,9 +12,9 @@ Click on the images below to hear what it sounds like:
 
 <a href="https://youtu.be/Zcgf77T71QM"><img width="100%" src="media/waver-preview1.gif"></img></a>
 
-<a href="https://youtu.be/S2YdGefZiy4"><img width="100%" src="media/ggwave0.gif"></img></a>
+<a href="https://user-images.githubusercontent.com/1991296/109400988-a48f4a80-7954-11eb-9211-3640fc41568b.mp4"><img width="100%" src="https://user-images.githubusercontent.com/1991296/109401710-d7d3d880-7958-11eb-9b7e-364be0b4cf55.gif"></img></a>
 
-<a href="https://youtu.be/KWlcgZHJhGQ"><img width="100%" src="media/waver-0-fast.gif"></img></a>
+<a href="https://youtu.be/S2YdGefZiy4"><img width="100%" src="media/ggwave0.gif"></img></a>
 
 ## Details
 

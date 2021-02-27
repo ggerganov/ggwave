@@ -8,6 +8,6 @@ class GGWave;
 
 void GGWave_setDefaultCaptureDeviceName(std::string name);
 bool GGWave_init(const int playbackId, const int captureId, const int payloadLength = -1, const int sampleRateOffset = 0);
-GGWave * GGWave_instance();
+GGWave *& GGWave_instance();
 bool GGWave_mainLoop();
 bool GGWave_deinit();

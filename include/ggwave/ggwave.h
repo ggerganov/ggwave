@@ -238,6 +238,7 @@ public:
     using Parameters   = ggwave_Parameters;
     using SampleFormat = ggwave_SampleFormat;
     using TxProtocolId = ggwave_TxProtocolId;
+    using RxProtocolId = ggwave_TxProtocolId;
 
     struct TxProtocol {
         const char * name;  // string identifier of the protocol
@@ -249,7 +250,10 @@ public:
         int nDataBitsPerTx() const { return 8*bytesPerTx; }
     };
 
+    using RxProtocol = TxProtocol;
+
     using TxProtocols = std::map<TxProtocolId, TxProtocol>;
+    using RxProtocols = std::map<RxProtocolId, RxProtocol>;
 
     static const TxProtocols & getTxProtocols() {
         static const TxProtocols kTxProtocols {
@@ -337,6 +341,8 @@ public:
 
     const float & getSampleRateInp()    const { return m_sampleRateInp; }
     const float & getSampleRateOut()    const { return m_sampleRateOut; }
+    const SampleFormat & getSampleFormatInp()  const { return m_sampleFormatInp; }
+    const SampleFormat & getSampleFormatOut()  const { return m_sampleFormatOut; }
 
     // Tx
 
@@ -345,18 +351,31 @@ public:
     static const TxProtocol & getTxProtocol(int id)  { return getTxProtocols().at(TxProtocolId(id)); }
     static const TxProtocol & getTxProtocol(TxProtocolId id) { return getTxProtocols().at(id); }
 
-    int takeTxAmplitudeDataI16(AmplitudeDataI16 & dst);
+    bool takeTxAmplitudeI16(AmplitudeDataI16 & dst);
 
     // Rx
 
-    void setRxProtocols(const TxProtocols & rxProtocols) { m_rxProtocols = rxProtocols; }
+    bool stopReceiving();
+    void setRxProtocols(const RxProtocols & rxProtocols) { m_rxProtocols = rxProtocols; }
+    const RxProtocols & getRxProtocols() const { return m_rxProtocols; }
 
     const TxRxData & getRxData()            const { return m_rxData; }
-    const TxProtocol & getRxProtocol()      const { return m_rxProtocol; }
-    const TxProtocolId & getRxProtocolId()  const { return m_rxProtocolId; }
+    const RxProtocol & getRxProtocol()      const { return m_rxProtocol; }
+    const RxProtocolId & getRxProtocolId()  const { return m_rxProtocolId; }
 
     int takeRxData(TxRxData & dst);
-    bool takeSpectrum(SpectrumData & dst);
+    bool takeRxSpectrum(SpectrumData & dst);
+    bool takeRxAmplitude(AmplitudeData & dst);
+
+    // compute FFT of real values
+    //
+    //   src - input real-valued data, size is N
+    //   dst - output complex-valued data, size is 2*N
+    //
+    //   d is scaling factor
+    //   N must be <= kMaxSamplesPerFrame
+    //
+    static bool computeFFTR(const float * src, float * dst, int N, float d);
 
 private:
     void decode_fixed();
@@ -413,6 +432,7 @@ private:
     std::vector<float> m_fftOut; // complex
 
     bool m_hasNewSpectrum;
+    bool m_hasNewAmplitude;
     SpectrumData m_sampleSpectrum;
     AmplitudeData m_sampleAmplitude;
     AmplitudeData m_sampleAmplitudeResampled;

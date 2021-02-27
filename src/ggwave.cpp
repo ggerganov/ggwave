@@ -153,7 +153,7 @@ int reverse(int N, int n) {
 }
 
 void ordina(float * f1, int N) {
-    float f2[2*GGWave::kMaxSamplesPerFrame];
+    static thread_local float f2[2*GGWave::kMaxSamplesPerFrame];
     for (int i = 0; i < N; i++) {
         int ir = reverse(N, i);
         f2[2*i + 0] = f1[2*ir + 0];
@@ -210,7 +210,7 @@ void FFT(float * f, int N, float d) {
     }
 }
 
-void FFT(float * src, float * dst, int N, float d) {
+void FFT(const float * src, float * dst, int N, float d) {
     for (int i = 0; i < N; ++i) {
         dst[2*i + 0] = src[i];
         dst[2*i + 1] = 0.0f;
@@ -309,6 +309,7 @@ GGWave::GGWave(const Parameters & parameters) :
     m_fftInp(kMaxSamplesPerFrame),
     m_fftOut(2*kMaxSamplesPerFrame),
     m_hasNewSpectrum(false),
+    m_hasNewAmplitude(false),
     m_sampleSpectrum(kMaxSamplesPerFrame),
     m_sampleAmplitude(kMaxSamplesPerFrame + 128), // small extra space because sometimes resampling needs a few more samples
     m_sampleAmplitudeResampled(8*kMaxSamplesPerFrame), // min input sampling rate is 0.125*kBaseSampleRate
@@ -798,6 +799,8 @@ void GGWave::decode(const CBWaveformInp & cbWaveformInp) {
 
         // we have enough bytes to do analysis
         if (nSamplesRecorded >= m_samplesPerFrame) {
+            m_hasNewAmplitude = true;
+
             if (m_isFixedPayloadLength) {
                 decode_fixed();
             } else {
@@ -817,6 +820,24 @@ void GGWave::decode(const CBWaveformInp & cbWaveformInp) {
     }
 }
 
+bool GGWave::takeTxAmplitudeI16(AmplitudeDataI16 & dst) {
+    if (m_txAmplitudeDataI16.size() == 0) return false;
+
+    dst = std::move(m_txAmplitudeDataI16);
+
+    return true;
+}
+
+bool GGWave::stopReceiving() {
+    if (m_receivingData == false) {
+        return false;
+    }
+
+    m_receivingData = false;
+
+    return true;
+}
+
 int GGWave::takeRxData(TxRxData & dst) {
     if (m_lastRxDataLength == 0) return 0;
 
@@ -830,20 +851,31 @@ int GGWave::takeRxData(TxRxData & dst) {
     return res;
 }
 
-int GGWave::takeTxAmplitudeDataI16(AmplitudeDataI16 & dst) {
-    if (m_txAmplitudeDataI16.size() == 0) return 0;
-
-    int res = (int) m_txAmplitudeDataI16.size();
-    dst = std::move(m_txAmplitudeDataI16);
-
-    return res;
-}
-
-bool GGWave::takeSpectrum(SpectrumData & dst) {
+bool GGWave::takeRxSpectrum(SpectrumData & dst) {
     if (m_hasNewSpectrum == false) return false;
 
     m_hasNewSpectrum = false;
     dst = m_sampleSpectrum;
+
+    return true;
+}
+
+bool GGWave::takeRxAmplitude(AmplitudeData & dst) {
+    if (m_hasNewAmplitude == false) return false;
+
+    m_hasNewAmplitude = false;
+    dst = m_sampleAmplitude;
+
+    return true;
+}
+
+bool GGWave::computeFFTR(const float * src, float * dst, int N, float d) {
+    if (N > kMaxSamplesPerFrame) {
+        fprintf(stderr, "computeFFTR: N (%d) must be <= %d\n", N, GGWave::kMaxSamplesPerFrame);
+        return false;
+    }
+
+    FFT(src, dst, N, d);
 
     return true;
 }
@@ -875,9 +907,7 @@ void GGWave::decode_variable() {
         }
 
         // calculate spectrum
-        std::copy(m_sampleAmplitudeAverage.begin(), m_sampleAmplitudeAverage.begin() + m_samplesPerFrame, m_fftInp.data());
-
-        FFT(m_fftInp.data(), m_fftOut.data(), m_samplesPerFrame, 1.0);
+        FFT(m_sampleAmplitudeAverage.data(), m_fftOut.data(), m_samplesPerFrame, 1.0);
 
         for (int i = 0; i < m_samplesPerFrame; ++i) {
             m_sampleSpectrum[i] = (m_fftOut[2*i + 0]*m_fftOut[2*i + 0] + m_fftOut[2*i + 1]*m_fftOut[2*i + 1]);
@@ -1144,10 +1174,10 @@ void GGWave::decode_variable() {
 // Fixed payload length
 
 void GGWave::decode_fixed() {
-    // calculate spectrum
-    std::copy(m_sampleAmplitude.begin(), m_sampleAmplitude.begin() + m_samplesPerFrame, m_fftInp.data());
+    m_hasNewSpectrum = true;
 
-    FFT(m_fftInp.data(), m_fftOut.data(), m_samplesPerFrame, 1.0);
+    // calculate spectrum
+    FFT(m_sampleAmplitude.data(), m_fftOut.data(), m_samplesPerFrame, 1.0);
 
     for (int i = 0; i < m_samplesPerFrame; ++i) {
         m_sampleSpectrum[i] = (m_fftOut[2*i + 0]*m_fftOut[2*i + 0] + m_fftOut[2*i + 1]*m_fftOut[2*i + 1]);
@@ -1188,6 +1218,8 @@ void GGWave::decode_fixed() {
         std::vector<ToneData> tones(nTones);
 
         bool detectedSignal = true;
+        int txDetectedTotal = 0;
+        int txNeededTotal = 0;
         for (int k = 0; k < totalTxs; ++k) {
             for (auto & tone : tones) {
                 std::fill(tone.nMax, tone.nMax + 16, 0);
@@ -1231,7 +1263,7 @@ void GGWave::decode_fixed() {
                 }
             }
 
-            int detectedTx = 0;
+            int txDetected = 0;
             int txNeeded = 0;
             for (int j = 0; j < rxProtocol.bytesPerTx; ++j) {
                 if (k*rxProtocol.bytesPerTx + j >= totalLength) break;
@@ -1239,18 +1271,25 @@ void GGWave::decode_fixed() {
                 for (int b = 0; b < 16; ++b) {
                     if (tones[2*j + 0].nMax[b] > rxProtocol.framesPerTx/2) {
                         detectedBins[2*(k*rxProtocol.bytesPerTx + j) + 0] = b;
-                        detectedTx++;
+                        txDetected++;
                     }
                     if (tones[2*j + 1].nMax[b] > rxProtocol.framesPerTx/2) {
                         detectedBins[2*(k*rxProtocol.bytesPerTx + j) + 1] = b;
-                        detectedTx++;
+                        txDetected++;
                     }
                 }
             }
 
-            if (detectedTx < txNeeded) {
-                detectedSignal = false;
-            }
+            txDetectedTotal += txDetected;
+            txNeededTotal += txNeeded;
+        }
+
+        //if (rxProtocolId == GGWAVE_TX_PROTOCOL_DT_FAST) {
+        //    printf("detected = %d, needed = %d\n", txDetectedTotal, txNeededTotal);
+        //}
+
+        if (txDetectedTotal < 0.75*txNeededTotal) {
+            detectedSignal = false;
         }
 
         if (detectedSignal) {

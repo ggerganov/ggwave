@@ -45,18 +45,23 @@ char * toTimeString(const std::chrono::system_clock::time_point & tp) {
     return buffer;
 }
 
-void ScrollWhenDraggingOnVoid(const ImVec2& delta, ImGuiMouseButton mouse_button) {
+bool ScrollWhenDraggingOnVoid(const ImVec2& delta, ImGuiMouseButton mouse_button) {
     ImGuiContext& g = *ImGui::GetCurrentContext();
     ImGuiWindow* window = g.CurrentWindow;
     bool hovered = false;
     bool held = false;
+    bool dragging = false;
     ImGuiButtonFlags button_flags = (mouse_button == 0) ? ImGuiButtonFlags_MouseButtonLeft : (mouse_button == 1) ? ImGuiButtonFlags_MouseButtonRight : ImGuiButtonFlags_MouseButtonMiddle;
     if (g.HoveredId == 0) // If nothing hovered so far in the frame (not same as IsAnyItemHovered()!)
         ImGui::ButtonBehavior(window->Rect(), window->GetID("##scrolldraggingoverlay"), &hovered, &held, button_flags);
-    if (held && delta.x != 0.0f)
+    if (held && delta.x != 0.0f) {
         ImGui::SetScrollX(window, window->Scroll.x + delta.x);
-    if (held && delta.y != 0.0f)
+    }
+    if (held && delta.y != 0.0f) {
         ImGui::SetScrollY(window, window->Scroll.y + delta.y);
+        dragging = true;
+    }
+    return dragging;
 }
 
 }
@@ -134,6 +139,12 @@ struct GGWaveStats {
     int framesLeftToRecord;
     int framesToAnalyze;
     int framesLeftToAnalyze;
+    int samplesPerFrame;
+    float sampleRateInp;
+    float sampleRateOut;
+    float sampleRateBase;
+    int sampleSizeBytesInp;
+    int sampleSizeBytesOut;
 };
 
 struct State {
@@ -142,8 +153,9 @@ struct State {
     struct Flags {
         bool newMessage = false;
         bool newSpectrum = false;
-        bool newTxAmplitudeData = false;
+        bool newTxAmplitude = false;
         bool newStats = false;
+        bool newTxProtocols = false;
 
         void clear() { memset(this, 0, sizeof(Flags)); }
     } flags;
@@ -160,13 +172,13 @@ struct State {
         if (this->flags.newSpectrum) {
             dst.update = true;
             dst.flags.newSpectrum = true;
-            dst.spectrum = std::move(this->spectrum);
+            dst.rxSpectrum = std::move(this->rxSpectrum);
         }
 
-        if (this->flags.newTxAmplitudeData) {
+        if (this->flags.newTxAmplitude) {
             dst.update = true;
-            dst.flags.newTxAmplitudeData = true;
-            dst.txAmplitudeData = std::move(this->txAmplitudeData);
+            dst.flags.newTxAmplitude = true;
+            dst.txAmplitude = std::move(this->txAmplitude);
         }
 
         if (this->flags.newStats) {
@@ -175,23 +187,86 @@ struct State {
             dst.stats = std::move(this->stats);
         }
 
+        if (this->flags.newTxProtocols) {
+            dst.update = true;
+            dst.flags.newTxProtocols = true;
+            dst.txProtocols = std::move(this->txProtocols);
+        }
+
         flags.clear();
         update = false;
     }
 
     Message message;
-    GGWave::SpectrumData spectrum;
-    GGWave::AmplitudeDataI16 txAmplitudeData;
+    GGWave::SpectrumData rxSpectrum;
+    GGWave::AmplitudeData rxAmplitude;
+    GGWave::AmplitudeDataI16 txAmplitude;
     GGWaveStats stats;
+    GGWave::TxProtocols txProtocols;
 };
 
 struct Input {
-    bool update = false;
+    bool update = true;
+
+    struct Flags {
+        bool newMessage = false;
+        bool needReinit = false;
+        bool changeNeedSpectrum = false;
+        bool stopReceiving = false;
+        bool changeRxProtocols = false;
+
+        void clear() { memset(this, 0, sizeof(Flags)); }
+    } flags;
+
+    void apply(Input & dst) {
+        if (update == false) return;
+
+        if (this->flags.newMessage) {
+            dst.update = true;
+            dst.flags.newMessage = true;
+            dst.message = std::move(this->message);
+        }
+
+        if (this->flags.needReinit) {
+            dst.update = true;
+            dst.flags.needReinit = true;
+            dst.sampleRateOffset = std::move(this->sampleRateOffset);
+            dst.payloadLength = std::move(this->payloadLength);
+        }
+
+        if (this->flags.changeNeedSpectrum) {
+            dst.update = true;
+            dst.flags.changeNeedSpectrum = true;
+            dst.needSpectrum = std::move(this->needSpectrum);
+        }
+
+        if (this->flags.stopReceiving) {
+            dst.update = true;
+            dst.flags.stopReceiving = true;
+        }
+
+        if (this->flags.changeRxProtocols) {
+            dst.update = true;
+            dst.flags.changeRxProtocols = true;
+            dst.rxProtocols = std::move(this->rxProtocols);
+        }
+
+        flags.clear();
+        update = false;
+    }
+
+    // message
     Message message;
 
-    bool reinit = false;
-    bool isSampleRateOffset = false;
+    // reinit
+    int sampleRateOffset = 0;
     int payloadLength = -1;
+
+    // spectrum
+    bool needSpectrum = false;
+
+    // rx protocols
+    GGWave::RxProtocols rxProtocols;
 };
 
 struct Buffer {
@@ -205,7 +280,6 @@ struct Buffer {
 };
 
 std::atomic<bool> g_isRunning;
-GGWave * g_ggWave;
 Buffer g_buffer;
 
 // file send data
@@ -455,7 +529,6 @@ std::thread initMainAndRunCore() {
 
 void initMain() {
     g_isRunning = true;
-    g_ggWave = GGWave_instance();
 
     GGSock::FileServer::Parameters p;
 #ifdef __EMSCRIPTEN__
@@ -512,53 +585,80 @@ void initMain() {
 void updateCore() {
     static Input inputCurrent;
 
-    static int lastRxDataLength = 0;
-    static float lastRxTimestamp = 0.0f;
-    static GGWave::TxRxData lastRxData;
+    static bool isFirstCall = true;
+    static bool needSpectrum = false;
+    static int rxDataLengthLast = 0;
+    static float rxTimestampLast = 0.0f;
+    static GGWave::TxRxData rxDataLast;
+    static auto & ggWave = GGWave_instance();
 
     {
         std::lock_guard<std::mutex> lock(g_buffer.mutex);
-        if (g_buffer.inputCore.update) {
-            inputCurrent = std::move(g_buffer.inputCore);
-            g_buffer.inputCore.update = false;
-        }
-    }
-
-    if (inputCurrent.reinit) {
-        GGWave_deinit();
-        // todo : use the provided cli arguments for playback and capture device
-        GGWave_init(0, 0, inputCurrent.payloadLength, inputCurrent.isSampleRateOffset ? -512 : 0);
-        g_ggWave = GGWave_instance();
-
-        inputCurrent.reinit = false;
+        g_buffer.inputCore.apply(inputCurrent);
     }
 
     if (inputCurrent.update) {
-        g_ggWave->init(
-                (int) inputCurrent.message.data.size(),
-                inputCurrent.message.data.data(),
-                g_ggWave->getTxProtocol(inputCurrent.message.protocolId),
-                100*inputCurrent.message.volume);
+        if (inputCurrent.flags.newMessage) {
+            ggWave->init(
+                    (int) inputCurrent.message.data.size(),
+                    inputCurrent.message.data.data(),
+                    ggWave->getTxProtocol(inputCurrent.message.protocolId),
+                    100*inputCurrent.message.volume);
+        }
 
+        if (inputCurrent.flags.needReinit) {
+            static int sampleRateInpOld = ggWave->getSampleRateInp();
+            static int sampleRateOutOld = ggWave->getSampleRateOut();
+            GGWave::SampleFormat sampleFormatInpOld = ggWave->getSampleFormatInp();
+            GGWave::SampleFormat sampleFormatOutOld = ggWave->getSampleFormatOut();
+            auto rxProtocolsOld = ggWave->getRxProtocols();
+
+            if (ggWave) delete ggWave;
+
+            ggWave = new GGWave({
+                inputCurrent.payloadLength,
+                sampleRateInpOld,
+                sampleRateOutOld + inputCurrent.sampleRateOffset,
+                GGWave::kDefaultSamplesPerFrame,
+                GGWave::kDefaultSoundMarkerThreshold,
+                sampleFormatInpOld,
+                sampleFormatOutOld});
+
+            ggWave->setRxProtocols(rxProtocolsOld);
+        }
+
+        if (inputCurrent.flags.changeNeedSpectrum) {
+            needSpectrum = inputCurrent.needSpectrum;
+        }
+
+        if (inputCurrent.flags.stopReceiving) {
+            ggWave->stopReceiving();
+        }
+
+        if (inputCurrent.flags.changeRxProtocols) {
+            ggWave->setRxProtocols(inputCurrent.rxProtocols);
+        }
+
+        inputCurrent.flags.clear();
         inputCurrent.update = false;
     }
 
     GGWave_mainLoop();
 
-    lastRxDataLength = g_ggWave->takeRxData(lastRxData);
-    if (lastRxDataLength == -1) {
+    rxDataLengthLast = ggWave->takeRxData(rxDataLast);
+    if (rxDataLengthLast == -1) {
         g_buffer.stateCore.update = true;
         g_buffer.stateCore.flags.newMessage = true;
         g_buffer.stateCore.message = {
             true,
             std::chrono::system_clock::now(),
             "",
-            g_ggWave->getRxProtocolId(),
+            ggWave->getRxProtocolId(),
             0,
             Message::Error,
         };
-    } else if (lastRxDataLength > 0 && ImGui::GetTime() - lastRxTimestamp > 0.5f) {
-        auto message = std::string((char *) lastRxData.data(), lastRxDataLength);
+    } else if (rxDataLengthLast > 0 && ImGui::GetTime() - rxTimestampLast > 0.5f) {
+        auto message = std::string((char *) rxDataLast.data(), rxDataLengthLast);
         const Message::Type type = isFileBroadcastMessage(message) ? Message::FileBroadcast : Message::Text;
         g_buffer.stateCore.update = true;
         g_buffer.stateCore.flags.newMessage = true;
@@ -566,32 +666,65 @@ void updateCore() {
             true,
             std::chrono::system_clock::now(),
             std::move(message),
-            g_ggWave->getRxProtocolId(),
+            ggWave->getRxProtocolId(),
             0,
             type,
         };
-        lastRxTimestamp = ImGui::GetTime();
+        rxTimestampLast = ImGui::GetTime();
     }
 
-    if (g_ggWave->takeSpectrum(g_buffer.stateCore.spectrum)) {
-        g_buffer.stateCore.update = true;
-        g_buffer.stateCore.flags.newSpectrum = true;
+    if (needSpectrum) {
+        if (ggWave->takeRxSpectrum(g_buffer.stateCore.rxSpectrum)) {
+            g_buffer.stateCore.update = true;
+            g_buffer.stateCore.flags.newSpectrum = true;
+        } else if (ggWave->takeRxAmplitude(g_buffer.stateCore.rxAmplitude)) {
+            static const int NMax = GGWave::kMaxSamplesPerFrame;
+            static float tmp[2*NMax];
+
+            int N = ggWave->getSamplesPerFrame();
+            ggWave->computeFFTR(g_buffer.stateCore.rxAmplitude.data(), tmp, N, 1.0);
+
+            g_buffer.stateCore.rxSpectrum.resize(N);
+            for (int i = 0; i < N; ++i) {
+                g_buffer.stateCore.rxSpectrum[i] = (tmp[2*i + 0]*tmp[2*i + 0] + tmp[2*i + 1]*tmp[2*i + 1]);
+            }
+            for (int i = 1; i < N/2; ++i) {
+                g_buffer.stateCore.rxSpectrum[i] += g_buffer.stateCore.rxSpectrum[N - i];
+            }
+
+            g_buffer.stateCore.update = true;
+            g_buffer.stateCore.flags.newSpectrum = true;
+        }
     }
 
-    if (g_ggWave->takeTxAmplitudeDataI16(g_buffer.stateCore.txAmplitudeData)) {
+    if (ggWave->takeTxAmplitudeI16(g_buffer.stateCore.txAmplitude)) {
         g_buffer.stateCore.update = true;
-        g_buffer.stateCore.flags.newTxAmplitudeData = true;
+        g_buffer.stateCore.flags.newTxAmplitude = true;
     }
 
     if (true) {
         g_buffer.stateCore.update = true;
         g_buffer.stateCore.flags.newStats = true;
-        g_buffer.stateCore.stats.isReceiving = g_ggWave->isReceiving();
-        g_buffer.stateCore.stats.isAnalyzing = g_ggWave->isAnalyzing();
-        g_buffer.stateCore.stats.framesToRecord = g_ggWave->getFramesToRecord();
-        g_buffer.stateCore.stats.framesLeftToRecord = g_ggWave->getFramesLeftToRecord();
-        g_buffer.stateCore.stats.framesToAnalyze = g_ggWave->getFramesToAnalyze();
-        g_buffer.stateCore.stats.framesLeftToAnalyze = g_ggWave->getFramesLeftToAnalyze();
+        g_buffer.stateCore.stats.isReceiving = ggWave->isReceiving();
+        g_buffer.stateCore.stats.isAnalyzing = ggWave->isAnalyzing();
+        g_buffer.stateCore.stats.framesToRecord = ggWave->getFramesToRecord();
+        g_buffer.stateCore.stats.framesLeftToRecord = ggWave->getFramesLeftToRecord();
+        g_buffer.stateCore.stats.framesToAnalyze = ggWave->getFramesToAnalyze();
+        g_buffer.stateCore.stats.framesLeftToAnalyze = ggWave->getFramesLeftToAnalyze();
+        g_buffer.stateCore.stats.samplesPerFrame = ggWave->getSamplesPerFrame();
+        g_buffer.stateCore.stats.sampleRateInp = ggWave->getSampleRateInp();
+        g_buffer.stateCore.stats.sampleRateOut = ggWave->getSampleRateOut();
+        g_buffer.stateCore.stats.sampleRateBase = GGWave::kBaseSampleRate;
+        g_buffer.stateCore.stats.sampleSizeBytesInp = ggWave->getSampleSizeBytesInp();
+        g_buffer.stateCore.stats.sampleSizeBytesOut = ggWave->getSampleSizeBytesOut();
+    }
+
+    if (isFirstCall) {
+        g_buffer.stateCore.update = true;
+        g_buffer.stateCore.flags.newTxProtocols = true;
+        g_buffer.stateCore.txProtocols = ggWave->getTxProtocols();
+
+        isFirstCall = false;
     }
 
     {
@@ -671,36 +804,51 @@ void renderMain() {
         Spectrum,
     };
 
-    enum SubWindowId {
+    enum class SubWindowIdFiles {
         Send,
         Receive,
     };
 
+    enum class SubWindowIdSpectrum {
+        Spectrum,
+        Spectrogram,
+    };
+
     struct Settings {
-        int protocolId = 1;
-        bool isFixedLength = false;
-        int payloadLength = 1;
+        int protocolId = GGWAVE_TX_PROTOCOL_AUDIBLE_FAST;
         bool isSampleRateOffset = false;
+        int sampleRateOffset = -512;
+        bool isFixedLength = false;
+        int payloadLength = 8;
         float volume = 0.10f;
+
+        GGWave::TxProtocols txProtocols;
+
+        GGWave::RxProtocols rxProtocols;
+        std::map<GGWave::RxProtocolId, bool> rxProtocolSelected;
     };
 
     static WindowId windowId = WindowId::Messages;
-    static SubWindowId subWindowId = SubWindowId::Send;
+    static WindowId windowIdLast = windowId;
+    static SubWindowIdFiles subWindowIdFiles = SubWindowIdFiles::Send;
+    static SubWindowIdSpectrum subWindowIdSpectrum = SubWindowIdSpectrum::Spectrum;
 
     static Settings settings;
 
-    const double tHoldContextPopup = 0.5f;
+    const double tHoldContextPopup = 0.2f;
 
     const int kMaxInputSize = 140;
     static char inputBuf[kMaxInputSize];
 
     static bool doInputFocus = false;
     static bool doSendMessage = false;
-    static bool lastMouseButtonLeft = 0;
+    static bool mouseButtonLeftLast = 0;
     static bool isTextInput = false;
     static bool scrollMessagesToBottom = true;
     static bool hasAudioCaptureData = false;
     static bool hasNewMessages = false;
+    static bool hasNewSpectrum = false;
+    static bool showSpectrumSettings = true;
 #ifdef __EMSCRIPTEN__
     static bool hasFileSharingSupport = false;
 #else
@@ -716,6 +864,7 @@ void renderMain() {
     static GGWave::SpectrumData spectrumCurrent;
     static GGWave::AmplitudeDataI16 txAmplitudeDataCurrent;
     static std::vector<Message> messageHistory;
+    static std::string inputLast = "";
 
     if (stateCurrent.update) {
         if (stateCurrent.flags.newMessage) {
@@ -724,14 +873,15 @@ void renderMain() {
             hasNewMessages = true;
         }
         if (stateCurrent.flags.newSpectrum) {
-            spectrumCurrent = std::move(stateCurrent.spectrum);
+            spectrumCurrent = std::move(stateCurrent.rxSpectrum);
+            hasNewSpectrum = true;
             hasAudioCaptureData = !spectrumCurrent.empty();
         }
-        if (stateCurrent.flags.newTxAmplitudeData) {
-            txAmplitudeDataCurrent = std::move(stateCurrent.txAmplitudeData);
+        if (stateCurrent.flags.newTxAmplitude) {
+            txAmplitudeDataCurrent = std::move(stateCurrent.txAmplitude);
 
-            tStartTx = ImGui::GetTime() + (16.0f*1024.0f)/g_ggWave->getSampleRateOut();
-            tLengthTx = txAmplitudeDataCurrent.size()/g_ggWave->getSampleRateOut();
+            tStartTx = ImGui::GetTime() + (16.0f*1024.0f)/statsCurrent.sampleRateOut;
+            tLengthTx = txAmplitudeDataCurrent.size()/statsCurrent.sampleRateOut;
             {
                 auto & ampl = txAmplitudeDataCurrent;
                 int nBins = 512;
@@ -749,20 +899,27 @@ void renderMain() {
         if (stateCurrent.flags.newStats) {
             statsCurrent = std::move(stateCurrent.stats);
         }
+        if (stateCurrent.flags.newTxProtocols) {
+            settings.txProtocols = std::move(stateCurrent.txProtocols);
+            settings.rxProtocols = settings.txProtocols;
+            for (auto & rxProtocol : settings.rxProtocols) {
+                settings.rxProtocolSelected[rxProtocol.first] = true;
+            }
+        }
         stateCurrent.flags.clear();
         stateCurrent.update = false;
     }
 
     if (g_focusFileSend) {
         windowId = WindowId::Files;
-        subWindowId = SubWindowId::Send;
+        subWindowIdFiles = SubWindowIdFiles::Send;
         g_focusFileSend = false;
     }
 
-    if (lastMouseButtonLeft == 0 && ImGui::GetIO().MouseDown[0] == 1) {
+    if (mouseButtonLeftLast == 0 && ImGui::GetIO().MouseDown[0] == 1) {
         ImGui::GetIO().MouseDelta = { 0.0, 0.0 };
     }
-    lastMouseButtonLeft = ImGui::GetIO().MouseDown[0];
+    mouseButtonLeftLast = ImGui::GetIO().MouseDown[0];
 
     const auto& displaySize = ImGui::GetIO().DisplaySize;
     auto& style = ImGui::GetStyle();
@@ -823,6 +980,9 @@ void renderMain() {
     {
         auto posSave = ImGui::GetCursorScreenPos();
         if (ImGui::ButtonSelectable(ICON_FA_SIGNAL "  Spectrum", { 1.0f*ImGui::GetContentRegionAvailWidth(), menuButtonHeight }, windowId == WindowId::Spectrum)) {
+            if (windowId == WindowId::Spectrum) {
+                showSpectrumSettings = !showSpectrumSettings;
+            }
             windowId = WindowId::Spectrum;
         }
         auto radius = 0.3f*ImGui::GetTextLineHeight();
@@ -831,18 +991,24 @@ void renderMain() {
         ImGui::GetWindowDrawList()->AddCircleFilled(posSave, radius, hasAudioCaptureData ? ImGui::ColorConvertFloat4ToU32({ 0.0f, 1.0f, 0.0f, 1.0f }) : ImGui::ColorConvertFloat4ToU32({ 1.0f, 0.0f, 0.0f, 1.0f }), 16);
     }
 
+    if ((windowIdLast != windowId) || (hasAudioCaptureData == false)) {
+        g_buffer.inputUI.update = true;
+        g_buffer.inputUI.flags.changeNeedSpectrum = true;
+        g_buffer.inputUI.needSpectrum = (windowId == WindowId::Spectrum) || (hasAudioCaptureData == false);
+
+        windowIdLast = windowId;
+    }
+
     if (windowId == WindowId::Settings) {
-        ImGui::BeginChild("Settings:main", ImGui::GetContentRegionAvail(), true);
-        ImGui::Text("%s", "");
-        ImGui::Text("%s", "");
+        ImGui::BeginChild("Settings:main", ImGui::GetContentRegionAvail(), true, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
         ImGui::Text("Waver v1.4.0");
         ImGui::Separator();
 
         ImGui::Text("%s", "");
-        ImGui::Text("Sample rate (capture):  %g, %d B/sample", g_ggWave->getSampleRateInp(), g_ggWave->getSampleSizeBytesInp());
-        ImGui::Text("Sample rate (playback): %g, %d B/sample", g_ggWave->getSampleRateOut(), g_ggWave->getSampleSizeBytesOut());
+        ImGui::Text("Sample rate (capture):  %g, %d B/sample", statsCurrent.sampleRateInp, statsCurrent.sampleSizeBytesInp);
+        ImGui::Text("Sample rate (playback): %g, %d B/sample", statsCurrent.sampleRateOut, statsCurrent.sampleSizeBytesOut);
 
-        const float kLabelWidth = ImGui::CalcTextSize("Fixed-length:  ").x;
+        const float kLabelWidth = ImGui::CalcTextSize("Inp. SR Offset:  ").x;
 
         // volume
         ImGui::Text("%s", "");
@@ -897,38 +1063,7 @@ void renderMain() {
             ImGui::SetCursorScreenPos(posSave);
         }
 
-        // fixed-length
-        ImGui::Text("%s", "");
-        {
-            auto posSave = ImGui::GetCursorScreenPos();
-            ImGui::Text("Fixed-length: ");
-            ImGui::SetCursorScreenPos({ posSave.x + kLabelWidth, posSave.y });
-        }
-        if (ImGui::Checkbox("##fixed-length", &settings.isFixedLength)) {
-            g_buffer.inputUI.update = true;
-            g_buffer.inputUI.reinit = true;
-            g_buffer.inputUI.isSampleRateOffset = settings.isSampleRateOffset;
-            g_buffer.inputUI.payloadLength = settings.isFixedLength ? settings.payloadLength : -1;
-        } else {
-            g_buffer.inputUI.reinit = false;
-            g_buffer.inputUI.isSampleRateOffset = false;
-        }
-
-        if (settings.isFixedLength) {
-            ImGui::SameLine();
-            ImGui::PushItemWidth(0.5*ImGui::GetContentRegionAvailWidth());
-            ImGui::SliderInt("Bytes", &settings.payloadLength, 1, 16);
-            ImGui::PopItemWidth();
-            ImGui::SameLine();
-            if (ImGui::Checkbox("Offset", &settings.isSampleRateOffset)) {
-                g_buffer.inputUI.update = true;
-                g_buffer.inputUI.reinit = true;
-                g_buffer.inputUI.isSampleRateOffset = settings.isSampleRateOffset;
-                g_buffer.inputUI.payloadLength = settings.isFixedLength ? settings.payloadLength : -1;
-            }
-        }
-
-        // protocol
+        // tx protocol
         ImGui::Text("%s", "");
         {
             auto posSave = ImGui::GetCursorScreenPos();
@@ -947,10 +1082,10 @@ void renderMain() {
             ImGui::Text("Tx Protocol: ");
             ImGui::SetCursorScreenPos({ posSave.x + kLabelWidth, posSave.y });
         }
-        if (ImGui::BeginCombo("##protocol", g_ggWave->getTxProtocol(settings.protocolId).name)) {
-            for (int i = 0; i < (int) g_ggWave->getTxProtocols().size(); ++i) {
+        if (ImGui::BeginCombo("##txProtocol", settings.txProtocols.at(GGWave::TxProtocolId(settings.protocolId)).name)) {
+            for (int i = 0; i < (int) settings.txProtocols.size(); ++i) {
                 const bool isSelected = (settings.protocolId == i);
-                if (ImGui::Selectable(g_ggWave->getTxProtocol(i).name, isSelected)) {
+                if (ImGui::Selectable(settings.txProtocols.at(GGWave::TxProtocolId(i)).name, isSelected)) {
                     settings.protocolId = i;
                 }
 
@@ -960,6 +1095,132 @@ void renderMain() {
             }
             ImGui::EndCombo();
         }
+
+        {
+            auto posSave = ImGui::GetCursorScreenPos();
+            ImGui::Text("Bandwidth: ");
+            ImGui::SetCursorScreenPos({ posSave.x + kLabelWidth, posSave.y });
+        }
+        {
+            const auto & protocol = settings.txProtocols.at(GGWave::TxProtocolId(settings.protocolId));
+            ImGui::Text("%4.2f B/s", (float(0.715f*protocol.bytesPerTx)/(protocol.framesPerTx*statsCurrent.samplesPerFrame))*statsCurrent.sampleRateBase);
+        }
+
+        {
+            auto posSave = ImGui::GetCursorScreenPos();
+            ImGui::Text("Frequencies: ");
+            ImGui::SetCursorScreenPos({ posSave.x + kLabelWidth, posSave.y });
+        }
+        {
+            const float df = float(statsCurrent.sampleRateBase)/statsCurrent.samplesPerFrame;
+            const auto & protocol = settings.txProtocols.at(GGWave::TxProtocolId(settings.protocolId));
+            ImGui::Text("%6.2f Hz - %6.2f Hz", df*protocol.freqStart, df*(protocol.freqStart + 2*16*protocol.bytesPerTx));
+        }
+
+        // fixed-length
+        ImGui::Text("%s", "");
+        {
+            auto posSave = ImGui::GetCursorScreenPos();
+            ImGui::Text("%s", "");
+            ImGui::SetCursorScreenPos({ posSave.x + kLabelWidth, posSave.y });
+            ImGui::PushTextWrapPos();
+            ImGui::TextDisabled("Fixed-length Tx/Rx does not use sound-markers");
+            ImGui::PopTextWrapPos();
+        }
+        {
+            auto posSave = ImGui::GetCursorScreenPos();
+            ImGui::Text("Fixed-length: ");
+            ImGui::SetCursorScreenPos({ posSave.x + kLabelWidth, posSave.y });
+        }
+        if (ImGui::Checkbox("##fixed-length", &settings.isFixedLength)) {
+            g_buffer.inputUI.update = true;
+            g_buffer.inputUI.flags.needReinit = true;
+            g_buffer.inputUI.payloadLength = settings.isFixedLength ? settings.payloadLength : -1;
+        }
+
+        if (settings.isFixedLength) {
+            ImGui::SameLine();
+            ImGui::PushItemWidth(0.5*ImGui::GetContentRegionAvailWidth());
+            if (ImGui::SliderInt("Bytes", &settings.payloadLength, 1, 16)) {
+                g_buffer.inputUI.update = true;
+                g_buffer.inputUI.flags.needReinit = true;
+                g_buffer.inputUI.payloadLength = settings.isFixedLength ? settings.payloadLength : -1;
+            }
+            ImGui::PopItemWidth();
+        }
+
+        // Output sample-rate offset
+        ImGui::Text("%s", "");
+        {
+            auto posSave = ImGui::GetCursorScreenPos();
+            ImGui::Text("%s", "");
+            ImGui::SetCursorScreenPos({ posSave.x + kLabelWidth, posSave.y });
+            ImGui::PushTextWrapPos();
+            ImGui::TextDisabled("Modify the output Sampling Rate");
+            ImGui::PopTextWrapPos();
+        }
+        {
+            auto posSave = ImGui::GetCursorScreenPos();
+            ImGui::Text("Pitch shift: ");
+            ImGui::SetCursorScreenPos({ posSave.x + kLabelWidth, posSave.y });
+        }
+        if (ImGui::Checkbox("##output-sample-rate-offset", &settings.isSampleRateOffset)) {
+            g_buffer.inputUI.update = true;
+            g_buffer.inputUI.flags.needReinit = true;
+            g_buffer.inputUI.sampleRateOffset = settings.isSampleRateOffset ? settings.sampleRateOffset : 0;
+        }
+
+        if (settings.isSampleRateOffset) {
+            ImGui::SameLine();
+            ImGui::PushItemWidth(0.5*ImGui::GetContentRegionAvailWidth());
+            if (ImGui::SliderInt("Samples", &settings.sampleRateOffset, -1000, 1000)) {
+                g_buffer.inputUI.update = true;
+                g_buffer.inputUI.flags.needReinit = true;
+                g_buffer.inputUI.sampleRateOffset = settings.isSampleRateOffset ? settings.sampleRateOffset : 0;
+            }
+            ImGui::PopItemWidth();
+        }
+
+        // rx protocols
+        bool updateRxProtocols = false;
+        ImGui::Text("%s", "");
+        {
+            auto posSave = ImGui::GetCursorScreenPos();
+            ImGui::Text("%s", "");
+            ImGui::SetCursorScreenPos({ posSave.x + kLabelWidth, posSave.y });
+            ImGui::PushTextWrapPos();
+            ImGui::TextDisabled("Waver will receive only the selected protocols:");
+            ImGui::PopTextWrapPos();
+        }
+        {
+            auto posSave = ImGui::GetCursorScreenPos();
+            ImGui::Text("Rx Protocols: ");
+            ImGui::SetCursorScreenPos(posSave);
+        }
+        {
+            ImGui::PushID("RxProtocols");
+            for (const auto & rxProtocol : settings.rxProtocols) {
+                auto posSave = ImGui::GetCursorScreenPos();
+                ImGui::Text("%s", "");
+                ImGui::SetCursorScreenPos({ posSave.x + kLabelWidth, posSave.y });
+                if (ImGui::Checkbox(rxProtocol.second.name, &settings.rxProtocolSelected.at(rxProtocol.first))) {
+                    updateRxProtocols = true;
+                }
+            }
+            ImGui::PopID();
+        }
+
+        if (updateRxProtocols) {
+            g_buffer.inputUI.update = true;
+            g_buffer.inputUI.flags.changeRxProtocols = true;
+            g_buffer.inputUI.rxProtocols.clear();
+            for (const auto & rxProtocol : settings.rxProtocols) {
+                if (settings.rxProtocolSelected.at(rxProtocol.first) == false) continue;
+                g_buffer.inputUI.rxProtocols[rxProtocol.first] = rxProtocol.second;
+            }
+        }
+
+        ScrollWhenDraggingOnVoid(ImVec2(0.0f, -mouse_delta.y), ImGuiMouseButton_Left);
 
         ImGui::EndChild();
     }
@@ -994,6 +1255,7 @@ void renderMain() {
 
         ImGui::BeginChild("Messages:history", wSize, true, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
 
+        static bool isDragging = false;
         static bool isHoldingMessage = false;
         static bool isHoldingInput = false;
         static int messageIdHolding = 0;
@@ -1021,7 +1283,15 @@ void renderMain() {
             const auto msgStatus = message.received ? "Recv" : "Send";
             const auto msgColor = message.received ? ImVec4 { 0.0f, 1.0f, 0.0f, interp } : ImVec4 { 1.0f, 1.0f, 0.0f, interp };
 
-            ImGui::TextColored(msgColor, "[%s] %s (%s):", ::toTimeString(message.timestamp), msgStatus, g_ggWave->getTxProtocol(message.protocolId).name);
+            ImGui::TextDisabled("%s |", ::toTimeString(message.timestamp));
+            ImGui::SameLine();
+            ImGui::TextColored(msgColor, "%s", msgStatus);
+            ImGui::SameLine();
+            ImGui::TextDisabled("|");
+            ImGui::SameLine();
+            ImGui::TextColored({ 0.0f, 0.6f, 0.4f, interp }, "%s", settings.txProtocols.at(GGWave::TxProtocolId(message.protocolId)).name);
+            ImGui::SameLine();
+            ImGui::TextDisabled("|");
 
             {
                 auto p0 = ImGui::GetCursorScreenPos();
@@ -1079,7 +1349,7 @@ void renderMain() {
             ImGui::PopID();
         }
 
-        if (ImGui::IsMouseReleased(0) && isHoldingMessage) {
+        if (ImGui::IsMouseReleased(0) && isHoldingMessage && isDragging == false) {
             auto pos = ImGui::GetMousePos();
             pos.x -= 1.0f*ImGui::CalcTextSize("Resend | Copy").x;
             pos.y -= 1.0f*ImGui::GetTextLineHeightWithSpacing();
@@ -1094,6 +1364,7 @@ void renderMain() {
 
             if (ImGui::ButtonDisablable("Resend", {}, messageSelected.type != Message::Text)) {
                 g_buffer.inputUI.update = true;
+                g_buffer.inputUI.flags.newMessage = true;
                 g_buffer.inputUI.message = { false, std::chrono::system_clock::now(), messageSelected.data, messageSelected.protocolId, settings.volume, Message::Text };
 
                 messageHistory.push_back(g_buffer.inputUI.message);
@@ -1127,7 +1398,7 @@ void renderMain() {
                     g_hasReceivedFiles = false;
 
                     windowId = WindowId::Files;
-                    subWindowId = SubWindowId::Receive;
+                    subWindowIdFiles = SubWindowIdFiles::Receive;
 
                     ImGui::CloseCurrentPopup();
                 }
@@ -1155,7 +1426,14 @@ void renderMain() {
             ImGui::SetCursorScreenPos(posSave);
         }
 
-        ScrollWhenDraggingOnVoid(ImVec2(0.0f, -mouse_delta.y), ImGuiMouseButton_Left);
+        {
+            bool isDraggingCur = ScrollWhenDraggingOnVoid(ImVec2(0.0f, -mouse_delta.y), ImGuiMouseButton_Left);
+            if (isDraggingCur && ImGui::IsMouseDown(0)) {
+                isDragging = true;
+            } else if (isDraggingCur == false && ImGui::IsMouseDown(0) == false) {
+                isDragging = false;
+            }
+        }
         ImGui::EndChild();
 
         if (statsCurrent.isReceiving) {
@@ -1163,12 +1441,17 @@ void renderMain() {
                 ImGui::TextColored({ 0.0f, 1.0f, 0.0f, 1.0f }, "Analyzing ...");
                 ImGui::SameLine();
                 ImGui::ProgressBar(1.0f - float(statsCurrent.framesLeftToAnalyze)/statsCurrent.framesToAnalyze,
-                                   { ImGui::GetContentRegionAvailWidth(), ImGui::GetTextLineHeight() });
+                                   { ImGui::GetContentRegionAvailWidth() - ImGui::CalcTextSize(sendButtonText).x - 2*style.ItemSpacing.x, ImGui::GetTextLineHeight() });
             } else {
                 ImGui::TextColored({ 0.0f, 1.0f, 0.0f, 1.0f }, "Receiving ...");
                 ImGui::SameLine();
+                if (ImGui::SmallButton("Stop")) {
+                    g_buffer.inputUI.update = true;
+                    g_buffer.inputUI.flags.stopReceiving = true;
+                }
+                ImGui::SameLine();
                 ImGui::ProgressBar(1.0f - float(statsCurrent.framesLeftToRecord)/statsCurrent.framesToRecord,
-                                   { ImGui::GetContentRegionAvailWidth(), ImGui::GetTextLineHeight() });
+                                   { ImGui::GetContentRegionAvailWidth() - ImGui::CalcTextSize(sendButtonText).x - 2*style.ItemSpacing.x, ImGui::GetTextLineHeight() });
             }
         } else {
             static float amax = 0.0f;
@@ -1195,6 +1478,7 @@ void renderMain() {
 
                 auto posSave = ImGui::GetCursorScreenPos();
                 auto wSize = ImGui::GetContentRegionAvail();
+                wSize.x = ImGui::GetContentRegionAvailWidth() - ImGui::CalcTextSize(sendButtonText).x - 2*style.ItemSpacing.x;
                 wSize.y = ImGui::GetTextLineHeight();
 
                 ImGui::PushStyleColor(ImGuiCol_FrameBg, { 0.3f, 0.3f, 0.3f, 0.3f });
@@ -1219,7 +1503,11 @@ void renderMain() {
                                      0.0f, amax, wSize);
                 ImGui::PopStyleColor(2);
             } else {
-                ImGui::TextDisabled("Listening for waves ...\n");
+                if (settings.isFixedLength) {
+                    ImGui::TextDisabled("Listening for waves (fixed-length %d bytes)", settings.payloadLength);
+                } else {
+                    ImGui::TextDisabled("Listening for waves (variable-length)");
+                }
             }
         }
 
@@ -1229,12 +1517,24 @@ void renderMain() {
         }
 
         doSendMessage = false;
-        ImGui::PushItemWidth(ImGui::GetContentRegionAvailWidth() - ImGui::CalcTextSize(sendButtonText).x - 2*style.ItemSpacing.x);
-        if (ImGui::InputText("##Messages:Input", inputBuf, kMaxInputSize, ImGuiInputTextFlags_EnterReturnsTrue)) {
-            doSendMessage = true;
+        {
+            auto pos0 = ImGui::GetCursorScreenPos();
+            ImGui::PushItemWidth(ImGui::GetContentRegionAvailWidth() - ImGui::CalcTextSize(sendButtonText).x - 2*style.ItemSpacing.x);
+            if (ImGui::InputText("##Messages:Input", inputBuf, kMaxInputSize, ImGuiInputTextFlags_EnterReturnsTrue)) {
+                doSendMessage = true;
+            }
+            ImGui::PopItemWidth();
+
+            if (isTextInput == false && inputBuf[0] == 0) {
+                auto drawList = ImGui::GetWindowDrawList();
+                pos0.x += style.ItemInnerSpacing.x;
+                pos0.y += 0.5*style.ItemInnerSpacing.y;
+                static char tmp[128];
+                snprintf(tmp, 128, "Send message using '%s'", settings.txProtocols.at(GGWave::TxProtocolId(settings.protocolId)).name);
+                drawList->AddText(pos0, ImGui::ColorConvertFloat4ToU32({0.0f, 0.6f, 0.4f, 1.0f}), tmp);
+            }
         }
 
-        ImGui::PopItemWidth();
         if (ImGui::IsItemActive() && isTextInput == false) {
             SDL_StartTextInput();
             isTextInput = true;
@@ -1272,15 +1572,27 @@ void renderMain() {
         }
 
         ImGui::SameLine();
-        if ((ImGui::Button(sendButtonText) || doSendMessage) && inputBuf[0] != 0) {
-            g_buffer.inputUI.update = true;
-            g_buffer.inputUI.message = { false, std::chrono::system_clock::now(), std::string(inputBuf), settings.protocolId, settings.volume, Message::Text };
+        {
+            auto posCur = ImGui::GetCursorScreenPos();
+            posCur.y -= ImGui::GetTextLineHeightWithSpacing();
+            ImGui::SetCursorScreenPos(posCur);
+        }
+        if ((ImGui::Button(sendButtonText, { 0, 2*ImGui::GetTextLineHeightWithSpacing() }) || doSendMessage)) {
+            if (inputBuf[0] == 0) {
+                strncpy(inputBuf, inputLast.data(), kMaxInputSize - 1);
+            }
+            if (inputBuf[0] != 0) {
+                inputLast = std::string(inputBuf);
+                g_buffer.inputUI.update = true;
+                g_buffer.inputUI.flags.newMessage = true;
+                g_buffer.inputUI.message = { false, std::chrono::system_clock::now(), std::string(inputBuf), settings.protocolId, settings.volume, Message::Text };
 
-            messageHistory.push_back(g_buffer.inputUI.message);
+                messageHistory.push_back(g_buffer.inputUI.message);
 
-            inputBuf[0] = 0;
-            doInputFocus = true;
-            scrollMessagesToBottom = true;
+                inputBuf[0] = 0;
+                doInputFocus = true;
+                scrollMessagesToBottom = true;
+            }
         }
         if (!ImGui::IsItemHovered() && requestStopTextInput) {
             SDL_StopTextInput();
@@ -1292,17 +1604,17 @@ void renderMain() {
     if (windowId == WindowId::Files) {
         const float subWindowButtonHeight = menuButtonHeight;
 
-        if (ImGui::ButtonSelectable("Send", { 0.50f*ImGui::GetContentRegionAvailWidth(), subWindowButtonHeight }, subWindowId == SubWindowId::Send)) {
-            subWindowId = SubWindowId::Send;
+        if (ImGui::ButtonSelectable("Send", { 0.50f*ImGui::GetContentRegionAvailWidth(), subWindowButtonHeight }, subWindowIdFiles == SubWindowIdFiles::Send)) {
+            subWindowIdFiles = SubWindowIdFiles::Send;
         }
         ImGui::SameLine();
 
-        if (ImGui::ButtonSelectable("Receive", { 1.0f*ImGui::GetContentRegionAvailWidth(), subWindowButtonHeight }, subWindowId == SubWindowId::Receive)) {
-            subWindowId = SubWindowId::Receive;
+        if (ImGui::ButtonSelectable("Receive", { 1.0f*ImGui::GetContentRegionAvailWidth(), subWindowButtonHeight }, subWindowIdFiles == SubWindowIdFiles::Receive)) {
+            subWindowIdFiles = SubWindowIdFiles::Receive;
         }
 
-        switch (subWindowId) {
-            case SubWindowId::Send:
+        switch (subWindowIdFiles) {
+            case SubWindowIdFiles::Send:
                 {
                     const float statusWindowHeight = 2*style.ItemInnerSpacing.y + 4*ImGui::GetTextLineHeightWithSpacing();
 
@@ -1356,6 +1668,7 @@ void renderMain() {
 #else
                             ImGui::TextColored({ 1.0f, 1.0f, 0.0f, 1.0f }, "Drag and drop some files on this window to be able to broadcast them to nearby devices through sound.");
 #endif
+                            ImGui::TextColored({ 1.0f, 0.6f, 0.0f, 1.0f }, "File sharing works only between peers in the same local network!");
                         }
                         ImGui::PopTextWrapPos();
 
@@ -1391,6 +1704,7 @@ void renderMain() {
                     {
                         if (ImGui::Button("Broadcast", { 0.40f*ImGui::GetContentRegionAvailWidth(), subWindowButtonHeight })) {
                             g_buffer.inputUI.update = true;
+                            g_buffer.inputUI.flags.newMessage = true;
                             g_buffer.inputUI.message = {
                                 false,
                                 std::chrono::system_clock::now(),
@@ -1420,7 +1734,7 @@ void renderMain() {
                     }
                 }
                 break;
-            case SubWindowId::Receive:
+            case SubWindowIdFiles::Receive:
                 {
                     const float statusWindowHeight = 2*style.ItemInnerSpacing.y + 4*ImGui::GetTextLineHeightWithSpacing();
                     {
@@ -1543,34 +1857,149 @@ void renderMain() {
     }
 
     if (windowId == WindowId::Spectrum) {
-        ImGui::BeginChild("Spectrum:main", ImGui::GetContentRegionAvail(), true);
-        ImGui::PushTextWrapPos();
-        {
-            auto posSave = ImGui::GetCursorScreenPos();
-            ImGui::Text("FPS: %4.2f\n", ImGui::GetIO().Framerate);
-            ImGui::SetCursorScreenPos(posSave);
-        }
-        if (hasAudioCaptureData) {
-            auto wSize = ImGui::GetContentRegionAvail();
-            ImGui::PushStyleColor(ImGuiCol_FrameBg, { 0.3f, 0.3f, 0.3f, 0.3f });
-            if (statsCurrent.isReceiving) {
-                ImGui::PushStyleColor(ImGuiCol_PlotHistogram, { 1.0f, 0.0f, 0.0f, 1.0f });
-            } else {
-                ImGui::PushStyleColor(ImGuiCol_PlotHistogram, { 0.0f, 1.0f, 0.0f, 1.0f });
-            }
-            ImGui::PlotHistogram("##plotSpectrumCurrent",
-                                 spectrumCurrent.data() + 30,
-                                 g_ggWave->getSamplesPerFrame()/2 - 30, 0,
-                                 (std::string("Current Spectrum")).c_str(),
-                                 0.0f, FLT_MAX, wSize);
-            ImGui::PopStyleColor(2);
-        } else {
+        if (hasAudioCaptureData == false) {
             ImGui::Text("%s", "");
             ImGui::TextColored({ 1.0f, 0.0f, 0.0f, 1.0f }, "No capture data available!");
             ImGui::TextColored({ 1.0f, 0.0f, 0.0f, 1.0f }, "Please make sure you have allowed microphone access for this app.");
+        } else {
+            const int nBins = statsCurrent.samplesPerFrame/2;
+
+            static int binMin = 20;
+            static int binMax = 100;
+
+            static float scale = 30.0f;
+
+            static bool showFPS = true;
+            static bool showSpectrogram = false;
+
+            // 3 seconds data
+            static int freqDataSize = (3.0f*statsCurrent.sampleRateInp)/statsCurrent.samplesPerFrame;
+            static int freqDataHead = 0;
+
+            struct FreqData {
+                float freq;
+
+                std::vector<float> mag;
+            };
+
+            static std::vector<FreqData> freqData;
+            if (freqData.empty()) {
+                float df = statsCurrent.sampleRateInp/statsCurrent.samplesPerFrame;
+                freqData.resize(nBins);
+                for (int i = 0; i < nBins; ++i) {
+                    freqData[i].freq = df*i;
+                    freqData[i].mag.resize(freqDataSize);
+                }
+            }
+
+            if (hasNewSpectrum) {
+                for (int i = 0; i < (int) freqData.size(); ++i) {
+                    freqData[i].mag[freqDataHead] = spectrumCurrent[i];
+                }
+                if (++freqDataHead == freqDataSize) {
+                    freqDataHead = 0;
+                }
+
+                hasNewSpectrum = false;
+            }
+
+            if (showSpectrumSettings) {
+                auto width = ImGui::GetContentRegionAvailWidth();
+                ImGui::PushItemWidth(0.5*width);
+                static char buf[64];
+                snprintf(buf, 64, "Bin: %3d, Freq: %5.2f Hz", binMin, 0.5*binMin*statsCurrent.sampleRateInp/nBins);
+                ImGui::DragInt("##binMin", &binMin, 1, 0, binMax - 1, buf);
+                ImGui::SameLine();
+                ImGui::Checkbox("FPS", &showFPS);
+                ImGui::SameLine();
+                ImGui::Checkbox("Spectrogram", &showSpectrogram);
+                snprintf(buf, 64, "Bin: %3d, Freq: %5.2f Hz", binMax, 0.5*binMax*statsCurrent.sampleRateInp/nBins);
+                ImGui::DragInt("##binMax", &binMax, 1, binMin + 1, nBins, buf);
+                ImGui::SameLine();
+                ImGui::DragFloat("##scale", &scale, 1.0f, 1.0f, 1000.0f);
+                ImGui::PopItemWidth();
+            }
+
+            if (showSpectrogram) {
+                subWindowIdSpectrum = SubWindowIdSpectrum::Spectrogram;
+            } else {
+                subWindowIdSpectrum = SubWindowIdSpectrum::Spectrum;
+            }
+
+            auto p0 = ImGui::GetCursorScreenPos();
+            auto p1 = ImGui::GetContentRegionAvail();
+            p1.x += p0.x;
+            p1.y += p0.y;
+            if (ImGui::IsMouseHoveringRect(p0, p1) && ImGui::IsMouseClicked(0)) {
+                g_buffer.inputUI.update = true;
+                g_buffer.inputUI.flags.changeNeedSpectrum = true;
+                g_buffer.inputUI.needSpectrum = !g_buffer.inputUI.needSpectrum;
+            }
+
+            switch (subWindowIdSpectrum) {
+                case SubWindowIdSpectrum::Spectrum:
+                    {
+                        ImGui::BeginChild("Spectrum:main", ImGui::GetContentRegionAvail(), true);
+                        ImGui::PushTextWrapPos();
+                        if (showFPS) {
+                            auto posSave = ImGui::GetCursorScreenPos();
+                            ImGui::Text("FPS: %4.2f\n", ImGui::GetIO().Framerate);
+                            ImGui::SetCursorScreenPos(posSave);
+                        }
+                        auto wSize = ImGui::GetContentRegionAvail();
+                        ImGui::PushStyleColor(ImGuiCol_FrameBg, { 0.3f, 0.3f, 0.3f, 0.3f });
+                        if (statsCurrent.isReceiving) {
+                            ImGui::PushStyleColor(ImGuiCol_PlotHistogram, { 1.0f, 0.0f, 0.0f, 1.0f });
+                        } else {
+                            ImGui::PushStyleColor(ImGuiCol_PlotHistogram, { 0.0f, 1.0f, 0.0f, 1.0f });
+                        }
+                        ImGui::PlotHistogram("##plotSpectrumCurrent",
+                                             spectrumCurrent.data() + binMin, binMax - binMin, 0,
+                                             (std::string("Current Spectrum")).c_str(),
+                                             0.0f, FLT_MAX, wSize);
+                        ImGui::PopStyleColor(2);
+                        ImGui::PopTextWrapPos();
+                        ImGui::EndChild();
+                    }
+                    break;
+                case SubWindowIdSpectrum::Spectrogram:
+                    {
+                        if (showFPS) {
+                            auto posSave = ImGui::GetCursorScreenPos();
+                            ImGui::Text("FPS: %4.2f\n", ImGui::GetIO().Framerate);
+                            ImGui::SetCursorScreenPos(posSave);
+                        }
+
+                        auto drawList = ImGui::GetWindowDrawList();
+
+                        float sum = 0.0;
+                        for (int i = binMin; i < binMax; ++i) {
+                            for (int j = 0; j < freqDataSize; ++j) {
+                                sum += freqData[i].mag[j];
+                            }
+                        }
+
+                        int nf = binMax - binMin;
+                        sum /= (nf*freqDataSize);
+
+                        const float dx = displaySize.x/(freqDataSize + 1);
+                        const float dy = displaySize.y/(nf + 1);
+
+                        auto p0 = ImGui::GetCursorScreenPos();
+                        for (int i = 0; i < nf; ++i) {
+                            for (int j = 0; j < freqDataSize; ++j) {
+                                int k = freqDataHead + j;
+                                if (k >= freqDataSize) k -= freqDataSize;
+                                auto v = freqData[binMin + i].mag[k];
+                                ImVec4 c = { 0.0f, 1.0f, 0.0, 0.0f };
+                                c.w = v/(scale*sum);
+                                drawList->AddRectFilled({ p0.x + j*dx, p0.y + i*dy }, { p0.x + j*dx + dx - 1, p0.y + i*dy + dy - 1 }, ImGui::ColorConvertFloat4ToU32(c));
+                            }
+                        }
+                    }
+                    break;
+            };
         }
-        ImGui::PopTextWrapPos();
-        ImGui::EndChild();
     }
 
     ImGui::End();
@@ -1580,10 +2009,7 @@ void renderMain() {
 
     {
         std::lock_guard<std::mutex> lock(g_buffer.mutex);
-        if (g_buffer.inputUI.update) {
-            g_buffer.inputCore = std::move(g_buffer.inputUI);
-            g_buffer.inputUI.update = false;
-        }
+        g_buffer.inputUI.apply(g_buffer.inputCore);
     }
 }
 

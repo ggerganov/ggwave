@@ -124,8 +124,14 @@ if (GGWAVE_SUPPORT_SDL2)
     endif()
 endif()
 
-install(TARGETS imgui LIBRARY DESTINATION lib)
+install(TARGETS imgui
+    LIBRARY DESTINATION lib
+    ARCHIVE DESTINATION lib/static
+    )
 
 if (GGWAVE_SUPPORT_SDL2)
-    install(TARGETS imgui-sdl2 LIBRARY DESTINATION lib)
+    install(TARGETS imgui-sdl2
+        LIBRARY DESTINATION lib
+        ARCHIVE DESTINATION lib/static
+        )
 endif()

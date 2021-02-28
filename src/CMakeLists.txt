@@ -28,4 +28,7 @@ if (MINGW)
         )
 endif()
 
-install(TARGETS ${TARGET} LIBRARY DESTINATION lib)
+install(TARGETS ${TARGET}
+    LIBRARY DESTINATION lib
+    ARCHIVE DESTINATION lib/static
+    )

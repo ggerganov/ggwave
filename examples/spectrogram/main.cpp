@@ -513,8 +513,8 @@ int main(int argc, char** argv) {
 
         if (g_showControls) {
             ImGui::SetNextWindowFocus();
-            ImGui::SetNextWindowPos({ displaySize.x - 400 - 20, 20 });
-            ImGui::SetNextWindowSize({ 400, 180 });
+            ImGui::SetNextWindowPos({ std::max(20.0f, displaySize.x - 400.0f - 20.0f), 20.0f });
+            ImGui::SetNextWindowSize({ std::min(displaySize.x - 40.0f, 400.0f), 180.0f });
             ImGui::Begin("Controls", &g_showControls);
             ImGui::Text("Press 'c' to hide/show this window");
             {

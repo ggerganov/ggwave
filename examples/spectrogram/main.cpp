@@ -30,9 +30,10 @@ struct FreqData {
 
 bool g_isCapturing = true;
 constexpr int g_nSamplesPerFrame = 1024;
+constexpr int g_nBins = g_nSamplesPerFrame/2;
 
 int g_binMin = 20;
-int g_binMax = 60;
+int g_binMax = 512;
 
 float g_scale = 30.0;
 
@@ -404,56 +405,94 @@ int main(int argc, char** argv) {
                      ImGuiWindowFlags_NoResize |
                      ImGuiWindowFlags_NoSavedSettings);
 
-        auto drawList = ImGui::GetWindowDrawList();
+        auto & style = ImGui::GetStyle();
 
-        float sum = 0.0;
-        for (int i = g_binMin; i < g_binMax; ++i) {
-            for (int j = 0; j < g_freqDataSize; ++j) {
-                sum += g_freqData[i].mag[j];
+        auto itemSpacingSave = style.ItemSpacing;
+        style.ItemSpacing.x = 0.0f;
+        style.ItemSpacing.y = 0.0f;
+
+        auto windowPaddingSave = style.WindowPadding;
+        style.WindowPadding.x = 0.0f;
+        style.WindowPadding.y = 0.0f;
+
+        auto childBorderSizeSave = style.ChildBorderSize;
+        style.ChildBorderSize = 0.0f;
+
+        {
+            float sum = 0.0;
+            for (int i = g_binMin; i < g_binMax; ++i) {
+                for (int j = 0; j < g_freqDataSize; ++j) {
+                    sum += g_freqData[i].mag[j];
+                }
             }
+
+            int nf = g_binMax - g_binMin;
+            sum /= (nf*g_freqDataSize);
+
+            const auto wSize = ImGui::GetContentRegionAvail();
+
+            const float dx = wSize.x/nf;
+            const float dy = wSize.y/g_freqDataSize;
+
+            auto p0 = ImGui::GetCursorScreenPos();
+
+            int nChildWindows = 0;
+            int nFreqPerChild = 32;
+            ImGui::PushID(nChildWindows++);
+            ImGui::BeginChild("Spectrogram", { wSize.x, (nFreqPerChild + 1)*dy }, true);
+            auto drawList = ImGui::GetWindowDrawList();
+
+            for (int j = 0; j < g_freqDataSize; ++j) {
+                if (j > 0 && j % nFreqPerChild == 0) {
+                    ImGui::EndChild();
+                    ImGui::PopID();
+
+                    ImGui::PushID(nChildWindows++);
+                    ImGui::SetCursorScreenPos({ p0.x, p0.y + nFreqPerChild*int(j/nFreqPerChild)*dy });
+                    ImGui::BeginChild("Spectrogram", { wSize.x, (nFreqPerChild + 1)*dy }, true);
+                    drawList = ImGui::GetWindowDrawList();
+                }
+                for (int i = 0; i < nf; ++i) {
+                    int k = g_freqDataHead + j;
+                    if (k >= g_freqDataSize) k -= g_freqDataSize;
+                    auto v = g_freqData[g_binMin + i].mag[k];
+                    ImVec4 c = { 0.0f, 1.0f, 0.0, 0.0f };
+                    c.w = v/(g_scale*sum);
+                    drawList->AddRectFilled({ p0.x + i*dx, p0.y + j*dy }, { p0.x + i*dx + dx, p0.y + j*dy + dy }, ImGui::ColorConvertFloat4ToU32(c));
+                }
+            }
+
+            ImGui::EndChild();
+            ImGui::PopID();
         }
 
-        int nf = g_binMax - g_binMin;
-        sum /= (nf*g_freqDataSize);
+        style.ItemSpacing = itemSpacingSave;
+        style.WindowPadding = windowPaddingSave;
+        style.ChildBorderSize = childBorderSizeSave;
 
-        const float dx = displaySize.x/(g_freqDataSize + 1);
-        const float dy = displaySize.y/(nf + 1);
-
-        auto p0 = ImGui::GetCursorScreenPos();
-        for (int i = 0; i < nf; ++i) {
-            for (int j = 0; j < g_freqDataSize; ++j) {
-                int k = g_freqDataHead + j;
-                if (k >= g_freqDataSize) k -= g_freqDataSize;
-                auto v = g_freqData[g_binMin + i].mag[k];
-                ImVec4 c = { 0.0f, 1.0f, 0.0, 0.0f };
-                c.w = v/(g_scale*sum);
-                drawList->AddRectFilled({ p0.x + j*dx, p0.y + i*dy }, { p0.x + j*dx + dx - 1, p0.y + i*dy + dy - 1 }, ImGui::ColorConvertFloat4ToU32(c));
-            }
-        }
-
-        //for (int i = 0; i < (int) g_freqData.size(); ++i) {
-        //    ImGui::PushID(i);
-        //    ImGui::PlotLines("##signal", g_freqData[i].mag.data(), g_freqData[i].mag.size(), g_freqData[i].head, std::to_string(g_freqData[i].freq).c_str(), 0.0f, FLT_MAX, { ImGui::GetContentRegionAvailWidth(), 20 });
-        //    ImGui::PopID();
-        //}
         ImGui::End();
 
         bool togglePause = false;
 
         if (g_showControls) {
             ImGui::SetNextWindowFocus();
-            ImGui::SetNextWindowPos({ 20, 20 });
-            ImGui::SetNextWindowSize({ 400, 300 });
+            ImGui::SetNextWindowPos({ displaySize.x - 400 - 20, 20 });
+            ImGui::SetNextWindowSize({ 400, 180 });
             ImGui::Begin("Controls", &g_showControls);
             ImGui::Text("Press 'c' to hide/show this window");
-            ImGui::DragInt("Min", &g_binMin, 1, 0, g_binMax - 1);
-            ImGui::DragInt("Max", &g_binMax, 1, g_binMin + 1, g_nSamplesPerFrame/2);
+            {
+                static char buf[64];
+                snprintf(buf, 64, "Bin: %3d, Freq: %5.2f Hz", g_binMin, 0.5*g_binMin*g_obtainedSpecInp.freq/g_nBins);
+                ImGui::DragInt("Min", &g_binMin, 1, 0, g_binMax - 2, buf);
+                snprintf(buf, 64, "Bin: %3d, Freq: %5.2f Hz", g_binMax, 0.5*g_binMax*g_obtainedSpecInp.freq/g_nBins);
+                ImGui::DragInt("Max", &g_binMax, 1, g_binMin + 1, g_nBins, buf);
+            }
             ImGui::DragFloat("Scale", &g_scale, 1.0f, 1.0f, 1000.0f);
             if (ImGui::SliderFloat("Offset", &g_sampleRateOffset, -2048, 2048)) {
                 GGWave_deinit();
                 GGWave_init(0, 0);
             }
-            if (ImGui::Button("Pause")) {
+            if (ImGui::Button("Pause [Enter]")) {
                 togglePause = true;
             }
             if (ImGui::IsKeyPressed(40)) {

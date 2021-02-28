@@ -1875,10 +1875,13 @@ void renderMain() {
             static float scale = 30.0f;
 
             static bool showFPS = false;
+            static bool showRx = true;
             static bool showSpectrogram = false;
 
+            static const float kSpectrogramTime_s = 3.0f;
+
             // 3 seconds data
-            static int freqDataSize = (3.0f*statsCurrent.sampleRateInp)/statsCurrent.samplesPerFrame;
+            static int freqDataSize = (kSpectrogramTime_s*statsCurrent.sampleRateInp)/statsCurrent.samplesPerFrame;
             static int freqDataHead = 0;
 
             struct FreqData {
@@ -1920,6 +1923,8 @@ void renderMain() {
                 ImGui::Checkbox("Spectrogram", &showSpectrogram);
                 snprintf(buf, 64, "Bin: %3d, Freq: %5.2f Hz", binMax, 0.5*binMax*statsCurrent.sampleRateInp/nBins);
                 ImGui::DragInt("##binMax", &binMax, 1, binMin + 1, nBins, buf);
+                ImGui::SameLine();
+                ImGui::Checkbox("Rx", &showRx);
                 ImGui::SameLine();
                 ImGui::DragFloat("##scale", &scale, 1.0f, 1.0f, 1000.0f);
                 ImGui::PopItemWidth();
@@ -2030,6 +2035,36 @@ void renderMain() {
 
                         ImGui::EndChild();
                         ImGui::PopID();
+
+                        while (showRx && messageHistory.size() > 0) {
+                            const auto& msg = messageHistory.back();
+                            static float tRecv = 0.0;
+                            if (g_buffer.inputUI.needSpectrum) {
+                                tRecv = 0.001f*std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now() - msg.timestamp).count();
+                            }
+
+                            if (tRecv > 2.0f*kSpectrogramTime_s || msg.received == false) {
+                                break;
+                            }
+
+                            const auto & protocol = settings.txProtocols.at(GGWave::TxProtocolId(msg.protocolId));
+                            const int msgLength_bytes = settings.isFixedLength ? 1.4f*settings.payloadLength : 1.4f*msg.data.size() + GGWave::kDefaultEncodedDataOffset;
+                            const int msgLength_frames = settings.isFixedLength ?
+                                ((msgLength_bytes + protocol.bytesPerTx - 1)/protocol.bytesPerTx)*protocol.framesPerTx :
+                                ((msgLength_bytes + protocol.bytesPerTx - 1)/protocol.bytesPerTx)*protocol.framesPerTx + 2*GGWave::kDefaultMarkerFrames;
+                            const float frameLength_s = (float(statsCurrent.samplesPerFrame)/statsCurrent.sampleRateInp);
+
+                            const float x0 = protocol.freqStart - binMin;
+                            const float x1 = x0 + 32*protocol.bytesPerTx;
+                            const float y1 = freqDataSize - tRecv/frameLength_s + (settings.isFixedLength ? 0.0f : 0.5*GGWave::kDefaultMarkerFrames);
+                            const float y0 = y1 - msgLength_frames;
+
+                            ImVec4 c = { 1.0f, 0.0f, 0.0, 1.0f };
+                            drawList->AddRect({ p0.x + x0*dx, p0.y + y0*dy }, { p0.x + x1*dx + dx, p0.y + y1*dy }, ImGui::ColorConvertFloat4ToU32(c));
+
+                            break;
+                        }
+
                     }
                     break;
             };

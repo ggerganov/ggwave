@@ -298,8 +298,8 @@ GGWave::GGWave(const Parameters & parameters) :
     m_freqDelta_bin(1),
     m_freqDelta_hz(2*m_hzPerSample),
     m_nBitsInMarker(16),
-    m_nMarkerFrames(parameters.payloadLength > 0 ? 0 : 16),
-    m_encodedDataOffset(parameters.payloadLength > 0 ? 0 : 3),
+    m_nMarkerFrames(parameters.payloadLength > 0 ? 0 : kDefaultMarkerFrames),
+    m_encodedDataOffset(parameters.payloadLength > 0 ? 0 : kDefaultEncodedDataOffset),
     m_soundMarkerThreshold(parameters.soundMarkerThreshold),
     // common
     m_isFixedPayloadLength(parameters.payloadLength > 0),

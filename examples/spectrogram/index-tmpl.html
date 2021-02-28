@@ -47,7 +47,6 @@
             <div id="container_canvas" hidden>
                 <canvas class="emscripten" id="canvas" oncontextmenu="event.preventDefault()"></canvas>
             </div>
-            <br>
         </div>
 
         <div id="footer" class="cell-version">
@@ -75,13 +74,13 @@
 
             window.setInterval(function(){
                     if (isInitialized == false) return;
-                    //var w = window,
-                    //    d = document,
-                    //    e = d.documentElement,
-                    //    g = d.getElementsByTagName('body')[0],
-                    //    x = w.innerWidth || e.clientWidth || g.clientWidth,
-                    //    y = w.innerHeight|| e.clientHeight|| g.clientHeight;
-                    //Module._set_window_size(0.99*x, y - 1.40*document.getElementById('footer').clientHeight);
+                    var w = window,
+                        d = document,
+                        e = d.documentElement,
+                        g = d.getElementsByTagName('body')[0],
+                        x = w.innerWidth || e.clientWidth || g.clientWidth,
+                        y = w.innerHeight|| e.clientHeight|| g.clientHeight;
+                    Module._set_window_size(0.99*x, y - 1.40*document.getElementById('footer').clientHeight);
             }, 500);
 
             function checkLoop() {
@@ -137,8 +136,8 @@
                     isInitialized = true;
                 }
 
-                var x = document.getElementById("container_canvas");
-                x.hidden = false;
+                document.getElementById("description").hidden = true;
+                document.getElementById("container_canvas").hidden = false;
             }
 
             var Module = {

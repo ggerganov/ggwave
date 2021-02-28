@@ -368,7 +368,7 @@ int main(int argc, char** argv) {
 
     ImGui_PreInit();
 
-    int windowX = 1920;
+    int windowX = 1600;
     int windowY = 1200;
 
     const char * windowTitle = "spectrogram";

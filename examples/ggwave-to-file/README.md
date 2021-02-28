@@ -6,7 +6,7 @@ Output a generated waveform to an uncompressed WAV file.
 Usage: ./bin/ggwave-to-file [-vN] [-sN] [-pN]
     -vN - output volume, N in (0, 100], (default: 50)
     -sN - output sample rate, N in [6000, 96000], (default: 48000)
-    -pN - select the transmission protocol (default: 1)
+    -pN - select the transmission protocol id (default: 1)
 
     Available protocols:
       0 - Normal
@@ -15,6 +15,9 @@ Usage: ./bin/ggwave-to-file [-vN] [-sN] [-pN]
       3 - [U] Normal
       4 - [U] Fast
       5 - [U] Fastest
+      6 - [DT] Normal
+      7 - [DT] Fast
+      8 - [DT] Fastest
 ```
 
 ### Examples

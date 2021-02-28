@@ -12,7 +12,7 @@
 int main(int argc, char** argv) {
     fprintf(stderr, "Usage: %s [-vN] [-sN] [-pN]\n", argv[0]);
     fprintf(stderr, "    -vN - output volume, N in (0, 100], (default: 50)\n");
-    fprintf(stderr, "    -sN - output sample rate, N in [1024, %d], (default: %d)\n", (int) GGWave::kBaseSampleRate, (int) GGWave::kBaseSampleRate);
+    fprintf(stderr, "    -sN - output sample rate, N in [%d, %d], (default: %d)\n", (int) GGWave::kSampleRateMin, (int) GGWave::kSampleRateMax, (int) GGWave::kBaseSampleRate);
     fprintf(stderr, "    -pN - select the transmission protocol id (default: 1)\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "    Available protocols:\n");

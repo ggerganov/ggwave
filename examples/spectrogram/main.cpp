@@ -439,6 +439,7 @@ int main(int argc, char** argv) {
                      ImGuiWindowFlags_NoTitleBar |
                      ImGuiWindowFlags_NoScrollbar |
                      ImGuiWindowFlags_NoResize |
+                     ImGuiWindowFlags_NoScrollWithMouse |
                      ImGuiWindowFlags_NoSavedSettings);
 
         auto & style = ImGui::GetStyle();

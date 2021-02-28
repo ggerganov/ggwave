@@ -866,6 +866,19 @@ void renderMain() {
     static std::vector<Message> messageHistory;
     static std::string inputLast = "";
 
+    // keyboard shortcuts:
+    if (ImGui::IsKeyPressed(62)) {
+        printf("F5 pressed : clear message history\n");
+        messageHistory.clear();
+    }
+
+    if (ImGui::IsKeyPressed(63)) {
+        if (messageHistory.size() > 0) {
+            printf("F6 pressed : delete last message\n");
+            messageHistory.erase(messageHistory.end() - 1);
+        }
+    }
+
     if (stateCurrent.update) {
         if (stateCurrent.flags.newMessage) {
             scrollMessagesToBottom = true;

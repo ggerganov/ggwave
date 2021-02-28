@@ -19,9 +19,9 @@ if (EMSCRIPTEN)
         )
 
     set_target_properties(${TARGET} PROPERTIES LINK_FLAGS " \
-    -s FORCE_FILESYSTEM=1 \
-    --preload-file ${CMAKE_CURRENT_SOURCE_DIR}/../assets/fonts@/ \
-    ")
+        -s FORCE_FILESYSTEM=1 \
+        --preload-file ${CMAKE_CURRENT_SOURCE_DIR}/../assets/fonts@/ \
+        ")
 
     configure_file(${CMAKE_CURRENT_SOURCE_DIR}/build_timestamp-tmpl.h ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${TARGET}/build_timestamp.h @ONLY)
     configure_file(${CMAKE_CURRENT_SOURCE_DIR}/index-tmpl.html ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${TARGET}/index.html @ONLY)

@@ -3,6 +3,13 @@
 #include "ggwave/ggwave.h"
 #include "ggwave-common.h"
 
+#ifdef __EMSCRIPTEN__
+#include "build_timestamp.h"
+#include "emscripten/emscripten.h"
+#else
+#define EMSCRIPTEN_KEEPALIVE
+#endif
+
 #include <imgui-extra/imgui_impl.h>
 
 #include <SDL.h>
@@ -326,7 +333,30 @@ void mainUpdate(void *) {
     g_mainUpdate();
 }
 
+// JS interface
+
+extern "C" {
+    EMSCRIPTEN_KEEPALIVE
+        int do_init() {
+            return g_doInit();
+        }
+
+    EMSCRIPTEN_KEEPALIVE
+        void set_window_size(int sizeX, int sizeY) {
+            g_setWindowSize(sizeX, sizeY);
+        }
+}
+
 int main(int argc, char** argv) {
+#ifdef __EMSCRIPTEN__
+    printf("Build time: %s\n", BUILD_TIMESTAMP);
+    printf("Press the Init button to start\n");
+
+    if (argv[1]) {
+        GGWave_setDefaultCaptureDeviceName(argv[1]);
+    }
+#endif
+
     auto argm = parseCmdArguments(argc, argv);
     int captureId = argm["c"].empty() ? 0 : std::stoi(argm["c"]);
     int playbackId = argm["p"].empty() ? 0 : std::stoi(argm["p"]);
@@ -338,13 +368,19 @@ int main(int argc, char** argv) {
 
     ImGui_PreInit();
 
-    int windowX = 1920;
+    int windowX = 1600;
     int windowY = 1200;
 
     const char * windowTitle = "spectrogram";
 
+#ifdef __EMSCRIPTEN__
+    SDL_Renderer * renderer;
+    SDL_Window * window;
+    SDL_CreateWindowAndRenderer(windowX, windowY, SDL_WINDOW_OPENGL, &window, &renderer);
+#else
     SDL_WindowFlags window_flags = (SDL_WindowFlags)(SDL_WINDOW_OPENGL | SDL_WINDOW_RESIZABLE | SDL_WINDOW_ALLOW_HIGHDPI);
     SDL_Window * window = SDL_CreateWindow(windowTitle, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, windowX, windowY, window_flags);
+#endif
 
     void * gl_context = SDL_GL_CreateContext(window);
 
@@ -403,6 +439,7 @@ int main(int argc, char** argv) {
                      ImGuiWindowFlags_NoTitleBar |
                      ImGuiWindowFlags_NoScrollbar |
                      ImGuiWindowFlags_NoResize |
+                     ImGuiWindowFlags_NoScrollWithMouse |
                      ImGuiWindowFlags_NoSavedSettings);
 
         auto & style = ImGui::GetStyle();
@@ -476,8 +513,8 @@ int main(int argc, char** argv) {
 
         if (g_showControls) {
             ImGui::SetNextWindowFocus();
-            ImGui::SetNextWindowPos({ displaySize.x - 400 - 20, 20 });
-            ImGui::SetNextWindowSize({ 400, 180 });
+            ImGui::SetNextWindowPos({ std::max(20.0f, displaySize.x - 400.0f - 20.0f), 20.0f });
+            ImGui::SetNextWindowSize({ std::min(displaySize.x - 40.0f, 400.0f), 180.0f });
             ImGui::Begin("Controls", &g_showControls);
             ImGui::Text("Press 'c' to hide/show this window");
             {
@@ -516,6 +553,9 @@ int main(int argc, char** argv) {
         return true;
     };
 
+#ifdef __EMSCRIPTEN__
+    emscripten_set_main_loop_arg(mainUpdate, NULL, 0, true);
+#else
     if (g_doInit() == false) {
         printf("Error: failed to initialize audio\n");
         return -2;
@@ -535,6 +575,7 @@ int main(int argc, char** argv) {
     SDL_DestroyWindow(window);
     SDL_CloseAudio();
     SDL_Quit();
+#endif
 
     return 0;
 }

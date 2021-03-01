@@ -525,10 +525,12 @@ int main(int argc, char** argv) {
                 ImGui::DragInt("Max", &g_binMax, 1, g_binMin + 1, g_nBins, buf);
             }
             ImGui::DragFloat("Scale", &g_scale, 1.0f, 1.0f, 1000.0f);
+#ifndef __EMSCRIPTEN__
             if (ImGui::SliderFloat("Offset", &g_sampleRateOffset, -2048, 2048)) {
                 GGWave_deinit();
                 GGWave_init(0, 0);
             }
+#endif
             if (ImGui::Button("Pause [Enter]")) {
                 togglePause = true;
             }

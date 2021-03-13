@@ -100,6 +100,7 @@ The [examples](https://github.com/ggerganov/ggwave/blob/master/examples/) folder
 | [ggwave-py](https://github.com/ggerganov/ggwave/blob/master/examples/ggwave-py) | Python examples | PortAudio |
 | [ggwave-js](https://github.com/ggerganov/ggwave/blob/master/examples/ggwave-js) | Javascript example | Web Audio API |
 | [spectrogram](https://github.com/ggerganov/ggwave/blob/master/examples/spectrogram) | Spectrogram tool | SDL |
+| [ggweb-spike](https://gitlab.com/commonsguy/ggweb-spike) | Android example using a `WebView` to wrap `ggwave` into a simple app | WebAudio |
 
 Other projects using **ggwave** or one of its prototypes:
 

@@ -275,6 +275,14 @@ public:
         return kTxProtocols;
     }
 
+    struct ToneData {
+        double freq_hz;
+        double duration_ms;
+    };
+
+    using Tones = std::vector<ToneData>;
+    using WaveformTones = std::vector<Tones>;
+
     using AmplitudeData    = std::vector<float>;
     using AmplitudeDataI16 = std::vector<int16_t>;
     using SpectrumData     = std::vector<float>;
@@ -354,6 +362,12 @@ public:
     static const TxProtocol & getDefaultTxProtocol() { return getTxProtocols().at(getDefaultTxProtocolId()); }
     static const TxProtocol & getTxProtocol(int id)  { return getTxProtocols().at(TxProtocolId(id)); }
     static const TxProtocol & getTxProtocol(TxProtocolId id) { return getTxProtocols().at(id); }
+
+    // get a list of the tones generated for the last waveform
+    //
+    //   Call this method after calling encode() to get a list of the tones participating in the generated waveform
+    //
+    const WaveformTones & getWaveformTones() { return m_waveformTones; }
 
     bool takeTxAmplitudeI16(AmplitudeDataI16 & dst);
 
@@ -473,6 +487,7 @@ private:
     TxRxData m_outputBlockTmp;
     AmplitudeDataI16 m_outputBlockI16;
     AmplitudeDataI16 m_txAmplitudeDataI16;
+    WaveformTones m_waveformTones;
 
     // Impl
     // todo : move all members inside Impl

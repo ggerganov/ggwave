@@ -18,6 +18,7 @@ int main(int argc, char** argv) {
     printf("    -pN - select playback device N\n");
     printf("    -tN - transmission protocol\n");
     printf("    -lN - fixed payload length of size N, N in [1, %d]\n", GGWave::kMaxLengthFixed);
+    printf("    -v  - print generated tones on resend\n");
     printf("\n");
 
     auto argm = parseCmdArguments(argc, argv);
@@ -25,6 +26,7 @@ int main(int argc, char** argv) {
     int playbackId = argm["p"].empty() ? 0 : std::stoi(argm["p"]);
     int txProtocol = argm["t"].empty() ? 1 : std::stoi(argm["t"]);
     int payloadLength = argm["l"].empty() ? -1 : std::stoi(argm["l"]);
+    bool printTones = argm.find("v") == argm.end() ? false : true;
 
     if (GGWave_init(playbackId, captureId, payloadLength) == false) {
         fprintf(stderr, "Failed to initialize GGWave\n");
@@ -51,13 +53,26 @@ int main(int argc, char** argv) {
         std::string inputOld = "";
         while (true) {
             std::string input;
-            std::cout << "Enter text: ";
+            printf("Enter text: ");
+            fflush(stdout);
             getline(std::cin, input);
             if (input.empty()) {
-                std::cout << "Re-sending ... " << std::endl;
+                printf("Re-sending ...\n");
                 input = inputOld;
+
+                if (printTones) {
+                    printf("Printing generated waveform tones (Hz):\n");
+                    auto waveformTones = ggWave->getWaveformTones();
+                    for (int i = 0; i < (int) waveformTones.size(); ++i) {
+                        printf(" - frame %3d: ", i);
+                        for (int j = 0; j < (int) waveformTones[i].size(); ++j) {
+                            printf("%8.2f ", waveformTones[i][j].freq_hz);
+                        }
+                        printf("\n");
+                    }
+                }
             } else {
-                std::cout << "Sending ... " << std::endl;
+                printf("Sending ...\n");
             }
             {
                 std::lock_guard<std::mutex> lock(mutex);

@@ -44,6 +44,17 @@ extern "C" {
         GGWAVE_TX_PROTOCOL_DT_NORMAL,
         GGWAVE_TX_PROTOCOL_DT_FAST,
         GGWAVE_TX_PROTOCOL_DT_FASTEST,
+
+        GGWAVE_TX_PROTOCOL_CUSTOM_0,
+        GGWAVE_TX_PROTOCOL_CUSTOM_1,
+        GGWAVE_TX_PROTOCOL_CUSTOM_2,
+        GGWAVE_TX_PROTOCOL_CUSTOM_3,
+        GGWAVE_TX_PROTOCOL_CUSTOM_4,
+        GGWAVE_TX_PROTOCOL_CUSTOM_5,
+        GGWAVE_TX_PROTOCOL_CUSTOM_6,
+        GGWAVE_TX_PROTOCOL_CUSTOM_7,
+        GGWAVE_TX_PROTOCOL_CUSTOM_8,
+        GGWAVE_TX_PROTOCOL_CUSTOM_9,
     } ggwave_TxProtocolId;
 
     // GGWave instance parameters
@@ -267,9 +278,9 @@ public:
             { GGWAVE_TX_PROTOCOL_ULTRASOUND_NORMAL,     { "[U] Normal",   320, 9, 3, } },
             { GGWAVE_TX_PROTOCOL_ULTRASOUND_FAST,       { "[U] Fast",     320, 6, 3, } },
             { GGWAVE_TX_PROTOCOL_ULTRASOUND_FASTEST,    { "[U] Fastest",  320, 3, 3, } },
-            { GGWAVE_TX_PROTOCOL_DT_NORMAL,             { "[DT] Normal",  64,  9, 1, } },
-            { GGWAVE_TX_PROTOCOL_DT_FAST,               { "[DT] Fast",    64,  6, 1, } },
-            { GGWAVE_TX_PROTOCOL_DT_FASTEST,            { "[DT] Fastest", 64,  3, 1, } },
+            { GGWAVE_TX_PROTOCOL_DT_NORMAL,             { "[DT] Normal",  24,  9, 1, } },
+            { GGWAVE_TX_PROTOCOL_DT_FAST,               { "[DT] Fast",    24,  6, 1, } },
+            { GGWAVE_TX_PROTOCOL_DT_FASTEST,            { "[DT] Fastest", 24,  3, 1, } },
         };
 
         return kTxProtocols;

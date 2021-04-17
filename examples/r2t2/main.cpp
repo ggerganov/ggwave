@@ -2,24 +2,18 @@
 
 #include "ggwave-common.h"
 
-#include <stdio.h>
-#include <linux/kd.h>
-
-#include <sys/ioctl.h>
+#include <fcntl.h>
 #include <unistd.h>
-
+#include <sys/ioctl.h>
 #include <sys/types.h>
 #include <sys/stat.h>
-#include <fcntl.h>
+#include <linux/kd.h>
 
 #define CONSOLE "/dev/tty0"
 
 #include <cmath>
 #include <cstdio>
 #include <string>
-
-#include <mutex>
-#include <thread>
 #include <iostream>
 
 int main(int argc, char** argv) {
@@ -38,7 +32,7 @@ int main(int argc, char** argv) {
     int txProtocolId = argm["t"].empty() ? GGWAVE_TX_PROTOCOL_CUSTOM_0 : std::stoi(argm["t"]);
     int payloadLength = argm["l"].empty() ? 4 : std::stoi(argm["l"]);
 
-    auto ggWave = new GGWave({
+    GGWave ggWave({
         payloadLength,
         GGWave::kBaseSampleRate,
         GGWave::kBaseSampleRate,
@@ -57,6 +51,23 @@ int main(int argc, char** argv) {
         return -3;
     }
 
+    printf("Selecting Tx protocol %d\n", txProtocolId);
+
+    fprintf(stderr, "Enter a text message:\n");
+
+    std::string message;
+    std::getline(std::cin, message);
+
+    if (message.size() == 0) {
+        fprintf(stderr, "Invalid message: size = 0\n");
+        return -2;
+    }
+
+    if ((int) message.size() > payloadLength) {
+        fprintf(stderr, "Invalid message: size > %d\n", payloadLength);
+        return -3;
+    }
+
     int fd = 1;
     if (ioctl(fd, KDMKTONE, 0)) {
         fd = open(CONSOLE, O_RDONLY);
@@ -66,52 +77,20 @@ int main(int argc, char** argv) {
         return 1;
     }
 
-    printf("Selecting Tx protocol %d\n", txProtocolId);
+    ggWave.init(message.size(), message.data(), protocols.at(GGWave::TxProtocolId(txProtocolId)), 10);
 
-    std::mutex mutex;
-    std::thread inputThread([&]() {
-        std::string inputOld = "";
-        while (true) {
-            std::string input;
-            std::cout << "Enter text: ";
-            getline(std::cin, input);
-            if (input.empty()) {
-                std::cout << "Re-sending ... " << std::endl;
-                input = inputOld;
-            } else {
-                std::cout << "Sending ... " << std::endl;
-            }
-            {
-                std::lock_guard<std::mutex> lock(mutex);
-                ggWave->init(input.size(), input.data(), protocols.at(GGWave::TxProtocolId(txProtocolId)), 10);
+    GGWave::CBWaveformOut tmp = [](const void * , uint32_t ){};
+    ggWave.encode(tmp);
 
-                GGWave::CBWaveformOut tmp = [](const void * , uint32_t ){};
-                ggWave->encode(tmp);
-
-                auto tones = ggWave->getWaveformTones();
-                for (auto & tonesCur : tones) {
-                    for (auto & tone : tonesCur) {
-                        long pitch   = std::round(1193180.0/tone.freq_hz);
-                        long ms = std::round(tone.duration_ms);
-                        ioctl(fd, KDMKTONE, (ms<<16)|pitch);
-                        usleep(ms*1000);
-                    }
-                }
-            }
-            inputOld = input;
-        }
-    });
-
-    while (true) {
-        std::this_thread::sleep_for(std::chrono::milliseconds(1));
-        {
-            std::lock_guard<std::mutex> lock(mutex);
+    auto tones = ggWave.getWaveformTones();
+    for (auto & tonesCur : tones) {
+        for (auto & tone : tonesCur) {
+            long pitch   = std::round(1193180.0/tone.freq_hz);
+            long ms = std::round(tone.duration_ms);
+            ioctl(fd, KDMKTONE, (ms<<16)|pitch);
+            usleep(ms*1000);
         }
     }
-
-    inputThread.join();
-
-    delete ggWave;
 
     return 0;
 }

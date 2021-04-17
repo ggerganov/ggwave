@@ -12,5 +12,4 @@ target_include_directories(r2t2 PRIVATE
 
 target_link_libraries(r2t2 PRIVATE
     ggwave-common
-    ${CMAKE_THREAD_LIBS_INIT}
     )

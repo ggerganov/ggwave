@@ -82,10 +82,10 @@ if (EMSCRIPTEN)
     add_subdirectory(ggwave-js)
 else()
     add_subdirectory(ggwave-to-file)
+endif()
 
-    if (UNIX AND NOT APPLE)
-        add_subdirectory(r2t2)
-    endif()
+if (UNIX AND NOT APPLE)
+    add_subdirectory(r2t2)
 endif()
 
 if (GGWAVE_SUPPORT_SDL2)

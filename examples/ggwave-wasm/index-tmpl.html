@@ -158,7 +158,7 @@
 
             var isiOS = /iPad|iPhone|iPod|CriOS/.test(navigator.userAgent) && !window.MSStream;
             var isInitialized = false;
-            var isAudioContextUnlocked = !isiOS;
+            var isAudioContextUnlocked = true
 
             var htmlGreenLED  = "<div class=\"led-green\"></div>";
             var htmlRedLED    = "<div class=\"led-red\"></div>";
@@ -193,7 +193,7 @@
                     }
                 }
 
-                var isBrowserSupported = !isiOS;
+                var isBrowserSupported = true;
                 {
                     var el = document.getElementById('is-browser-supported');
                     if (isBrowserSupported) {
@@ -229,7 +229,7 @@
                 postRun: [ (function() { document.getElementById("butInit").disabled = false; }) ],
                 print: (function() {
                     var element = document.getElementById('output');
-                    if (element) element.alue = ''; // clear browser cache
+                    if (element) element.value = ''; // clear browser cache
                     return function(text) {
                         if (arguments.length > 1) text = Array.prototype.slice.call(arguments).join(' ');
                         console.log(text);

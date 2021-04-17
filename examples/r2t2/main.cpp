@@ -29,7 +29,7 @@ int main(int argc, char** argv) {
     };
 
     auto argm = parseCmdArguments(argc, argv);
-    int txProtocolId = argm["t"].empty() ? GGWAVE_TX_PROTOCOL_CUSTOM_1 : std::stoi(argm["t"]);
+    int txProtocolId = argm["t"].empty() ? GGWAVE_TX_PROTOCOL_CUSTOM_0 : std::stoi(argm["t"]);
     int payloadLength = argm["l"].empty() ? 16 : std::stoi(argm["l"]);
 
     GGWave ggWave({

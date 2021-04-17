@@ -8,7 +8,6 @@ target_include_directories(r2t2 PRIVATE
     ..
     ggwave-mod/include
     ggwave-mod/src
-    ${SDL2_INCLUDE_DIRS}
     )
 
 target_link_libraries(r2t2 PRIVATE

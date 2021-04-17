@@ -14,8 +14,7 @@
 
 #define CONSOLE "/dev/tty0"
 
-#include <SDL.h>
-
+#include <cmath>
 #include <cstdio>
 #include <string>
 
@@ -29,8 +28,14 @@ int main(int argc, char** argv) {
     printf("    -lN - fixed payload length of size N, N in [1, %d]\n", GGWave::kMaxLengthFixed);
     printf("\n");
 
+    const GGWave::TxProtocols protocols = {
+        { GGWAVE_TX_PROTOCOL_CUSTOM_0, { "[R2T2] Normal",  64,  9, 1, } },
+        { GGWAVE_TX_PROTOCOL_CUSTOM_1, { "[R2T2] Fast",    64,  6, 1, } },
+        { GGWAVE_TX_PROTOCOL_CUSTOM_2, { "[R2T2] Fastest", 64,  3, 1, } },
+    };
+
     auto argm = parseCmdArguments(argc, argv);
-    int txProtocol = argm["t"].empty() ? GGWAVE_TX_PROTOCOL_DT_FAST : std::stoi(argm["t"]);
+    int txProtocolId = argm["t"].empty() ? GGWAVE_TX_PROTOCOL_CUSTOM_0 : std::stoi(argm["t"]);
     int payloadLength = argm["l"].empty() ? 4 : std::stoi(argm["l"]);
 
     auto ggWave = new GGWave({
@@ -43,13 +48,12 @@ int main(int argc, char** argv) {
         GGWAVE_SAMPLE_FORMAT_F32});
 
     printf("Available Tx protocols:\n");
-    const auto & protocols = GGWave::getTxProtocols();
     for (const auto & protocol : protocols) {
         printf("    -t%d : %s\n", protocol.first, protocol.second.name);
     }
 
-    if (txProtocol < 0 || txProtocol > (int) ggWave->getTxProtocols().size()) {
-        fprintf(stderr, "Unknown Tx protocol %d\n", txProtocol);
+    if (protocols.find(GGWave::TxProtocolId(txProtocolId)) == protocols.end()) {
+        fprintf(stderr, "Unknown Tx protocol %d\n", txProtocolId);
         return -3;
     }
 
@@ -62,7 +66,7 @@ int main(int argc, char** argv) {
         return 1;
     }
 
-    printf("Selecting Tx protocol %d\n", txProtocol);
+    printf("Selecting Tx protocol %d\n", txProtocolId);
 
     std::mutex mutex;
     std::thread inputThread([&]() {
@@ -79,7 +83,7 @@ int main(int argc, char** argv) {
             }
             {
                 std::lock_guard<std::mutex> lock(mutex);
-                ggWave->init(input.size(), input.data(), ggWave->getTxProtocol(txProtocol), 10);
+                ggWave->init(input.size(), input.data(), protocols.at(GGWave::TxProtocolId(txProtocolId)), 10);
 
                 GGWave::CBWaveformOut tmp = [](const void * , uint32_t ){};
                 ggWave->encode(tmp);
@@ -108,9 +112,6 @@ int main(int argc, char** argv) {
     inputThread.join();
 
     delete ggWave;
-
-    SDL_CloseAudio();
-    SDL_Quit();
 
     return 0;
 }

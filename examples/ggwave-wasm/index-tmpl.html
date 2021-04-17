@@ -158,7 +158,7 @@
 
             var isiOS = /iPad|iPhone|iPod|CriOS/.test(navigator.userAgent) && !window.MSStream;
             var isInitialized = false;
-            var isAudioContextUnlocked = true
+            var isAudioContextUnlocked = true;
 
             var htmlGreenLED  = "<div class=\"led-green\"></div>";
             var htmlRedLED    = "<div class=\"led-red\"></div>";
@@ -293,7 +293,7 @@
 
             Module.setStatus('Initializing...');
             window.onerror = function(event) {
-                Module.setStatus('Exception thrown, see JavaScript console');
+                Module.setStatus('Exception thrown: ' + JSON.stringify(event));
                 spinnerElement.style.display = 'none';
                 Module.setStatus = function(text) {
                     if (text) Module.printErr('[post-exception status] ' + text);
@@ -301,22 +301,22 @@
             };
 
             window.addEventListener('touchstart', function() {
-                if (isAudioContextUnlocked == false && SDL2.audioContext) {
-                    var buffer = SDL2.audioContext.createBuffer(1, 1, 22050);
-                    var source = SDL2.audioContext.createBufferSource();
-                    source.buffer = buffer;
-                    source.connect(SDL2.audioContext.destination);
-                    source.start();
+                //if (isAudioContextUnlocked == false && SDL2.audioContext) {
+                //    var buffer = SDL2.audioContext.createBuffer(1, 1, 22050);
+                //    var source = SDL2.audioContext.createBufferSource();
+                //    source.buffer = buffer;
+                //    source.connect(SDL2.audioContext.destination);
+                //    source.start();
 
-                    setTimeout(function() {
-                        if((source.playbackState === source.PLAYING_STATE || source.playbackState === source.FINISHED_STATE)) {
-                            isAudioContextUnlocked = true;
-                            Module.setStatus('Wab Audio API unlocked successfully!');
-                        } else {
-                            Module.setStatus('Failed to unlock Web Audio APIi. This browser seems to not be supported');
-                        }
-                    }, 0);
-                }
+                //    setTimeout(function() {
+                //        if((source.playbackState === source.PLAYING_STATE || source.playbackState === source.FINISHED_STATE)) {
+                //            isAudioContextUnlocked = true;
+                //            Module.setStatus('Wab Audio API unlocked successfully!');
+                //        } else {
+                //            Module.setStatus('Failed to unlock Web Audio APIi. This browser seems to not be supported');
+                //        }
+                //    }, 0);
+                //}
             }, false);
 
             function playSound(filename){

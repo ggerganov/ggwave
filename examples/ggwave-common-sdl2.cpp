@@ -169,7 +169,7 @@ bool GGWave_init(
         SDL_zero(g_obtainedSpecInp);
 
         if (captureId >= 0) {
-            printf("Attempt to open capture device %d : '%s' ...\n", captureId, SDL_GetAudioDeviceName(captureId, SDL_FALSE));
+            printf("Attempt to open capture device %d : '%s' ...\n", captureId, SDL_GetAudioDeviceName(captureId, SDL_TRUE));
             g_devIdInp = SDL_OpenAudioDevice(SDL_GetAudioDeviceName(captureId, SDL_TRUE), SDL_TRUE, &captureSpec, &g_obtainedSpecInp, 0);
         } else {
             printf("Attempt to open default capture device ...\n");

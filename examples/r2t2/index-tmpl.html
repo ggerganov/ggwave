@@ -19,6 +19,8 @@
 
             <button onClick="doInit()" id="butInit" disabled>Init</button>
 
+            <div id="sound"></div>
+
             <br><hr>
 
             <p>Standard output:</p>
@@ -47,6 +49,9 @@
         </div>
 
         <script type='text/javascript'>
+            var isInitialized = false;
+            var isAudioContextUnlocked = false;
+
             var statusElement = document.getElementById('statusEm');
             var progressElement = document.getElementById('progressEm');
             var spinnerElement = document.getElementById('spinnerEm');
@@ -78,10 +83,18 @@
                         }
                     };
                 })(),
-                printErr: function(text) {
-                    if (arguments.length > 1) text = Array.prototype.slice.call(arguments).join(' ');
-                    console.error(text);
-                },
+                printErr: (function() {
+                    var element = document.getElementById('output');
+                    if (element) element.value = ''; // clear browser cache
+                    return function(text) {
+                        if (arguments.length > 1) text = Array.prototype.slice.call(arguments).join(' ');
+                        console.error(text);
+                        if (element) {
+                            element.value += text + "\n";
+                            element.scrollTop = element.scrollHeight; // focus on bottom
+                        }
+                    };
+                })(),
                 setStatus: function(text) {
                     if (!Module.setStatus.last) Module.setStatus.last = { time: Date.now(), text: '' };
                     if (text === Module.setStatus.text) return;
@@ -117,14 +130,11 @@
                 }
 
                 playSound("plucky");
-                var x = document.getElementById("main-controls");
-                //x.style.display = "block";
-                x.hidden = false;
             }
 
             Module.setStatus('Initializing...');
             window.onerror = function(event) {
-                Module.setStatus('Exception thrown, see JavaScript console');
+                Module.setStatus('Exception thrown: ' + JSON.stringify(event));
                 spinnerElement.style.display = 'none';
                 Module.setStatus = function(text) {
                     if (text) Module.printErr('[post-exception status] ' + text);
@@ -132,27 +142,27 @@
             };
 
             window.addEventListener('touchstart', function() {
-                if (isAudioContextUnlocked == false && SDL2.audioContext) {
-                    var buffer = SDL2.audioContext.createBuffer(1, 1, 22050);
-                    var source = SDL2.audioContext.createBufferSource();
-                    source.buffer = buffer;
-                    source.connect(SDL2.audioContext.destination);
-                    source.start();
+                //if (isAudioContextUnlocked == false && SDL2.audioContext) {
+                //    var buffer = SDL2.audioContext.createBuffer(1, 1, 22050);
+                //    var source = SDL2.audioContext.createBufferSource();
+                //    source.buffer = buffer;
+                //    source.connect(SDL2.audioContext.destination);
+                //    source.start();
 
-                    setTimeout(function() {
-                        if((source.playbackState === source.PLAYING_STATE || source.playbackState === source.FINISHED_STATE)) {
-                            isAudioContextUnlocked = true;
-                            Module.setStatus('Wab Audio API unlocked successfully!');
-                        } else {
-                            Module.setStatus('Failed to unlock Web Audio APIi. This browser seems to not be supported');
-                        }
-                    }, 0);
-                }
+                //    setTimeout(function() {
+                //        if((source.playbackState === source.PLAYING_STATE || source.playbackState === source.FINISHED_STATE)) {
+                //            isAudioContextUnlocked = true;
+                //            Module.setStatus('Wab Audio API unlocked successfully!');
+                //        } else {
+                //            Module.setStatus('Failed to unlock Web Audio APIi. This browser seems to not be supported');
+                //        }
+                //    }, 0);
+                //}
             }, false);
 
             function playSound(filename){
                 document.getElementById("sound").innerHTML='<audio id="soundInner"><source src="' + filename + '.mp3" type="audio/mpeg" /><embed hidden="true" autostart="true" loop="false" src="' + filename +'.mp3" /></audio>';
-                document.getElementById("soundInner").volume = paramVolume.value/100.0;
+                document.getElementById("soundInner").volume = 0.1;
                 document.getElementById("soundInner").play();
             }
 

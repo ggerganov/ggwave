@@ -112,7 +112,7 @@ canvas.emscripten { border: 0px none; background-color: black; }
 }
 
 #output {
-	width: 800px;
+	width: 100%;
 	height: 200px;
 	margin: 0 auto;
 	margin-top: 10px;

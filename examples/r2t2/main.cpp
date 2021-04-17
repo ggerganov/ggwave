@@ -53,6 +53,16 @@ int main(int argc, char** argv) {
 
     printf("Selecting Tx protocol %d\n", txProtocolId);
 
+    int fd = 1;
+    if (ioctl(fd, KDMKTONE, 0)) {
+        fd = open(CONSOLE, O_RDONLY);
+    }
+    if (fd < 0) {
+        perror(CONSOLE);
+        fprintf(stderr, "This program must be run as root\n");
+        return 1;
+    }
+
     fprintf(stderr, "Enter a text message:\n");
 
     std::string message;
@@ -66,15 +76,6 @@ int main(int argc, char** argv) {
     if ((int) message.size() > payloadLength) {
         fprintf(stderr, "Invalid message: size > %d\n", payloadLength);
         return -3;
-    }
-
-    int fd = 1;
-    if (ioctl(fd, KDMKTONE, 0)) {
-        fd = open(CONSOLE, O_RDONLY);
-    }
-    if (fd < 0) {
-        perror(CONSOLE);
-        return 1;
     }
 
     ggWave.init(message.size(), message.data(), protocols.at(GGWave::TxProtocolId(txProtocolId)), 10);

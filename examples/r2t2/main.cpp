@@ -83,14 +83,32 @@ int main(int argc, char** argv) {
     GGWave::CBWaveformOut tmp = [](const void * , uint32_t ){};
     ggWave.encode(tmp);
 
+    int nFrames = 0;
+    float lastF = -1.0f;
+
     auto tones = ggWave.getWaveformTones();
     for (auto & tonesCur : tones) {
-        for (auto & tone : tonesCur) {
-            long pitch   = std::round(1193180.0/tone.freq_hz);
-            long ms = std::round(tone.duration_ms);
-            ioctl(fd, KDMKTONE, (ms<<16)|pitch);
-            usleep(ms*1000);
+        if (tonesCur.size() == 0) continue;
+        const auto & tone = tonesCur.front();
+        if (tone.freq_hz != lastF) {
+            if (nFrames > 0) {
+                long pitch = std::round(1193180.0/lastF);
+                long ms = std::round(nFrames*tone.duration_ms);
+                ioctl(fd, KDMKTONE, (ms<<16)|pitch);
+                usleep(ms*1000);
+            }
+            nFrames = 0;
+            lastF = tone.freq_hz;
         }
+        ++nFrames;
+    }
+
+    if (nFrames > 0) {
+        const auto & tone = tones.front().front();
+        long pitch = std::round(1193180.0/lastF);
+        long ms = std::round(nFrames*tone.duration_ms);
+        ioctl(fd, KDMKTONE, (ms<<16)|pitch);
+        usleep(ms*1000);
     }
 
     return 0;

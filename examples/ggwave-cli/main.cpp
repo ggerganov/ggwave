@@ -24,7 +24,7 @@ int main(int argc, char** argv) {
     auto argm = parseCmdArguments(argc, argv);
     int captureId = argm["c"].empty() ? 0 : std::stoi(argm["c"]);
     int playbackId = argm["p"].empty() ? 0 : std::stoi(argm["p"]);
-    int txProtocol = argm["t"].empty() ? 1 : std::stoi(argm["t"]);
+    int txProtocolId = argm["t"].empty() ? 1 : std::stoi(argm["t"]);
     int payloadLength = argm["l"].empty() ? -1 : std::stoi(argm["l"]);
     bool printTones = argm.find("v") == argm.end() ? false : true;
 
@@ -41,12 +41,12 @@ int main(int argc, char** argv) {
         printf("    -t%d : %s\n", protocol.first, protocol.second.name);
     }
 
-    if (txProtocol < 0 || txProtocol > (int) ggWave->getTxProtocols().size()) {
-        fprintf(stderr, "Unknown Tx protocol %d\n", txProtocol);
+    if (txProtocolId < 0 || txProtocolId > (int) ggWave->getTxProtocols().size()) {
+        fprintf(stderr, "Unknown Tx protocol %d\n", txProtocolId);
         return -3;
     }
 
-    printf("Selecting Tx protocol %d\n", txProtocol);
+    printf("Selecting Tx protocol %d\n", txProtocolId);
 
     std::mutex mutex;
     std::thread inputThread([&]() {
@@ -76,7 +76,7 @@ int main(int argc, char** argv) {
             }
             {
                 std::lock_guard<std::mutex> lock(mutex);
-                ggWave->init(input.size(), input.data(), ggWave->getTxProtocol(txProtocol), 10);
+                ggWave->init(input.size(), input.data(), ggWave->getTxProtocol(txProtocolId), 10);
             }
             inputOld = input;
         }

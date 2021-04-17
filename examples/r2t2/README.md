@@ -11,7 +11,7 @@ echo test | sudo r2t2
 ```
 
 This will transmit the message "test" via sound through the buzzer.
-To receive the transmitted message, open the following page on your phone and keep it close to the speaker:
+To receive the transmitted message, open the following page on your phone and put it near the speaker:
 
 https://r2t2.ggerganov.com
 

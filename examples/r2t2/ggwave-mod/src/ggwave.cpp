@@ -1321,7 +1321,10 @@ void GGWave::decode_fixed() {
 
             if (rsData.Decode(m_txDataEncoded.data(), m_rxData.data()) == 0) {
                 if (m_rxData[0] != 0) {
-                    fprintf(stderr, "Received sound data successfully: '%s'\n", m_rxData.data());
+                    std::time_t timestamp = std::time(nullptr);
+                    std::string tstr = std::asctime(std::localtime(&timestamp));
+                    tstr.back() = 0;
+                    fprintf(stderr, "[%s] Received: '%s'\n", tstr.c_str(), m_rxData.data());
 
                     isValid = true;
                     m_hasNewRxData = true;

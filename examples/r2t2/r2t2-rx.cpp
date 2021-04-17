@@ -322,7 +322,7 @@ int main(int argc, char** argv) {
     bool isInitialized = false;
 
     g_doInit = [&]() {
-        if (GGWave_init(0, captureId, 4, 0) == false) {
+        if (GGWave_init(0, captureId, 16, 0) == false) {
             fprintf(stderr, "Failed to initialize GGWave\n");
             return false;
         }

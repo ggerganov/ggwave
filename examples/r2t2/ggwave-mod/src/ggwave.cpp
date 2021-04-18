@@ -595,11 +595,11 @@ bool GGWave::encode(const CBWaveformOut & cbWaveformOut) {
                 if (k%2) {
                     ::addAmplitudeSmooth(bit0Amplitude[k/2], m_outputBlock, m_sendVolume, 0, m_samplesPerFrame, cycleModMain, m_txProtocol.framesPerTx);
                     m_waveformTones.back().back().freq_hz = bitFreq(m_txProtocol, k/2) + m_hzPerSample;
-                    printf("frameId = %d, freq = %g\n", frameId, m_waveformTones.back().back().freq_hz);
+                    //printf("frameId = %d, freq = %g\n", frameId, m_waveformTones.back().back().freq_hz);
                 } else {
                     ::addAmplitudeSmooth(bit1Amplitude[k/2], m_outputBlock, m_sendVolume, 0, m_samplesPerFrame, cycleModMain, m_txProtocol.framesPerTx);
                     m_waveformTones.back().back().freq_hz = bitFreq(m_txProtocol, k/2);
-                    printf("frameId = %d, freq = %g\n", frameId, m_waveformTones.back().back().freq_hz);
+                    //printf("frameId = %d, freq = %g\n", frameId, m_waveformTones.back().back().freq_hz);
                 }
             }
         } else if (frameId < m_nMarkerFrames + totalDataFrames + m_nMarkerFrames) {

@@ -16,8 +16,29 @@
 #include <string>
 #include <iostream>
 
+void processTone(int fd, double freq_hz, long duration_ms, bool useBeep, bool printTones) {
+    if (printTones) {
+        printf("TONE %8.2f Hz %5ld ms\n", freq_hz, duration_ms);
+        return;
+    }
+
+    if (useBeep) {
+        static char cmd[128];
+        snprintf(cmd, 128, "beep -f %g -l %ld", freq_hz, duration_ms);
+        system(cmd);
+        return;
+    }
+
+    long pitch = std::round(1193180.0/freq_hz);
+    long ms = std::round(duration_ms);
+    ioctl(fd, KDMKTONE, (ms<<16)|pitch);
+    usleep(ms*1000);
+}
+
 int main(int argc, char** argv) {
     printf("Usage: %s [-tN] [-lN]\n", argv[0]);
+    printf("    -p  - print tones, no playback\n");
+    printf("    -b  - use 'beep' command\n");
     printf("    -tN - transmission protocol\n");
     printf("    -lN - fixed payload length of size N, N in [1, %d]\n", GGWave::kMaxLengthFixed);
     printf("\n");
@@ -29,6 +50,8 @@ int main(int argc, char** argv) {
     };
 
     auto argm = parseCmdArguments(argc, argv);
+    bool printTones = argm.find("p") != argm.end();
+    bool useBeep = argm.find("b") != argm.end();
     int txProtocolId = argm["t"].empty() ? GGWAVE_TX_PROTOCOL_CUSTOM_0 : std::stoi(argm["t"]);
     int payloadLength = argm["l"].empty() ? 16 : std::stoi(argm["l"]);
 
@@ -54,19 +77,23 @@ int main(int argc, char** argv) {
     printf("Selecting Tx protocol %d\n", txProtocolId);
 
     int fd = 1;
-    if (ioctl(fd, KDMKTONE, 0)) {
-        fd = open(CONSOLE, O_RDONLY);
-    }
-    if (fd < 0) {
-        perror(CONSOLE);
-        fprintf(stderr, "This program must be run as root\n");
-        return 1;
+    if (useBeep == false && printTones == false) {
+        if (ioctl(fd, KDMKTONE, 0)) {
+            fd = open(CONSOLE, O_RDONLY);
+        }
+        if (fd < 0) {
+            perror(CONSOLE);
+            fprintf(stderr, "This program must be run as root\n");
+            return 1;
+        }
     }
 
     fprintf(stderr, "Enter a text message:\n");
 
     std::string message;
     std::getline(std::cin, message);
+
+    printf("\n");
 
     if (message.size() == 0) {
         fprintf(stderr, "Invalid message: size = 0\n");
@@ -84,7 +111,7 @@ int main(int argc, char** argv) {
     ggWave.encode(tmp);
 
     int nFrames = 0;
-    float lastF = -1.0f;
+    double lastF = -1.0f;
 
     auto tones = ggWave.getWaveformTones();
     for (auto & tonesCur : tones) {
@@ -92,10 +119,7 @@ int main(int argc, char** argv) {
         const auto & tone = tonesCur.front();
         if (tone.freq_hz != lastF) {
             if (nFrames > 0) {
-                long pitch = std::round(1193180.0/lastF);
-                long ms = std::round(nFrames*tone.duration_ms);
-                ioctl(fd, KDMKTONE, (ms<<16)|pitch);
-                usleep(ms*1000);
+                processTone(fd, lastF, nFrames*tone.duration_ms, useBeep, printTones);
             }
             nFrames = 0;
             lastF = tone.freq_hz;
@@ -105,10 +129,7 @@ int main(int argc, char** argv) {
 
     if (nFrames > 0) {
         const auto & tone = tones.front().front();
-        long pitch = std::round(1193180.0/lastF);
-        long ms = std::round(nFrames*tone.duration_ms);
-        ioctl(fd, KDMKTONE, (ms<<16)|pitch);
-        usleep(ms*1000);
+        processTone(fd, lastF, nFrames*tone.duration_ms, useBeep, printTones);
     }
 
     return 0;

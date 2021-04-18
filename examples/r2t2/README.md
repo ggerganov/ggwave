@@ -18,7 +18,7 @@ https://r2t2.ggerganov.com
 
 ## Requirements
 
-- [Buzzer](https://www.amazon.com/SoundOriginal-Motherboard-Internal-Speaker-Buzzer/dp/B01DM56TFY/ref=sr_1_1_sspa?dchild=1&keywords=Motherboard+Speaker&qid=1614504288&sr=8-1-spons&psc=1&spLa=ZW5jcnlwdGVkUXVhbGlmaWVyPUEzTkpFVlk4SzRXS1lWJmVuY3J5cHRlZElkPUEwOTU3NzI3MkpCQUZJRFIxSzZGNSZlbmNyeXB0ZWRBZElkPUEwODk0ODQ4MlVBQzFSR1RHMTYyMiZ3aWRnZXROYW1lPXNwX2F0ZiZhY3Rpb249Y2xpY2tSZWRpcmVjdCZkb05vdExvZ0NsaWNrPXRydWU=)
+- [PC speaker / buzzer](https://www.amazon.com/SoundOriginal-Motherboard-Internal-Speaker-Buzzer/dp/B01DM56TFY/ref=sr_1_1_sspa?dchild=1&keywords=Motherboard+Speaker&qid=1614504288&sr=8-1-spons&psc=1&spLa=ZW5jcnlwdGVkUXVhbGlmaWVyPUEzTkpFVlk4SzRXS1lWJmVuY3J5cHRlZElkPUEwOTU3NzI3MkpCQUZJRFIxSzZGNSZlbmNyeXB0ZWRBZElkPUEwODk0ODQ4MlVBQzFSR1RHMTYyMiZ3aWRnZXROYW1lPXNwX2F0ZiZhY3Rpb249Y2xpY2tSZWRpcmVjdCZkb05vdExvZ0NsaWNrPXRydWU=) attached to the motherboard.
   
   Here are the ones that I use:
   

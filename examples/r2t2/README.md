@@ -48,6 +48,7 @@ This tool can be useful when you need to transmit data from air-gapped machines.
 </p>
 
 - Unix operating system
+- Add the `pcspkr` kernel module: `sudo modprobe pcspkr`
 - The program requires to run as `sudo` in order to access the PC speaker
 
 ## Build

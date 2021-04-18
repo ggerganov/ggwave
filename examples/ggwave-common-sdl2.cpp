@@ -254,6 +254,7 @@ bool GGWave_mainLoop() {
             if (::getTime_ms(tLastNoData, tNow) > 500.0f) {
                 g_ggWave->decode(cbWaveformInp);
                 if ((int) SDL_GetQueuedAudioSize(g_devIdInp) > 32*g_ggWave->getSamplesPerFrame()*g_ggWave->getSampleSizeBytesInp()) {
+                    fprintf(stderr, "Warning: slow processing, clearing queued audio buffer of %d bytes ...", SDL_GetQueuedAudioSize(g_devIdInp));
                     SDL_ClearQueuedAudio(g_devIdInp);
                 }
             } else {

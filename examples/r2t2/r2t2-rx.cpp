@@ -263,6 +263,7 @@ bool GGWave_mainLoop() {
             if (::getTime_ms(tLastNoData, tNow) > 500.0f) {
                 g_ggWave->decode(cbWaveformInp);
                 if ((int) SDL_GetQueuedAudioSize(g_devIdInp) > 32*g_ggWave->getSamplesPerFrame()*g_ggWave->getSampleSizeBytesInp()) {
+                    fprintf(stderr, "Warning: slow processing, clearing queued audio buffer of %d bytes ...", SDL_GetQueuedAudioSize(g_devIdInp));
                     SDL_ClearQueuedAudio(g_devIdInp);
                 }
             } else {
@@ -345,7 +346,7 @@ int main(int argc, char** argv) {
     };
 
 #ifdef __EMSCRIPTEN__
-    emscripten_set_main_loop_arg(mainUpdate, NULL, 0, true);
+    emscripten_set_main_loop_arg(mainUpdate, NULL, 60, true);
 #else
     if (g_doInit() == false) {
         printf("Error: failed to initialize audio\n");

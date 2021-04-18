@@ -303,7 +303,7 @@ int main(int argc, char** argv) {
     };
 
 #ifdef __EMSCRIPTEN__
-    emscripten_set_main_loop_arg(mainUpdate, NULL, 0, true);
+    emscripten_set_main_loop_arg(mainUpdate, NULL, 60, true);
 #else
     if (g_doInit() == false) {
         printf("Error: failed to initialize audio\n");

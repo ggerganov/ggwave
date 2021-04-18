@@ -2,6 +2,7 @@
 
 Transmit data with the PC speaker
 
+
 This is a command-line program that encodes short messages/data into audio and plays it via the motherboard's PC speaker. To use this tool, you need to attach a [piezo speaker/buzzer](https://en.wikipedia.org/wiki/Piezoelectric_speaker) to your motherboard. Some computers already have such speaker already attached.
 
 You can then run the following command:
@@ -18,6 +19,25 @@ https://r2t2.ggerganov.com
 ## Requirements
 
 - [Buzzer](https://www.amazon.com/SoundOriginal-Motherboard-Internal-Speaker-Buzzer/dp/B01DM56TFY/ref=sr_1_1_sspa?dchild=1&keywords=Motherboard+Speaker&qid=1614504288&sr=8-1-spons&psc=1&spLa=ZW5jcnlwdGVkUXVhbGlmaWVyPUEzTkpFVlk4SzRXS1lWJmVuY3J5cHRlZElkPUEwOTU3NzI3MkpCQUZJRFIxSzZGNSZlbmNyeXB0ZWRBZElkPUEwODk0ODQ4MlVBQzFSR1RHMTYyMiZ3aWRnZXROYW1lPXNwX2F0ZiZhY3Rpb249Y2xpY2tSZWRpcmVjdCZkb05vdExvZ0NsaWNrPXRydWU=)
+  
+  Here are the ones that I use:
+  
+<p align="center">
+    <table border=0>
+<tr>
+<td>
+    <img width="100%" alt="Talking buttons" src="https://user-images.githubusercontent.com/1991296/115141260-ee86d980-a043-11eb-9699-587e0af53af9.jpg"></img>
+</td>
+<td>
+ <img width="100%" alt="Talking buttons" src="https://user-images.githubusercontent.com/1991296/115141261-f0509d00-a043-11eb-82cf-a89040b51f13.jpg"></img>
+</td>
+</tr>
+</table>
+</p>
+<p align="center">
+  <i>Img. Using the Waver app. Left: settings for fixed-length transmission. Center: record the message. Right: receive the message</i>
+</p>
+
 - Unix operating system
 - The program requires to run as `sudo` in order to access the PC speaker
 

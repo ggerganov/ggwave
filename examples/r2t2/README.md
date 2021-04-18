@@ -13,9 +13,14 @@ echo test | sudo r2t2
 ```
 
 This will transmit the message `test` via sound through the buzzer.
-To receive the transmitted message, open the following page on your phone and put it near the speaker:
+
+To receive the transmitted message, open the following page on your phone and place it near the speaker:
 
 https://r2t2.ggerganov.com
+
+## Applications
+
+This tool can be useful when you need to transmit data from air-gapped machines. The hardware requirements are very low-cost - you only need a PC speaker. Automated scripts can be configured to periodically emit some data about the machine, which can be received by someone nearby running the `r2t2` receiver application.
 
 ## Requirements
 
@@ -36,7 +41,7 @@ https://r2t2.ggerganov.com
 </table>
 </p>
 <p align="center">
-  <i>Img. Using the Waver app. Left: settings for fixed-length transmission. Center: record the message. Right: receive the message</i>
+  <i>Img. Left: PC speaker plugged into a motherboard. Right: two PC speakers with a coin for size comparison</i>
 </p>
 
 - Unix operating system

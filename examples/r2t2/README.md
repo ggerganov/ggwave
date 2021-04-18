@@ -4,7 +4,7 @@ Transmit data with the PC speaker
 
 <a href="https://user-images.githubusercontent.com/1991296/115141782-cba9f480-a046-11eb-9462-791477b856f5.mp4"><img width="100%" src="https://user-images.githubusercontent.com/1991296/115141739-a1583700-a046-11eb-94e7-a411d52ecf30.png"></img></a>
 
-This is a command-line program that encodes short messages/data into audio and plays it via the motherboard's PC speaker. To use this tool, you need to attach a [piezo speaker/buzzer](https://en.wikipedia.org/wiki/Piezoelectric_speaker) to your motherboard. Some computers already have such speaker already attached.
+This is a command-line program that encodes short messages/data into audio and plays it via the motherboard's PC speaker. To use this tool, you need to attach a [piezo speaker/buzzer](https://en.wikipedia.org/wiki/Piezoelectric_speaker) to your motherboard. Some computers have such speaker already attached.
 
 You can then run the following command:
 

@@ -38,7 +38,7 @@ void processTone(int fd, double freq_hz, long duration_ms, bool useBeep, bool pr
 int main(int argc, char** argv) {
     printf("Usage: %s [-tN] [-lN]\n", argv[0]);
     printf("    -p  - print tones, no playback\n");
-    printf("    -b  - use 'beep' command\n");
+    //printf("    -b  - use 'beep' command\n");
     printf("    -tN - transmission protocol\n");
     printf("    -lN - fixed payload length of size N, N in [1, %d]\n", GGWave::kMaxLengthFixed);
     printf("\n");
@@ -51,7 +51,7 @@ int main(int argc, char** argv) {
 
     auto argm = parseCmdArguments(argc, argv);
     bool printTones = argm.find("p") != argm.end();
-    bool useBeep = argm.find("b") != argm.end();
+    bool useBeep = false; //argm.find("b") != argm.end();
     int txProtocolId = argm["t"].empty() ? GGWAVE_TX_PROTOCOL_CUSTOM_0 : std::stoi(argm["t"]);
     int payloadLength = argm["l"].empty() ? 16 : std::stoi(argm["l"]);
 

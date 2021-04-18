@@ -1,19 +1,20 @@
-#include "ggwave-common-sdl2.h"
-
 #include "ggwave-common.h"
 
 #include "ggwave/ggwave.h"
+
+#ifdef __EMSCRIPTEN__
+#include "build_timestamp.h"
+#include <emscripten.h>
+#else
+#define EMSCRIPTEN_KEEPALIVE
+#endif
 
 #include <SDL.h>
 #include <SDL_opengl.h>
 
 #include <chrono>
-
-#ifdef __EMSCRIPTEN__
-#include <emscripten.h>
-#else
-#define EMSCRIPTEN_KEEPALIVE
-#endif
+#include <string>
+#include <thread>
 
 namespace {
 
@@ -27,6 +28,14 @@ SDL_AudioSpec g_obtainedSpecOut;
 
 GGWave *g_ggWave = nullptr;
 
+}
+
+static std::function<bool()> g_doInit;
+static std::function<void(int, int)> g_setWindowSize;
+static std::function<bool()> g_mainUpdate;
+
+void mainUpdate(void *) {
+    g_mainUpdate();
 }
 
 // JS interface
@@ -67,7 +76,7 @@ extern "C" {
 
     EMSCRIPTEN_KEEPALIVE
         int doInit()                    {
-            return GGWave_init(-1, -1);
+            return g_doInit();
         }
 }
 
@@ -290,4 +299,71 @@ bool GGWave_deinit() {
     g_devIdOut = 0;
 
     return true;
+}
+
+int main(int argc, char** argv) {
+#ifdef __EMSCRIPTEN__
+    printf("Build time: %s\n", BUILD_TIMESTAMP);
+    printf("Press the Init button to start\n");
+
+    if (argv[1]) {
+        GGWave_setDefaultCaptureDeviceName(argv[1]);
+    }
+#endif
+
+    const GGWave::TxProtocols protocols = {
+        { GGWAVE_TX_PROTOCOL_CUSTOM_0, { "[R2T2] Normal",  64,  9, 1, } },
+        { GGWAVE_TX_PROTOCOL_CUSTOM_1, { "[R2T2] Fast",    64,  6, 1, } },
+        { GGWAVE_TX_PROTOCOL_CUSTOM_2, { "[R2T2] Fastest", 64,  3, 1, } },
+    };
+
+    auto argm = parseCmdArguments(argc, argv);
+    int captureId = argm["c"].empty() ? 0 : std::stoi(argm["c"]);
+
+    bool isInitialized = false;
+
+    g_doInit = [&]() {
+        if (GGWave_init(0, captureId, 16, 0) == false) {
+            fprintf(stderr, "Failed to initialize GGWave\n");
+            return false;
+        }
+
+        g_ggWave->setRxProtocols(protocols);
+
+        isInitialized = true;
+
+        return true;
+    };
+
+    g_mainUpdate = [&]() {
+        if (isInitialized == false) {
+            return true;
+        }
+
+        GGWave_mainLoop();
+
+        return true;
+    };
+
+#ifdef __EMSCRIPTEN__
+    emscripten_set_main_loop_arg(mainUpdate, NULL, 60, true);
+#else
+    if (g_doInit() == false) {
+        printf("Error: failed to initialize audio\n");
+        return -2;
+    }
+
+    while (true) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(1));
+        if (g_mainUpdate() == false) break;
+    }
+
+    GGWave_deinit();
+
+    // Cleanup
+    SDL_CloseAudio();
+    SDL_Quit();
+#endif
+
+    return 0;
 }

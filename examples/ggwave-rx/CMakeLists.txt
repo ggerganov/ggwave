@@ -11,5 +11,4 @@ target_link_libraries(${TARGET} PRIVATE
     ggwave
     ggwave-common
     ggwave-common-sdl2
-    ${CMAKE_THREAD_LIBS_INIT}
     )

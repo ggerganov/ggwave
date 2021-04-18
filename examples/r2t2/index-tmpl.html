@@ -1,0 +1,174 @@
+<!doctype html>
+<html lang="en-us">
+    <head>
+        <meta charset="utf-8">
+        <title>r2t2</title>
+
+        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no"/>
+
+        <link rel="shortcut icon" href="favicon.ico">
+        <link rel="stylesheet" href="style.css">
+    </head>
+    <body>
+        <div id="main-container">
+            <h1>r2t2</h1>
+
+            Press the Init button and place the microphone near the PC speaker to receive messages
+
+            <br><br>
+
+            <button onClick="doInit()" id="butInit" disabled>Init</button>
+
+            <div id="sound"></div>
+
+            <br><hr>
+
+            <p>Standard output:</p>
+            <textarea id="output" rows="8"></textarea>
+
+            <div class="spinner" id='spinnerEm'></div>
+            <div class="emscripten" id="statusEm">Downloading...</div>
+
+            <div class="emscripten">
+                <progress value="0" max="100" id="progressEm" hidden=1></progress>
+            </div>
+        </div>
+
+        <div class="cell-version">
+            <span>
+                |
+                Build time: <span class="nav-link">@GIT_DATE@</span> |
+                Commit hash: <a class="nav-link" href="https://github.com/ggerganov/ggwave/commit/@GIT_SHA1@">@GIT_SHA1@</a> |
+                Commit subject: <span class="nav-link">@GIT_COMMIT_SUBJECT@</span> |
+            </span>
+        </div>
+        <div class="cell-about">
+            <a class="nav-link" href="https://github.com/ggerganov/ggwave/tree/master/examples/r2t2"><span class="d-none d-sm-inline">View on GitHub </span>
+                <svg version="1.1" width="16" height="16" viewBox="0 0 16 16" class="octicon octicon-mark-github" aria-hidden="true"><path fill-rule="evenodd" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0 0 16 8c0-4.42-3.58-8-8-8z"></path></svg>
+            </a>
+        </div>
+
+        <script type='text/javascript'>
+            var isInitialized = false;
+            var isAudioContextUnlocked = false;
+
+            var statusElement = document.getElementById('statusEm');
+            var progressElement = document.getElementById('progressEm');
+            var spinnerElement = document.getElementById('spinnerEm');
+
+            var Module = {
+                doNotCaptureKeyboard: true,
+                pre: [],
+                preRun: [(function() {
+                    let constraints = {
+                        audio: {
+                            echoCancellation: false,
+                            autoGainControl: false,
+                            noiseSuppression: false
+                        }
+                    };
+
+                    let mediaInput = navigator.mediaDevices.getUserMedia( constraints );
+                }) ],
+                postRun: [ (function() { document.getElementById("butInit").disabled = false; }) ],
+                print: (function() {
+                    var element = document.getElementById('output');
+                    if (element) element.value = ''; // clear browser cache
+                    return function(text) {
+                        if (arguments.length > 1) text = Array.prototype.slice.call(arguments).join(' ');
+                        console.log(text);
+                        if (element) {
+                            element.value += text + "\n";
+                            element.scrollTop = element.scrollHeight; // focus on bottom
+                        }
+                    };
+                })(),
+                printErr: (function() {
+                    var element = document.getElementById('output');
+                    if (element) element.value = ''; // clear browser cache
+                    return function(text) {
+                        if (arguments.length > 1) text = Array.prototype.slice.call(arguments).join(' ');
+                        console.error(text);
+                        if (element) {
+                            element.value += text + "\n";
+                            element.scrollTop = element.scrollHeight; // focus on bottom
+                        }
+                    };
+                })(),
+                setStatus: function(text) {
+                    if (!Module.setStatus.last) Module.setStatus.last = { time: Date.now(), text: '' };
+                    if (text === Module.setStatus.text) return;
+                    var m = text.match(/([^(]+)\((\d+(\.\d+)?)\/(\d+)\)/);
+                    var now = Date.now();
+                    if (m && now - Date.now() < 30) return; // if this is a progress update, skip it if too soon
+                    if (m) {
+                        text = m[1];
+                        progressElement.value = parseInt(m[2])*100;
+                        progressElement.max = parseInt(m[4])*100;
+                        progressElement.hidden = false;
+                        spinnerElement.hidden = false;
+                    } else {
+                        progressElement.value = null;
+                        progressElement.max = null;
+                        progressElement.hidden = true;
+                        if (!text) spinnerElement.style.display = 'none';
+                    }
+                    statusElement.innerHTML = text;
+                },
+                totalDependencies: 0,
+                monitorRunDependencies: function(left) {
+                    this.totalDependencies = Math.max(this.totalDependencies, left);
+                    Module.setStatus(left ? 'Preparing... (' + (this.totalDependencies-left) + '/' + this.totalDependencies + ')' : 'All downloads complete.');
+                }
+            };
+
+            function doInit() {
+                if (isInitialized == false) {
+                    Module._doInit();
+
+                    isInitialized = true;
+                }
+
+                playSound("plucky");
+            }
+
+            Module.setStatus('Initializing...');
+            window.onerror = function(event) {
+                Module.setStatus('Exception thrown: ' + JSON.stringify(event));
+                spinnerElement.style.display = 'none';
+                Module.setStatus = function(text) {
+                    if (text) Module.printErr('[post-exception status] ' + text);
+                };
+            };
+
+            window.addEventListener('touchstart', function() {
+                //if (isAudioContextUnlocked == false && SDL2.audioContext) {
+                //    var buffer = SDL2.audioContext.createBuffer(1, 1, 22050);
+                //    var source = SDL2.audioContext.createBufferSource();
+                //    source.buffer = buffer;
+                //    source.connect(SDL2.audioContext.destination);
+                //    source.start();
+
+                //    setTimeout(function() {
+                //        if((source.playbackState === source.PLAYING_STATE || source.playbackState === source.FINISHED_STATE)) {
+                //            isAudioContextUnlocked = true;
+                //            Module.setStatus('Wab Audio API unlocked successfully!');
+                //        } else {
+                //            Module.setStatus('Failed to unlock Web Audio APIi. This browser seems to not be supported');
+                //        }
+                //    }, 0);
+                //}
+            }, false);
+
+            function playSound(filename){
+                document.getElementById("sound").innerHTML='<audio id="soundInner"><source src="' + filename + '.mp3" type="audio/mpeg" /><embed hidden="true" autostart="true" loop="false" src="' + filename +'.mp3" /></audio>';
+                document.getElementById("soundInner").volume = 0.1;
+                document.getElementById("soundInner").play();
+            }
+
+        </script>
+
+        <script async type="text/javascript" src="@TARGET@.js"></script>
+        <script type="text/javascript" src="main.js"></script>
+    </body>
+</html>

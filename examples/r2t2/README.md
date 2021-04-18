@@ -56,3 +56,7 @@ mkdir build && cd build
 make
 ./bin/r2t2
 ```
+
+## Acknowledgements
+
+Thanks to [Radoslav Gerganov](https://github.com/rgerganov) for this cool idea!

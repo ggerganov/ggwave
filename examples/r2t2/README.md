@@ -19,7 +19,7 @@ echo test | sudo r2t2
 echo hello | sudo r2t2 -t10
 
 # transmit the message "foo bar" with protocol "[R2T2] Fastest"
-echo "foo bar"| sudo r2t2 -t11
+echo "foo bar" | sudo r2t2 -t11
 ```
 
 To receive the transmitted message, open the following page on your phone and place it near the speaker:

@@ -9,13 +9,18 @@ Transmit data with the PC speaker
 
 This is a command-line program that encodes short messages/data into audio and plays it via the motherboard's PC speaker. To use this tool, you need to attach a [piezo speaker/buzzer](https://en.wikipedia.org/wiki/Piezoelectric_speaker) to your motherboard. Some computers have such speaker already attached.
 
-You can then run the following command:
+You can then run the following commands:
 
 ```bash
+# transmit the message "test" with default protocol "[R2T2] Normal"
 echo test | sudo r2t2
-```
 
-This will transmit the message `test` via sound through the buzzer.
+# transmit the message "hello" with protocol "[R2T2] Fast"
+echo hello | sudo r2t2 -t10
+
+# transmit the message "foo bar" with protocol "[R2T2] Fastest"
+echo "foo bar"| sudo r2t2 -t11
+```
 
 To receive the transmitted message, open the following page on your phone and place it near the speaker:
 

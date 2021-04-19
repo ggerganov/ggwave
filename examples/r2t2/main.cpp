@@ -66,8 +66,18 @@ int main(int argc, char** argv) {
 
     printf("Available Tx protocols:\n");
     for (const auto & protocol : protocols) {
-        printf("    -t%d : %s\n", protocol.first, protocol.second.name);
+        printf("    -t%-2d : %-16s", protocol.first, protocol.second.name);
+        if (protocol.first == GGWAVE_TX_PROTOCOL_CUSTOM_0) {
+            printf(" (8.5 sec)\n");
+        } else if (protocol.first == GGWAVE_TX_PROTOCOL_CUSTOM_1) {
+            printf(" (5.7 sec)\n");
+        } else if (protocol.first == GGWAVE_TX_PROTOCOL_CUSTOM_2) {
+            printf(" (2.9 sec)\n");
+        } else {
+            printf("\n");
+        }
     }
+    printf("\n");
 
     if (protocols.find(GGWave::TxProtocolId(txProtocolId)) == protocols.end()) {
         fprintf(stderr, "Unknown Tx protocol %d\n", txProtocolId);

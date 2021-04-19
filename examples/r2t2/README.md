@@ -28,7 +28,7 @@ https://r2t2.ggerganov.com
 
 ## Applications
 
-This tool can be useful when you need to transmit data from air-gapped machines. The hardware requirements are very low-cost - you only need a PC speaker. For example, an automated script can be configured to periodically emit some data about the machine, which can be received by someone nearby running the `r2t2` receiver application.
+This tool can be useful when you need to transmit data from air-gapped machines. The hardware requirements are very cheap - you only need a PC speaker. For example, you can make an automated script to periodically emit some sensor data, which can be received by someone nearby running the `r2t2` receiver application.
 
 ## Requirements
 

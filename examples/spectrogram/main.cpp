@@ -39,8 +39,8 @@ bool g_isCapturing = true;
 constexpr int g_nSamplesPerFrame = 1024;
 constexpr int g_nBins = g_nSamplesPerFrame/2;
 
-int g_binMin = 20;
-int g_binMax = 512;
+int g_binMin = 0;
+int g_binMax = g_nBins;
 
 float g_scale = 30.0;
 

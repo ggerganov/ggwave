@@ -674,10 +674,7 @@ void updateCore() {
     }
 
     if (needSpectrum) {
-        if (ggWave->takeRxSpectrum(g_buffer.stateCore.rxSpectrum)) {
-            g_buffer.stateCore.update = true;
-            g_buffer.stateCore.flags.newSpectrum = true;
-        } else if (ggWave->takeRxAmplitude(g_buffer.stateCore.rxAmplitude)) {
+        if (ggWave->takeRxAmplitude(g_buffer.stateCore.rxAmplitude)) {
             static const int NMax = GGWave::kMaxSamplesPerFrame;
             static float tmp[2*NMax];
 

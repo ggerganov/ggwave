@@ -1,7 +1,7 @@
 import sys
 import requests
 
-def ggwave(message: str, protocolId: int = 1, sampleRate: float = 48000, volume: int = 50):
+def ggwave(message: str, protocolId: int = 1, sampleRate: float = 48000, volume: int = 50, payloadLength: int = -1):
 
     url = 'https://ggwave-to-file.ggerganov.com/'
 
@@ -10,6 +10,7 @@ def ggwave(message: str, protocolId: int = 1, sampleRate: float = 48000, volume:
         'p': protocolId,    # transmission protocol to use
         's': sampleRate,    # output sample rate
         'v': volume,        # output volume
+        'l': payloadLength, # if positive - use fixed-length encoding
     }
 
     response = requests.get(url, params=params)

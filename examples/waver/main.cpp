@@ -293,11 +293,11 @@ int main(int argc, char** argv) {
         renderMain();
         updateMain();
 
+        ImGui_EndFrame(window);
+
 #ifdef __EMSCRIPTEN__
         updateCore();
 #endif
-
-        ImGui_EndFrame(window);
 
         return true;
     };

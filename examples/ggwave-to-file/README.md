@@ -3,10 +3,11 @@
 Output a generated waveform to an uncompressed WAV file.
 
 ```
-Usage: ./bin/ggwave-to-file [-vN] [-sN] [-pN]
+Usage: ./bin/ggwave-to-file [-vN] [-sN] [-pN] [-lN]
     -vN - output volume, N in (0, 100], (default: 50)
     -sN - output sample rate, N in [6000, 96000], (default: 48000)
     -pN - select the transmission protocol id (default: 1)
+    -lN - fixed payload length of size N, N in [1, 16]
 
     Available protocols:
       0 - Normal
@@ -38,6 +39,12 @@ Usage: ./bin/ggwave-to-file [-vN] [-sN] [-pN]
 
   ```bash
   echo "Hello world!" | ./bin/ggwave-to-file -p4 > example.wav
+  ```
+
+- Use fixed-length encoding (i.e. no sound markers)
+
+  ```bash
+  echo "Hello world!" | ./bin/ggwave-to-file -l12 > example.wav
   ```
 
 
@@ -75,7 +82,7 @@ curl -sS 'https://ggwave-to-file.ggerganov.com/?m=Hello world!&p=4' --output hel
 ```python
 import requests
 
-def ggwave(message: str, protocolId: int = 1, sampleRate: float = 48000, volume: int = 50):
+def ggwave(message: str, protocolId: int = 1, sampleRate: float = 48000, volume: int = 50, payloadLength: int = -1):
 
     url = 'https://ggwave-to-file.ggerganov.com/'
 
@@ -84,6 +91,7 @@ def ggwave(message: str, protocolId: int = 1, sampleRate: float = 48000, volume:
         'p': protocolId,    # transmission protocol to use
         's': sampleRate,    # output sample rate
         'v': volume,        # output volume
+        'l': payloadLength, # if positive - use fixed-length encoding
     }
 
     response = requests.get(url, params=params)

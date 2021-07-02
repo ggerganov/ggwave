@@ -25,7 +25,7 @@ SDL_AudioDeviceID g_devIdOut = 0;
 SDL_AudioSpec g_obtainedSpecInp;
 SDL_AudioSpec g_obtainedSpecOut;
 
-GGWave *g_ggWave = nullptr;
+std::shared_ptr<GGWave> g_ggWave = nullptr;
 
 }
 
@@ -213,9 +213,7 @@ bool GGWave_init(
     }
 
     if (reinit) {
-        if (g_ggWave) delete g_ggWave;
-
-        g_ggWave = new GGWave({
+        g_ggWave = std::make_shared<GGWave>(GGWave::Parameters {
             payloadLength,
             (float) g_obtainedSpecInp.freq,
             (float) g_obtainedSpecOut.freq,
@@ -228,7 +226,11 @@ bool GGWave_init(
     return true;
 }
 
-GGWave *& GGWave_instance() { return g_ggWave; }
+std::shared_ptr<GGWave> GGWave_instance() { return g_ggWave; }
+
+void GGWave_reset(void * parameters) {
+    g_ggWave = std::make_shared<GGWave>(*(GGWave::Parameters *)(parameters));
+}
 
 bool GGWave_mainLoop() {
     if (g_devIdInp == 0 && g_devIdOut == 0) {
@@ -278,8 +280,7 @@ bool GGWave_deinit() {
         return false;
     }
 
-    delete g_ggWave;
-    g_ggWave = nullptr;
+    g_ggWave.reset();
 
     SDL_PauseAudioDevice(g_devIdInp, 1);
     SDL_CloseAudioDevice(g_devIdInp);

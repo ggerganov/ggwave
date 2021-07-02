@@ -590,7 +590,11 @@ void updateCore() {
     static int rxDataLengthLast = 0;
     static float rxTimestampLast = 0.0f;
     static GGWave::TxRxData rxDataLast;
-    static auto & ggWave = GGWave_instance();
+
+    auto ggWave = GGWave_instance();
+    if (ggWave == nullptr) {
+        return;
+    }
 
     {
         std::lock_guard<std::mutex> lock(g_buffer.mutex);
@@ -613,16 +617,18 @@ void updateCore() {
             GGWave::SampleFormat sampleFormatOutOld = ggWave->getSampleFormatOut();
             auto rxProtocolsOld = ggWave->getRxProtocols();
 
-            if (ggWave) delete ggWave;
-
-            ggWave = new GGWave({
+            GGWave::Parameters parameters {
                 inputCurrent.payloadLength,
                 sampleRateInpOld,
                 sampleRateOutOld + inputCurrent.sampleRateOffset,
                 GGWave::kDefaultSamplesPerFrame,
                 GGWave::kDefaultSoundMarkerThreshold,
                 sampleFormatInpOld,
-                sampleFormatOutOld});
+                sampleFormatOutOld
+            };
+
+            GGWave_reset(&parameters);
+            ggWave = GGWave_instance();
 
             ggWave->setRxProtocols(rxProtocolsOld);
         }
@@ -1016,7 +1022,7 @@ void renderMain() {
 
     if (windowId == WindowId::Settings) {
         ImGui::BeginChild("Settings:main", ImGui::GetContentRegionAvail(), true, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
-        ImGui::Text("Waver v1.4.0");
+        ImGui::Text("Waver v1.4.1");
         ImGui::Separator();
 
         ImGui::Text("%s", "");

@@ -4,6 +4,10 @@
 #include <cmath>
 #include <cstdio>
 
+#ifndef M_PI
+#define M_PI 3.14159265358979323846
+#endif
+
 namespace {
 double linear_interp(double first_number, double second_number, double fraction) {
     return (first_number + ((second_number - first_number)*fraction));

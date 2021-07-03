@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 
+## [v0.3.0] - 2021-07-03
+
 - Resampling fixes
 - Add `soundMarkerThreshold` parameter ([f4fb02d](https://github.com/ggerganov/ggwave/commit/f4fb02d5d4cfd6c1021d73b55a0e52ac9d3dbdfa))
 - Sampling rates are now consistently represented as float instead of int
@@ -16,5 +18,6 @@
 - Reed-Solomon based ECC
 - Ultrasound support
 
-[unreleased]: https://github.com/ggerganov/ggwave/compare/ggwave-v0.2.0...HEAD
+[unreleased]: https://github.com/ggerganov/ggwave/compare/ggwave-v0.3.0...HEAD
+[v0.3.0]: https://github.com/ggerganov/ggwave/releases/tag/ggwave-v0.3.0
 [v0.2.0]: https://github.com/ggerganov/ggwave/releases/tag/ggwave-v0.2.0

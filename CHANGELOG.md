@@ -3,8 +3,9 @@
 ## [Unreleased]
 
 - Resampling fixes
-- Add `soundMarkerThreshold` parameter ([f4fb02d5](https://github.com/ggerganov/ggwave/commit/f4fb02d5d4cfd6c1021d73b55a0e52ac9d3dbdfa))
+- Add `soundMarkerThreshold` parameter ([f4fb02d](https://github.com/ggerganov/ggwave/commit/f4fb02d5d4cfd6c1021d73b55a0e52ac9d3dbdfa))
 - Sampling rates are now consistently represented as float instead of int
+- Add option to query the generated tones ([ba87a65](https://github.com/ggerganov/ggwave/commit/ba87a651e3e27ce3fa9a85d53ca988a0cedd2e46))
 
 ## [v0.2.0] - 2021-02-20
 

@@ -14,7 +14,6 @@ $descriptorspec = array(
 );
 
 $path_wav = tempnam("/tmp", "ggwave");
-$path_mp3 = $path_wav.".mp3";
 
 $cmd .= " > $path_wav";
 
@@ -55,7 +54,6 @@ if (is_resource($process)) {
     }
 }
 
-unlink($path_mp3);
 unlink($path_wav);
 
 ?>

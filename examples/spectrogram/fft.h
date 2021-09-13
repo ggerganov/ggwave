@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cmath>
+#include <stdlib.h>
 
 // FFT routines taken from https://stackoverflow.com/a/37729648/4039976
 

@@ -14,6 +14,9 @@
 #define CHECK_F(cond) CHECK(!(cond))
 
 int main() {
+    //ggwave_setLogFile(NULL); // disable logging
+    ggwave_setLogFile(stdout);
+
     ggwave_Parameters parameters = ggwave_getDefaultParameters();
     parameters.sampleFormatInp = GGWAVE_SAMPLE_FORMAT_I16;
     parameters.sampleFormatOut = GGWAVE_SAMPLE_FORMAT_I16;

@@ -90,6 +90,21 @@ extern "C" {
     // the python module and unfortunately had to do it this way
     typedef int ggwave_Instance;
 
+    // Change file stream for internal ggwave logging. NULL - disable logging
+    //
+    //   Intentionally passing it as void * instead of FILE * to avoid including a header
+    //
+    //     // log to standard error
+    //     ggwave_setLogFile(stderr);
+    //
+    //     // log to standard output
+    //     ggwave_setLogFile(stdout);
+    //
+    //     // disable logging
+    //     ggwave_setLogFile(NULL);
+    //
+    GGWAVE_API void ggwave_setLogFile(void * fptr);
+
     // Helper method to get default instance parameters
     GGWAVE_API ggwave_Parameters ggwave_getDefaultParameters(void);
 
@@ -305,6 +320,13 @@ public:
 
     GGWave(const Parameters & parameters);
     ~GGWave();
+
+    // set file stream for the internal ggwave logging
+    //
+    //  By default, ggwave prints internal log messages to stderr.
+    //  To disable logging all together, call this method with nullptr.
+    //
+    static void setLogFile(FILE * fptr);
 
     static const Parameters & getDefaultParameters();
 

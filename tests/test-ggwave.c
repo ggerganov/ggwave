@@ -25,17 +25,27 @@ int main() {
 
     int ret;
     const char * payload = "test";
-    char decoded[256];
+    char decoded[16];
 
     int n = ggwave_encode(instance, payload, 4, GGWAVE_TX_PROTOCOL_AUDIBLE_FAST, 50, NULL, 1);
     char waveform[n];
 
-    ret = ggwave_encode(instance, payload, 4, GGWAVE_TX_PROTOCOL_AUDIBLE_FAST, 50, waveform, 0);
-    CHECK(ret > 0);
+    int ne = ggwave_encode(instance, payload, 4, GGWAVE_TX_PROTOCOL_AUDIBLE_FAST, 50, waveform, 0);
+    CHECK(ne > 0);
 
-    ret = ggwave_decode(instance, waveform, sizeof(signed short)*ret, decoded);
+    // not enough output buffer size to store the decoded message
+    ret = ggwave_ndecode(instance, waveform, sizeof(signed short)*ne, decoded, 3);
+    CHECK(ret == -2); // fail
+
+    // just enough size to store it
+    ret = ggwave_ndecode(instance, waveform, sizeof(signed short)*ne, decoded, 4);
+    CHECK(ret == 4);  // success
+
+    // unsafe method - will write the decoded output to the output buffer regardless of the size
+    ret = ggwave_decode(instance, waveform, sizeof(signed short)*ne, decoded);
     CHECK(ret == 4);
 
+    decoded[ret] = 0; // null-terminate the received data
     CHECK(strcmp(decoded, payload) == 0);
 
     ggwave_free(instance);

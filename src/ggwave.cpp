@@ -125,7 +125,7 @@ int ggwave_decode(
 
     ggWave->decode(cbWaveformInp);
 
-    // todo : avoid allocation
+    // TODO : avoid allocation
     GGWave::TxRxData rxData;
 
     auto rxDataLength = ggWave->takeRxData(rxData);
@@ -133,7 +133,46 @@ int ggwave_decode(
         // failed to decode message
         return -1;
     } else if (rxDataLength > 0) {
-        std::copy(rxData.begin(), rxData.end(), outputBuffer);
+        memcpy(outputBuffer, rxData.data(), rxDataLength);
+    }
+
+    return rxDataLength;
+}
+
+extern "C"
+int ggwave_ndecode(
+        ggwave_Instance instance,
+        const char * dataBuffer,
+        int dataSize,
+        char * outputBuffer,
+        int outputSize) {
+    // TODO : avoid duplicated code
+    GGWave * ggWave = (GGWave *) g_instances[instance];
+
+    GGWave::CBWaveformInp cbWaveformInp = [&](void * data, uint32_t nMaxBytes) -> uint32_t {
+        uint32_t nCopied = std::min((uint32_t) dataSize, nMaxBytes);
+        std::copy(dataBuffer, dataBuffer + nCopied, (char *) data);
+
+        dataSize -= nCopied;
+        dataBuffer += nCopied;
+
+        return nCopied;
+    };
+
+    ggWave->decode(cbWaveformInp);
+
+    // TODO : avoid allocation
+    GGWave::TxRxData rxData;
+
+    auto rxDataLength = ggWave->takeRxData(rxData);
+    if (rxDataLength == -1) {
+        // failed to decode message
+        return -1;
+    } else if (rxDataLength > outputSize) {
+        // the outputBuffer is not big enough to store the data
+        return -2;
+    } else if (rxDataLength > 0) {
+        memcpy(outputBuffer, rxData.data(), rxDataLength);
     }
 
     return rxDataLength;

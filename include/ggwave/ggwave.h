@@ -206,8 +206,10 @@ extern "C" {
     //   If the return value is -1 then there was an error during the decoding process.
     //   Usually can occur if there is a lot of background noise in the audio.
     //
-    //   If the return value is greater than 0, then there will be that number of bytes
-    //   decoded in the outputBuffer
+    //   If the return value is greater than 0, then there are that number of bytes decoded.
+    //
+    //   IMPORTANT:
+    //   Notice that the decoded data written to the outputBuffer is NOT null terminated.
     //
     //   Example:
     //
@@ -234,6 +236,22 @@ extern "C" {
             const char * dataBuffer,
             int dataSize,
             char * outputBuffer);
+
+    // Memory-safe overload of ggwave_decode
+    //
+    //   outputSize     - optionally specify the size of the output buffer
+    //
+    //   If the return value is -2 then the provided outputBuffer was not big enough to
+    //   store the decoded data.
+    //
+    //   See ggwave_decode for more information
+    //
+    GGWAVE_API int ggwave_ndecode(
+            ggwave_Instance instance,
+            const char * dataBuffer,
+            int dataSize,
+            char * outputBuffer,
+            int outputSize);
 
 #ifdef __cplusplus
 }
@@ -413,6 +431,8 @@ public:
     bool stopReceiving();
     void setRxProtocols(const RxProtocols & rxProtocols) { m_rxProtocols = rxProtocols; }
     const RxProtocols & getRxProtocols() const { return m_rxProtocols; }
+
+    int lastRxDataLength() const { return m_lastRxDataLength; }
 
     const TxRxData & getRxData()            const { return m_rxData; }
     const RxProtocol & getRxProtocol()      const { return m_rxProtocol; }

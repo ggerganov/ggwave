@@ -1,6 +1,9 @@
 import sys
 import ggwave
 
+# optionally disable logging
+#ggwave.disableLog()
+
 # create ggwave instance with default parameters
 instance = ggwave.init()
 

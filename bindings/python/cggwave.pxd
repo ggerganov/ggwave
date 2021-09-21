@@ -47,3 +47,5 @@ cdef extern from "ggwave.h" nogil:
             const char * dataBuffer,
             int dataSize,
             char * outputBuffer);
+
+    void ggwave_setLogFile(void * fptr);

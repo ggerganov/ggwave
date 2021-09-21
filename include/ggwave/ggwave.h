@@ -103,6 +103,8 @@ extern "C" {
     //     // disable logging
     //     ggwave_setLogFile(NULL);
     //
+    //  Note: not thread-safe. Do not call while any GGWave instances are running
+    //
     GGWAVE_API void ggwave_setLogFile(void * fptr);
 
     // Helper method to get default instance parameters
@@ -325,6 +327,8 @@ public:
     //
     //  By default, ggwave prints internal log messages to stderr.
     //  To disable logging all together, call this method with nullptr.
+    //
+    //  Note: not thread-safe. Do not call while any GGWave instances are running
     //
     static void setLogFile(FILE * fptr);
 

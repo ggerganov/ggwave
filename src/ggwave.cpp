@@ -25,6 +25,7 @@
 namespace {
 FILE * g_fptr = stderr;
 std::map<ggwave_Instance, GGWave *> g_instances;
+std::map<ggwave_Instance, GGWave::RxProtocols> g_rxProtocols;
 }
 
 extern "C"
@@ -176,6 +177,27 @@ int ggwave_ndecode(
     }
 
     return rxDataLength;
+}
+
+extern "C"
+void ggwave_toggleRxProtocol(
+        ggwave_Instance instance,
+        ggwave_TxProtocolId rxProtocolId,
+        int state) {
+    // if never called - initialize with all available protocols
+    if (g_rxProtocols.find(instance) == g_rxProtocols.end()) {
+        g_rxProtocols[instance] = GGWave::getTxProtocols();
+    }
+
+    if (state == 0) {
+        // disable Rx protocol
+        g_rxProtocols[instance].erase(rxProtocolId);
+    } else if (state == 1) {
+        // enable Rx protocol
+        g_rxProtocols[instance][rxProtocolId] = GGWave::getTxProtocols().at(rxProtocolId);
+    }
+
+    g_instances[instance]->setRxProtocols(g_rxProtocols[instance]);
 }
 
 //

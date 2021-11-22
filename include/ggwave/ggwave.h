@@ -253,6 +253,23 @@ extern "C" {
             char * outputBuffer,
             int outputSize);
 
+    // Toggle Rx protocols on and off
+    //
+    //   instance       - the GGWave instance to use
+    //   rxProtocolId   - Id of the Rx protocol to modify
+    //   state          - 0 - disable, 1 - enable
+    //
+    //   If an Rx protocol is enabled, the GGWave instance will attempt to decode received
+    //   data using this protocol. By default, all protocols are enabled.
+    //   Use this function to restrict the number of Rx protocols used in the decoding
+    //   process. This helps to reduce the number of false positives and improves the transmission
+    //   accuracy, especially when the Tx/Rx protocol is known in advance.
+    //
+    GGWAVE_API void ggwave_toggleRxProtocol(
+            ggwave_Instance instance,
+            ggwave_TxProtocolId rxProtocolId,
+            int state);
+
 #ifdef __cplusplus
 }
 

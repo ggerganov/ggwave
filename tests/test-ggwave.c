@@ -27,10 +27,10 @@ int main() {
     const char * payload = "test";
     char decoded[16];
 
-    int n = ggwave_encode(instance, payload, 4, GGWAVE_TX_PROTOCOL_AUDIBLE_FAST, 50, NULL, 1);
+    int n = ggwave_encode(instance, payload, 4, GGWAVE_TX_PROTOCOL_AUDIBLE_FASTEST, 50, NULL, 1);
     char waveform[n];
 
-    int ne = ggwave_encode(instance, payload, 4, GGWAVE_TX_PROTOCOL_AUDIBLE_FAST, 50, waveform, 0);
+    int ne = ggwave_encode(instance, payload, 4, GGWAVE_TX_PROTOCOL_AUDIBLE_FASTEST, 50, waveform, 0);
     CHECK(ne > 0);
 
     // not enough output buffer size to store the decoded message
@@ -39,11 +39,21 @@ int main() {
 
     // just enough size to store it
     ret = ggwave_ndecode(instance, waveform, sizeof(signed short)*ne, decoded, 4);
-    CHECK(ret == 4);  // success
+    CHECK(ret == 4); // success
 
     // unsafe method - will write the decoded output to the output buffer regardless of the size
     ret = ggwave_decode(instance, waveform, sizeof(signed short)*ne, decoded);
     CHECK(ret == 4);
+
+    // disable Rx protocol
+    ggwave_toggleRxProtocol(instance, GGWAVE_TX_PROTOCOL_AUDIBLE_FASTEST, 0);
+    ret = ggwave_ndecode(instance, waveform, sizeof(signed short)*ne, decoded, 4);
+    CHECK(ret == -1); // fail
+
+    // enable Rx protocol
+    ggwave_toggleRxProtocol(instance, GGWAVE_TX_PROTOCOL_AUDIBLE_FASTEST, 1);
+    ret = ggwave_ndecode(instance, waveform, sizeof(signed short)*ne, decoded, 4);
+    CHECK(ret == 4); // success
 
     decoded[ret] = 0; // null-terminate the received data
     CHECK(strcmp(decoded, payload) == 0);

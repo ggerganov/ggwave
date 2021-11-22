@@ -78,4 +78,14 @@ EMSCRIPTEN_BINDINGS(ggwave) {
 
                         return std::string();
                     }));
+
+    emscripten::function("disableLog", emscripten::optional_override(
+                    []() {
+                        ggwave_setLogFile(NULL);
+                    }));
+
+    emscripten::function("enableLog", emscripten::optional_override(
+                    []() {
+                        ggwave_setLogFile(stderr);
+                    }));
 }

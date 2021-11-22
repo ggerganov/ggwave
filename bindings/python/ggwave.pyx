@@ -1,5 +1,6 @@
 cimport cython
 
+from libc.stdio cimport stderr
 from cpython.mem cimport PyMem_Malloc, PyMem_Free
 
 import re
@@ -62,3 +63,9 @@ def decode(instance, waveform):
         return coutput[0:rxDataLength]
 
     return None
+
+def disableLog():
+    cggwave.ggwave_setLogFile(NULL);
+
+def enableLog():
+    cggwave.ggwave_setLogFile(stderr);

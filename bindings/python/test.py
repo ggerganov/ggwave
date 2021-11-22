@@ -3,6 +3,9 @@ import ggwave
 
 testFailed = False
 
+ggwave.disableLog()
+ggwave.enableLog()
+
 samples = ggwave.encode("hello python")
 
 if not (samples):

@@ -88,4 +88,11 @@ EMSCRIPTEN_BINDINGS(ggwave) {
                     []() {
                         ggwave_setLogFile(stderr);
                     }));
+
+    emscripten::function("toggleRxProtocol", emscripten::optional_override(
+                    [](ggwave_Instance instance,
+                       ggwave_TxProtocolId rxProtocolId,
+                       int state) {
+                        ggwave_toggleRxProtocol(instance, rxProtocolId, state);
+                    }));
 }

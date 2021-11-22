@@ -69,3 +69,6 @@ def disableLog():
 
 def enableLog():
     cggwave.ggwave_setLogFile(stderr);
+
+def toggleRxProtocol(instance, rxProtocolId, state):
+    cggwave.ggwave_toggleRxProtocol(instance, rxProtocolId, state);

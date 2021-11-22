@@ -14,7 +14,21 @@ cdef extern from "ggwave.h" nogil:
         GGWAVE_TX_PROTOCOL_AUDIBLE_FASTEST,
         GGWAVE_TX_PROTOCOL_ULTRASOUND_NORMAL,
         GGWAVE_TX_PROTOCOL_ULTRASOUND_FAST,
-        GGWAVE_TX_PROTOCOL_ULTRASOUND_FASTEST
+        GGWAVE_TX_PROTOCOL_ULTRASOUND_FASTEST,
+        GGWAVE_TX_PROTOCOL_DT_NORMAL,
+        GGWAVE_TX_PROTOCOL_DT_FAST,
+        GGWAVE_TX_PROTOCOL_DT_FASTEST,
+
+        GGWAVE_TX_PROTOCOL_CUSTOM_0,
+        GGWAVE_TX_PROTOCOL_CUSTOM_1,
+        GGWAVE_TX_PROTOCOL_CUSTOM_2,
+        GGWAVE_TX_PROTOCOL_CUSTOM_3,
+        GGWAVE_TX_PROTOCOL_CUSTOM_4,
+        GGWAVE_TX_PROTOCOL_CUSTOM_5,
+        GGWAVE_TX_PROTOCOL_CUSTOM_6,
+        GGWAVE_TX_PROTOCOL_CUSTOM_7,
+        GGWAVE_TX_PROTOCOL_CUSTOM_8,
+        GGWAVE_TX_PROTOCOL_CUSTOM_9
 
     ctypedef struct ggwave_Parameters:
         int payloadLength
@@ -49,3 +63,8 @@ cdef extern from "ggwave.h" nogil:
             char * outputBuffer);
 
     void ggwave_setLogFile(void * fptr);
+
+    void ggwave_toggleRxProtocol(
+            ggwave_Instance instance,
+            ggwave_TxProtocolId rxProtocolId,
+            int state);

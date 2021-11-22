@@ -17,3 +17,17 @@ res = ggwave.decode(instance, waveform)
 
 if res != payload.encode():
     sys.exit(1)
+
+# disable the Rx protocol - the decoding should fail
+ggwave.toggleRxProtocol(instance, rxProtocolId = 1, state = 0)
+res = ggwave.decode(instance, waveform)
+
+if res != None:
+    sys.exit(1)
+
+# re-enable the Rx protocol - the decoding should succeed
+ggwave.toggleRxProtocol(instance, rxProtocolId = 1, state = 1)
+res = ggwave.decode(instance, waveform)
+
+if res != payload.encode():
+    sys.exit(1)

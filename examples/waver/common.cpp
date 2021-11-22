@@ -858,8 +858,10 @@ void renderMain() {
     static bool hasFileSharingSupport = true;
 #endif
 
+#if defined(ios) || defined(android)
     static double tStartInput = 0.0f;
     static double tEndInput = -100.0f;
+#endif
     static double tStartTx = 0.0f;
     static double tLengthTx = 0.0f;
 
@@ -946,7 +948,9 @@ void renderMain() {
     auto& style = ImGui::GetStyle();
 
     const auto sendButtonText = ICON_FA_PLAY_CIRCLE " Send";
+#if defined(IOS) || defined(ANDROID)
     const double tShowKeyboard = 0.2f;
+#endif
 #if defined(IOS)
     const float statusBarHeight = displaySize.x < displaySize.y ? 2.0f*style.ItemSpacing.y : 0.1f;
 #else
@@ -1254,7 +1258,7 @@ void renderMain() {
         hasNewMessages = false;
 
         // no automatic screen resize support for iOS
-#if defined(IOS) || defined(ANDROID)
+#if defined(ios) || defined(android)
         if (displaySize.x < displaySize.y) {
             if (isTextInput) {
                 messagesHistoryHeigth -= 0.5f*messagesHistoryHeigthMax*std::min(tShowKeyboard, ImGui::GetTime() - tStartInput) / tShowKeyboard;
@@ -1559,7 +1563,9 @@ void renderMain() {
         if (ImGui::IsItemActive() && isTextInput == false) {
             SDL_StartTextInput();
             isTextInput = true;
+#if defined(ios) || defined(android)
             tStartInput = ImGui::GetTime();
+#endif
         }
         bool requestStopTextInput = false;
         if (ImGui::IsItemDeactivated()) {
@@ -1618,7 +1624,9 @@ void renderMain() {
         if (!ImGui::IsItemHovered() && requestStopTextInput) {
             SDL_StopTextInput();
             isTextInput = false;
+#if defined(ios) || defined(android)
             tEndInput = ImGui::GetTime();
+#endif
         }
     }
 

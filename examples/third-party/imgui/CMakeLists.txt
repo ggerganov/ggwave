@@ -86,6 +86,7 @@ if (GGWAVE_SUPPORT_SDL2)
             imgui
             )
     else()
+        set(OpenGL_GL_PREFERENCE GLVND)
         find_package(OpenGL REQUIRED)
 
         add_library(imgui-sdl2

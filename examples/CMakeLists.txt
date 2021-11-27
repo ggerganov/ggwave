@@ -7,11 +7,14 @@ if (GGWAVE_SUPPORT_SDL2)
 
     if (EMSCRIPTEN)
         set(CMAKE_CXX_FLAGS " \
+        -s USE_SDL=2 \
+        -s DISABLE_EXCEPTION_CATCHING=0 \
+        ")
+
+        set(CMAKE_CXX_LINK_FALGS " \
         --bind \
         -s TOTAL_MEMORY=67108864 \
-        -s USE_SDL=2 \
         -s ASSERTIONS=1 \
-        -s DISABLE_EXCEPTION_CATCHING=0 \
         -s 'EXTRA_EXPORTED_RUNTIME_METHODS=[\"writeArrayToMemory\"]' \
         ")
 

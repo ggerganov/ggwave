@@ -34,6 +34,16 @@
 #endif
 
 namespace {
+
+// Direct-sequence spread magic numbers
+// Used to xor the actual payload
+const std::array<uint8_t, 64> kDSSMagic = {
+    0x96, 0x9f, 0xb4, 0xaf, 0x1b, 0x91, 0xde, 0xc5, 0x45, 0x75, 0xe8, 0x2e, 0x0f, 0x32, 0x4a, 0x5f,
+    0xb4, 0x56, 0x95, 0xcb, 0x7f, 0x6a, 0x54, 0x6a, 0x48, 0xf2, 0x0b, 0x7b, 0xcd, 0xfb, 0x93, 0x6d,
+    0x3c, 0x77, 0x5e, 0xc3, 0x33, 0x47, 0xc0, 0xf1, 0x71, 0x32, 0x33, 0x27, 0x35, 0x68, 0x47, 0x1f,
+    0x4e, 0xac, 0x23, 0x42, 0x5f, 0x00, 0x37, 0xa4, 0x50, 0x6d, 0x48, 0x24, 0x91, 0x7c, 0xa1, 0x4e,
+};
+
 std::mutex g_mutex;
 char * toTimeString(const std::chrono::system_clock::time_point & tp) {
     std::lock_guard<std::mutex> lock(g_mutex);
@@ -214,6 +224,7 @@ struct Input {
         bool changeNeedSpectrum = false;
         bool stopReceiving = false;
         bool changeRxProtocols = false;
+        bool changeDSS = false;
 
         void clear() { memset(this, 0, sizeof(Flags)); }
     } flags;
@@ -251,6 +262,12 @@ struct Input {
             dst.rxProtocols = std::move(this->rxProtocols);
         }
 
+        if (this->flags.changeDSS) {
+            dst.update = true;
+            dst.flags.changeDSS = true;
+            dst.directSequenceSpread = std::move(this->directSequenceSpread);
+        }
+
         flags.clear();
         update = false;
     }
@@ -264,6 +281,9 @@ struct Input {
 
     // spectrum
     bool needSpectrum = false;
+
+    // other
+    bool directSequenceSpread = false;
 
     // rx protocols
     GGWave::RxProtocols rxProtocols;
@@ -587,6 +607,7 @@ void updateCore() {
 
     static bool isFirstCall = true;
     static bool needSpectrum = false;
+    static bool directSequenceSpread = false;
     static int rxDataLengthLast = 0;
     static float rxTimestampLast = 0.0f;
     static GGWave::TxRxData rxDataLast;
@@ -603,9 +624,16 @@ void updateCore() {
 
     if (inputCurrent.update) {
         if (inputCurrent.flags.newMessage) {
+            int n = inputCurrent.message.data.size();
+
+            if (directSequenceSpread) {
+                for (int i = 0; i < n; ++i) {
+                    inputCurrent.message.data[i] ^= kDSSMagic[i%kDSSMagic.size()];
+                }
+            }
+
             ggWave->init(
-                    (int) inputCurrent.message.data.size(),
-                    inputCurrent.message.data.data(),
+                    n, inputCurrent.message.data.data(),
                     ggWave->getTxProtocol(inputCurrent.message.protocolId),
                     100*inputCurrent.message.volume);
         }
@@ -645,6 +673,10 @@ void updateCore() {
             ggWave->setRxProtocols(inputCurrent.rxProtocols);
         }
 
+        if (inputCurrent.flags.changeDSS) {
+            directSequenceSpread = inputCurrent.directSequenceSpread;
+        }
+
         inputCurrent.flags.clear();
         inputCurrent.update = false;
     }
@@ -665,6 +697,13 @@ void updateCore() {
         };
     } else if (rxDataLengthLast > 0 && ImGui::GetTime() - rxTimestampLast > 0.5f) {
         auto message = std::string((char *) rxDataLast.data(), rxDataLengthLast);
+
+        if (directSequenceSpread) {
+            for (int i = 0; i < rxDataLengthLast; ++i) {
+                message[i] ^= kDSSMagic[i%kDSSMagic.size()];
+            }
+        }
+
         const Message::Type type = isFileBroadcastMessage(message) ? Message::FileBroadcast : Message::Text;
         g_buffer.stateCore.update = true;
         g_buffer.stateCore.flags.newMessage = true;
@@ -676,6 +715,7 @@ void updateCore() {
             0,
             type,
         };
+
         rxTimestampLast = ImGui::GetTime();
     }
 
@@ -822,6 +862,7 @@ void renderMain() {
         bool isSampleRateOffset = false;
         float sampleRateOffset = -512.0f;
         bool isFixedLength = false;
+        bool directSequenceSpread = false;
         int payloadLength = 8;
         float volume = 0.10f;
 
@@ -1204,6 +1245,27 @@ void renderMain() {
                 g_buffer.inputUI.sampleRateOffset = settings.isSampleRateOffset ? settings.sampleRateOffset : 0;
             }
             ImGui::PopItemWidth();
+        }
+
+        // Direct-sequence spread
+        ImGui::Text("%s", "");
+        {
+            auto posSave = ImGui::GetCursorScreenPos();
+            ImGui::Text("%s", "");
+            ImGui::SetCursorScreenPos({ posSave.x + kLabelWidth, posSave.y });
+            ImGui::PushTextWrapPos();
+            ImGui::TextDisabled("Direct-sequence spread");
+            ImGui::PopTextWrapPos();
+        }
+        {
+            auto posSave = ImGui::GetCursorScreenPos();
+            ImGui::Text("Use DSS: ");
+            ImGui::SetCursorScreenPos({ posSave.x + kLabelWidth, posSave.y });
+        }
+        if (ImGui::Checkbox("##direct-sequence-spread", &settings.directSequenceSpread)) {
+            g_buffer.inputUI.update = true;
+            g_buffer.inputUI.flags.changeDSS = true;
+            g_buffer.inputUI.directSequenceSpread = settings.directSequenceSpread;
         }
 
         // rx protocols

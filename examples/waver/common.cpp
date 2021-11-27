@@ -13,6 +13,7 @@
 
 #include <SDL.h>
 
+#include <array>
 #include <algorithm>
 #include <atomic>
 #include <cmath>

@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 
+## [v0.3.1] - 2021-11-27
+
+- Add interface for changing ggwave's internal logging ([#52](https://github.com/ggerganov/ggwave/pull/52), [#55](https://github.com/ggerganov/ggwave/pull/55))
+- Fix out-of-bounds access in `ggwave_decode` ([#53](https://github.com/ggerganov/ggwave/pull/53))
+- Add C interface for selecting Rx protocols ([#60](https://github.com/ggerganov/ggwave/pull/60))
+
 ## [v0.3.0] - 2021-07-03
 
 - Resampling fixes
@@ -18,6 +24,7 @@
 - Reed-Solomon based ECC
 - Ultrasound support
 
-[unreleased]: https://github.com/ggerganov/ggwave/compare/ggwave-v0.3.0...HEAD
+[unreleased]: https://github.com/ggerganov/ggwave/compare/ggwave-v0.3.1...HEAD
+[v0.3.1]: https://github.com/ggerganov/ggwave/releases/tag/ggwave-v0.3.1
 [v0.3.0]: https://github.com/ggerganov/ggwave/releases/tag/ggwave-v0.3.0
 [v0.2.0]: https://github.com/ggerganov/ggwave/releases/tag/ggwave-v0.2.0

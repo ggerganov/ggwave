@@ -900,7 +900,7 @@ void renderMain() {
     static bool hasFileSharingSupport = true;
 #endif
 
-#if defined(ios) || defined(android)
+#if defined(IOS) || defined(ANDROID)
     static double tStartInput = 0.0f;
     static double tEndInput = -100.0f;
 #endif
@@ -1321,7 +1321,7 @@ void renderMain() {
         hasNewMessages = false;
 
         // no automatic screen resize support for iOS
-#if defined(ios) || defined(android)
+#if defined(IOS) || defined(ANDROID)
         if (displaySize.x < displaySize.y) {
             if (isTextInput) {
                 messagesHistoryHeigth -= 0.5f*messagesHistoryHeigthMax*std::min(tShowKeyboard, ImGui::GetTime() - tStartInput) / tShowKeyboard;
@@ -1626,7 +1626,7 @@ void renderMain() {
         if (ImGui::IsItemActive() && isTextInput == false) {
             SDL_StartTextInput();
             isTextInput = true;
-#if defined(ios) || defined(android)
+#if defined(IOS) || defined(ANDROID)
             tStartInput = ImGui::GetTime();
 #endif
         }
@@ -1687,7 +1687,7 @@ void renderMain() {
         if (!ImGui::IsItemHovered() && requestStopTextInput) {
             SDL_StopTextInput();
             isTextInput = false;
-#if defined(ios) || defined(android)
+#if defined(IOS) || defined(ANDROID)
             tEndInput = ImGui::GetTime();
 #endif
         }

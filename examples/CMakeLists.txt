@@ -11,11 +11,11 @@ if (GGWAVE_SUPPORT_SDL2)
         -s DISABLE_EXCEPTION_CATCHING=0 \
         ")
 
-        set(CMAKE_CXX_LINK_FALGS " \
+        set(CMAKE_CXX_LINK_FLAGS " \
         --bind \
         -s TOTAL_MEMORY=67108864 \
         -s ASSERTIONS=1 \
-        -s 'EXTRA_EXPORTED_RUNTIME_METHODS=[\"writeArrayToMemory\"]' \
+        -s 'EXPORTED_RUNTIME_METHODS=[\"writeArrayToMemory\"]' \
         ")
 
         unset(SDL2_INCLUDE_DIRS)

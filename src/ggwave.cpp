@@ -460,11 +460,11 @@ GGWave::~GGWave() {
 }
 
 bool GGWave::init(const std::string & text, const int volume) {
-    return init(text.size(), text.data(), getDefaultTxProtocol(), volume);
+    return init((int) text.size(), text.data(), getDefaultTxProtocol(), volume);
 }
 
 bool GGWave::init(const std::string & text, const TxProtocol & txProtocol, const int volume) {
-    return init(text.size(), text.data(), txProtocol, volume);
+    return init((int) text.size(), text.data(), txProtocol, volume);
 }
 
 bool GGWave::init(int dataSize, const char * dataBuffer, const int volume) {

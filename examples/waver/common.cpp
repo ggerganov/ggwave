@@ -625,7 +625,7 @@ void updateCore() {
 
     if (inputCurrent.update) {
         if (inputCurrent.flags.newMessage) {
-            int n = inputCurrent.message.data.size();
+            int n = (int) inputCurrent.message.data.size();
 
             if (directSequenceSpread) {
                 for (int i = 0; i < n; ++i) {

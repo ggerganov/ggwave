@@ -47,6 +47,11 @@ Usage: ./bin/ggwave-to-file [-vN] [-sN] [-pN] [-lN]
   echo "Hello world!" | ./bin/ggwave-to-file -l12 > example.wav
   ```
 
+- Play the generated waveform directly through the speakers
+
+  ```bash
+  echo "Hello world!" | ./bin/ggwave-to-file | play --ignore-length -t wav -
+  ```
 
 ## HTTP service
 

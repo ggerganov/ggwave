@@ -28,7 +28,7 @@ Possible applications:
 - Device pairing
 - Authorization
 - Internet of Things
-- Audio QR codes
+- [Audio QR codes](https://twitter.com/ggerganov/status/1509555400705814528)
 
 ## Try it out
 

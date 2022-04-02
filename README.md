@@ -22,13 +22,17 @@ This library allows you to communicate small amounts of data between air-gapped 
 
 This library is used only to generate and analyze the RAW waveforms that are played and captured from your audio devices (speakers, microphones, etc.). You are free to use any audio backend (e.g. PulseAudio, ALSA, etc.) as long as you provide callbacks for queuing and dequeuing audio samples.
 
-Possible applications:
+Here is a list of possible applications of **ggwave** with a few examples:
 
-- Serverless, one-to-many broadcast
-- Device pairing
-- Authorization
-- Internet of Things
-- [Audio QR codes](https://twitter.com/ggerganov/status/1509555400705814528)
+- **Serverless, one-to-many broadcast**
+  - [wave-share](https://github.com/ggerganov/wave-share) - file sharing through sound
+- **Internet of Things**
+  - [r2t2](https://github.com/ggerganov/ggwave/tree/master/examples/r2t2) - Transmit data with the PC speaker
+  - Record and send commands via [Talking buttons](https://github.com/ggerganov/ggwave/discussions/27)
+- **Audio QR codes**
+  - [[Twitter]](https://twitter.com/ggerganov/status/1509558482567057417) - Broadcast your clipboard to nearby devices
+- **Device pairing**
+- **Authorization**
 
 ## Try it out
 

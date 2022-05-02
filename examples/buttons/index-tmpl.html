@@ -1,0 +1,232 @@
+<!doctype html>
+<html lang="en-us">
+    <head>
+        <title>ggwave : buttons</title>
+    </head>
+    <body>
+        <div id="main-container">
+            Talking buttons tester:
+
+            <br><br>
+
+            <button onclick="onSend('RRR');">Red</button>
+            <button onclick="onSend('GGG');">Green</button>
+            <button onclick="onSend('BBB');">Blue</button>
+
+            <br><br>
+
+            <i>If you have Fluent Pet talking buttons, enable this option during the recording:</i><br><br>
+            <input type="checkbox" id="checkbox-fp">Fluent Pet</input>
+
+            <br>
+
+            <textarea name="textarea" id="rxData" style="width:300px;height:100px;" disabled hidden></textarea><br>
+
+            <button id="captureStart">Start capturing</button>
+            <button id="captureStop" hidden>Stop capturing</button>
+
+            <br><br>
+
+            <div class="cell-version">
+                <span>
+                    |
+                    Build time: <span class="nav-link">@GIT_DATE@</span> |
+                    Commit hash: <a class="nav-link" href="https://github.com/ggerganov/ggwave/commit/@GIT_SHA1@">@GIT_SHA1@</a> |
+                    Commit subject: <span class="nav-link">@GIT_COMMIT_SUBJECT@</span> |
+                    <a class="nav-link" href="https://github.com/ggerganov/ggwave/tree/master/examples/ggwave-js">Source Code</a> |
+                </span>
+            </div>
+        </div>
+
+        <script type="text/javascript" src="ggwave.js"></script>
+        <script type='text/javascript'>
+            window.AudioContext = window.AudioContext || window.webkitAudioContext;
+            window.OfflineAudioContext = window.OfflineAudioContext || window.webkitOfflineAudioContext;
+
+            var context = null;
+            var recorder = null;
+
+            // the ggwave module instance
+            var ggwave = null;
+            var ggwave_FluentPet = null;
+            var parameters = null;
+            var instance = null;
+
+            const kPayloadLength = 3;
+
+            var kDSSMagic = [
+                0x96, 0x9f, 0xb4, 0xaf, 0x1b, 0x91, 0xde, 0xc5, 0x45, 0x75, 0xe8, 0x2e, 0x0f, 0x32, 0x4a, 0x5f,
+                0xb4, 0x56, 0x95, 0xcb, 0x7f, 0x6a, 0x54, 0x6a, 0x48, 0xf2, 0x0b, 0x7b, 0xcd, 0xfb, 0x93, 0x6d,
+                0x3c, 0x77, 0x5e, 0xc3, 0x33, 0x47, 0xc0, 0xf1, 0x71, 0x32, 0x33, 0x27, 0x35, 0x68, 0x47, 0x1f,
+                0x4e, 0xac, 0x23, 0x42, 0x5f, 0x00, 0x37, 0xa4, 0x50, 0x6d, 0x48, 0x24, 0x91, 0x7c, 0xa1, 0x4e,
+            ];
+
+            // instantiate the ggwave instance
+            // ggwave_factory comes from the ggwave.js module
+            ggwave_factory().then(function(obj) {
+                ggwave = obj;
+            });
+
+            // instantiate a second instance specific for the Fluent Pet talking buttons
+            ggwave_factory().then(function(obj) {
+                ggwave_FluentPet = obj;
+            });
+
+            var txData = document.getElementById("txData");
+            var rxData = document.getElementById("rxData");
+            var captureStart = document.getElementById("captureStart");
+            var captureStop = document.getElementById("captureStop");
+
+            // helper function
+            function convertTypedArray(src, type) {
+                var buffer = new ArrayBuffer(src.byteLength);
+                var baseView = new src.constructor(buffer).set(src);
+                return new type(buffer);
+            }
+
+            // initialize audio context and ggwave
+            function init() {
+                if (!context) {
+                    context = new AudioContext({sampleRate: 48000});
+
+                    parameters = ggwave.getDefaultParameters();
+                    parameters.payloadLength = kPayloadLength;
+                    parameters.sampleRateInp = context.sampleRate;
+                    parameters.sampleRateOut = context.sampleRate;
+                    instance = ggwave.init(parameters);
+
+                    parameters = ggwave_FluentPet.getDefaultParameters();
+                    parameters.payloadLength = kPayloadLength;
+                    parameters.sampleRateInp = context.sampleRate;
+                    parameters.sampleRateOut = context.sampleRate - 512;
+                    instance = ggwave_FluentPet.init(parameters);
+                }
+            }
+
+            //
+            // Tx
+            //
+
+            function onSend(text) {
+                init();
+
+                // DSS : xor the text with the magic numbers
+                var payload = new Uint8Array(text.length);
+                for (var i = 0; i < text.length; i++) {
+                    payload[i] = text.charCodeAt(i) ^ kDSSMagic[i];
+                }
+
+                // generate audio waveform
+                var waveform = null;
+                if (document.getElementById("checkbox-fp").checked) {
+                    waveform = ggwave_FluentPet.encode(instance, payload, ggwave_FluentPet.TxProtocolId.GGWAVE_TX_PROTOCOL_DT_FAST, 25)
+                } else {
+                    waveform = ggwave.encode(instance, payload, ggwave.TxProtocolId.GGWAVE_TX_PROTOCOL_DT_FAST, 25)
+                }
+
+                // play audio
+                var buf = convertTypedArray(waveform, Float32Array);
+                var buffer = context.createBuffer(1, buf.length, context.sampleRate);
+                buffer.getChannelData(0).set(buf);
+                var source = context.createBufferSource();
+                source.buffer = buffer;
+                source.connect(context.destination);
+                source.start(0);
+            }
+
+            //
+            // Rx
+            //
+
+            captureStart.addEventListener("click", function () {
+                init();
+
+                let constraints = {
+                    audio: {
+                        // not sure if these are necessary to have
+                        echoCancellation: false,
+                        autoGainControl: false,
+                        noiseSuppression: false
+                    }
+                };
+
+                navigator.mediaDevices.getUserMedia(constraints).then(function (e) {
+                    mediaStream = context.createMediaStreamSource(e);
+
+                    var bufferSize = 1024;
+                    var numberOfInputChannels = 1;
+                    var numberOfOutputChannels = 1;
+
+                    if (context.createScriptProcessor) {
+                        recorder = context.createScriptProcessor(
+                                bufferSize,
+                                numberOfInputChannels,
+                                numberOfOutputChannels);
+                    } else {
+                        recorder = context.createJavaScriptNode(
+                                bufferSize,
+                                numberOfInputChannels,
+                                numberOfOutputChannels);
+                    }
+
+                    recorder.onaudioprocess = function (e) {
+                        var source = e.inputBuffer;
+                        var res = ggwave.decode(instance, convertTypedArray(new Float32Array(source.getChannelData(0)), Int8Array));
+                        if (res && res.length == kPayloadLength) {
+                            // DSS
+                            var payload = "";
+                            res8 = convertTypedArray(res, Uint8Array);
+                            for (var i = 0; i < 3; i++) {
+                                payload += String.fromCharCode(res8[i] ^ kDSSMagic[i]);
+                            }
+
+                            if (payload == 'RRR' || payload == 'GGG' || payload == 'BBB') {
+                                rxData.value = payload;
+
+                                // change page background color
+                                switch (payload) {
+                                    case 'RRR':
+                                        document.body.style.backgroundColor = '#ff0000';
+                                        break;
+                                    case 'GGG':
+                                        document.body.style.backgroundColor = '#00ff00';
+                                        break;
+                                    case 'BBB':
+                                        document.body.style.backgroundColor = '#0000ff';
+                                        break;
+                                }
+
+                                setTimeout(function () {
+                                    document.body.style.backgroundColor = '#ffffff';
+                                }, 1000);
+                            }
+                        }
+                    }
+
+                    mediaStream.connect(recorder);
+                    recorder.connect(context.destination);
+                }).catch(function (e) {
+                    console.error(e);
+                });
+
+                rxData.value = 'Listening ...';
+                captureStart.hidden = true;
+                captureStop.hidden = false;
+            });
+
+            captureStop.addEventListener("click", function () {
+                if (recorder) {
+                    recorder.disconnect(context.destination);
+                    mediaStream.disconnect(recorder);
+                    recorder = null;
+                }
+
+                rxData.value = 'Audio capture is paused! Press the "Start capturing" button to analyze audio from the microphone';
+                captureStart.hidden = false;
+                captureStop.hidden = true;
+            });
+
+            captureStop.click();
+        </script>
+    </body>
+</html>

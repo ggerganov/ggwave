@@ -83,6 +83,7 @@ endif()
 
 if (EMSCRIPTEN)
     add_subdirectory(ggwave-js)
+    add_subdirectory(buttons)
 else()
     add_subdirectory(ggwave-to-file)
 endif()

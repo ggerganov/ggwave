@@ -10,11 +10,11 @@ Tiny data-over-sound library.
 
 Click on the images below to hear what it sounds like:
 
-<a href="https://youtu.be/Zcgf77T71QM"><img width="100%" src="media/waver-preview1.gif"></img></a>
-
-<a href="https://user-images.githubusercontent.com/1991296/109400988-a48f4a80-7954-11eb-9211-3640fc41568b.mp4"><img width="100%" src="https://user-images.githubusercontent.com/1991296/109401710-d7d3d880-7958-11eb-9b7e-364be0b4cf55.gif"></img></a>
-
 <a href="https://youtu.be/S2YdGefZiy4"><img width="100%" src="media/ggwave0.gif"></img></a>
+
+<a href="https://user-images.githubusercontent.com/1991296/161401690-013023ba-1d21-4fb7-8d7f-9953f51c1e5b.mp4"><img width="100%" src="https://user-images.githubusercontent.com/1991296/109401710-d7d3d880-7958-11eb-9b7e-364be0b4cf55.gif"></img></a>
+
+<a href="https://youtu.be/Zcgf77T71QM"><img width="100%" src="media/waver-preview1.gif"></img></a>
 
 ## Details
 
@@ -22,13 +22,17 @@ This library allows you to communicate small amounts of data between air-gapped 
 
 This library is used only to generate and analyze the RAW waveforms that are played and captured from your audio devices (speakers, microphones, etc.). You are free to use any audio backend (e.g. PulseAudio, ALSA, etc.) as long as you provide callbacks for queuing and dequeuing audio samples.
 
-Possible applications:
+Here is a list of possible applications of **ggwave** with a few examples:
 
-- Serverless, one-to-many broadcast
-- Device pairing
-- Authorization
-- Internet of Things
-- Audio QR codes
+- **Serverless, one-to-many broadcast**
+  - [wave-share](https://github.com/ggerganov/wave-share) - file sharing through sound
+- **Internet of Things**
+  - [r2t2](https://github.com/ggerganov/ggwave/tree/master/examples/r2t2) - Transmit data with the PC speaker
+  - Record and send commands via [Talking buttons](https://github.com/ggerganov/ggwave/discussions/27)
+- **Audio QR codes**
+  - [[Twitter]](https://twitter.com/ggerganov/status/1509558482567057417) - Broadcast your clipboard to nearby devices
+- **Device pairing**
+- **Authorization**
 
 ## Try it out
 

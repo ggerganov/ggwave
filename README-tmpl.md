@@ -28,7 +28,7 @@ Here is a list of possible applications of **ggwave** with a few examples:
   - [wave-share](https://github.com/ggerganov/wave-share) - file sharing through sound
 - **Internet of Things**
   - [r2t2](https://github.com/ggerganov/ggwave/tree/master/examples/r2t2) - Transmit data with the PC speaker
-  - Record and send commands via [Talking buttons](https://github.com/ggerganov/ggwave/discussions/27)
+  - [buttons](https://github.com/ggerganov/ggwave/tree/master/examples/buttons) - Record and send commands via [Talking buttons](https://github.com/ggerganov/ggwave/discussions/27)
 - **Audio QR codes**
   - [[Twitter]](https://twitter.com/ggerganov/status/1509558482567057417) - Broadcast your clipboard to nearby devices
 - **Device pairing**
@@ -105,6 +105,7 @@ The [examples](https://github.com/ggerganov/ggwave/blob/master/examples/) folder
 | [ggwave-js](https://github.com/ggerganov/ggwave/blob/master/examples/ggwave-js) | Javascript example | Web Audio API |
 | [spectrogram](https://github.com/ggerganov/ggwave/blob/master/examples/spectrogram) | Spectrogram tool | SDL |
 | [ggweb-spike](https://gitlab.com/commonsguy/ggweb-spike) | Android example using a `WebView` to wrap `ggwave` into a simple app | WebAudio |
+| [buttons](https://github.com/ggerganov/ggwave/blob/master/examples/buttons) | Record and send commands via Talking buttons | Web Audio API |
 | [r2t2](https://github.com/ggerganov/ggwave/blob/master/examples/r2t2) | Transmit data through the PC speaker | PC speaker |
 | [ggwave-objc](https://github.com/ggerganov/ggwave-objc) | Minimal Objective-C iOS app using ggwave | AudioToolbox |
 | [ggwave-java](https://github.com/ggerganov/ggwave-java) | Minimal Java Android app using ggwave | android.media |

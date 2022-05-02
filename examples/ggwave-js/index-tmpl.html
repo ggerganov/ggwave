@@ -118,7 +118,7 @@
                 navigator.mediaDevices.getUserMedia(constraints).then(function (e) {
                     mediaStream = context.createMediaStreamSource(e);
 
-                    var bufferSize = 16*1024;
+                    var bufferSize = 1024;
                     var numberOfInputChannels = 1;
                     var numberOfOutputChannels = 1;
 
@@ -137,7 +137,7 @@
                     recorder.onaudioprocess = function (e) {
                         var source = e.inputBuffer;
                         var res = ggwave.decode(instance, convertTypedArray(new Float32Array(source.getChannelData(0)), Int8Array));
-                        if (res) {
+                        if (res && res.length > 0) {
                             rxData.value = res;
                         }
 

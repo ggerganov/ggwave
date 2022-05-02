@@ -61,9 +61,7 @@ EMSCRIPTEN_BINDINGS(ggwave) {
                         result.resize(n);
                         ggwave_encode(instance, data.data(), data.size(), txProtocolId, volume, result.data(), 0);
 
-                        return emscripten::val(
-                                emscripten::typed_memory_view(result.size(),
-                                                              result.data()));
+                        return emscripten::val(emscripten::typed_memory_view(result.size(), result.data()));
                     }));
 
     emscripten::function("decode", emscripten::optional_override(
@@ -73,10 +71,10 @@ EMSCRIPTEN_BINDINGS(ggwave) {
                         auto n = ggwave_decode(instance, data.data(), data.size(), output);
 
                         if (n > 0) {
-                            return std::string(output, n);
+                            return emscripten::val(emscripten::typed_memory_view(n, output));
                         }
 
-                        return std::string();
+                        return emscripten::val(emscripten::typed_memory_view(0, output));
                     }));
 
     emscripten::function("disableLog", emscripten::optional_override(

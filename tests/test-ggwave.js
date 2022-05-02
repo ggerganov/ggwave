@@ -13,7 +13,7 @@ factory().then(function(ggwave) {
     // decode the audio waveform back to text
     var res = ggwave.decode(instance, waveform);
 
-    if (res != payload) {
+    if (new TextDecoder("utf-8").decode(res) != payload) {
         process.exit(1);
     }
 });

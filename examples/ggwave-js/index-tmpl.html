@@ -137,7 +137,9 @@
                     recorder.onaudioprocess = function (e) {
                         var source = e.inputBuffer;
                         var res = ggwave.decode(instance, convertTypedArray(new Float32Array(source.getChannelData(0)), Int8Array));
+
                         if (res && res.length > 0) {
+                            res = new TextDecoder("utf-8").decode(res);
                             rxData.value = res;
                         }
 

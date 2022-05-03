@@ -16,9 +16,14 @@
 #include <string>
 #include <iostream>
 
-void processTone(int fd, double freq_hz, long duration_ms, bool useBeep, bool printTones) {
+void processTone(int fd, double freq_hz, long duration_ms, bool useBeep, bool printTones, bool printArduino) {
     if (printTones) {
         printf("TONE %8.2f Hz %5ld ms\n", freq_hz, duration_ms);
+        return;
+    }
+
+    if (printArduino) {
+        printf("tone(kPinSpeaker, %8.2f); delay(%4ld);\n", freq_hz, duration_ms);
         return;
     }
 
@@ -36,24 +41,29 @@ void processTone(int fd, double freq_hz, long duration_ms, bool useBeep, bool pr
 }
 
 int main(int argc, char** argv) {
-    printf("Usage: %s [-tN] [-lN]\n", argv[0]);
+    printf("Usage: %s [-p] [-b] [-tN] [-lN]\n", argv[0]);
     printf("    -p  - print tones, no playback\n");
-    //printf("    -b  - use 'beep' command\n");
+    printf("    -A  - print Arduino code\n");
+    printf("    -b  - use 'beep' command\n");
     printf("    -tN - transmission protocol\n");
     printf("    -lN - fixed payload length of size N, N in [1, %d]\n", GGWave::kMaxLengthFixed);
     printf("\n");
 
     const GGWave::TxProtocols protocols = {
-        { GGWAVE_TX_PROTOCOL_CUSTOM_0, { "[R2T2] Normal",  64,  9, 1, } },
-        { GGWAVE_TX_PROTOCOL_CUSTOM_1, { "[R2T2] Fast",    64,  6, 1, } },
-        { GGWAVE_TX_PROTOCOL_CUSTOM_2, { "[R2T2] Fastest", 64,  3, 1, } },
+        { GGWAVE_TX_PROTOCOL_CUSTOM_0, { "[R2T2] Normal",      64,  9, 1, } },
+        { GGWAVE_TX_PROTOCOL_CUSTOM_1, { "[R2T2] Fast",        64,  6, 1, } },
+        { GGWAVE_TX_PROTOCOL_CUSTOM_2, { "[R2T2] Fastest",     64,  3, 1, } },
+        { GGWAVE_TX_PROTOCOL_CUSTOM_3, { "[R2T2] Low Normal",  16,  9, 1, } },
+        { GGWAVE_TX_PROTOCOL_CUSTOM_4, { "[R2T2] Low Fast",    16,  6, 1, } },
+        { GGWAVE_TX_PROTOCOL_CUSTOM_5, { "[R2T2] Low Fastest", 16,  3, 1, } },
     };
 
-    auto argm = parseCmdArguments(argc, argv);
-    bool printTones = argm.find("p") != argm.end();
-    bool useBeep = false; //argm.find("b") != argm.end();
-    int txProtocolId = argm["t"].empty() ? GGWAVE_TX_PROTOCOL_CUSTOM_0 : std::stoi(argm["t"]);
-    int payloadLength = argm["l"].empty() ? 16 : std::stoi(argm["l"]);
+    const auto argm = parseCmdArguments(argc, argv);
+    const bool printTones = argm.count("p") > 0;
+    const bool printArduino = argm.count("A") > 0;
+    const bool useBeep = argm.count("b") > 0;
+    const int txProtocolId = argm.count("t") == 0 ? GGWAVE_TX_PROTOCOL_CUSTOM_0 : std::stoi(argm.at("t"));
+    const int payloadLength = argm.count("l") == 0 ? 16 : std::stoi(argm.at("l"));
 
     GGWave ggWave({
         payloadLength,
@@ -87,7 +97,7 @@ int main(int argc, char** argv) {
     printf("Selecting Tx protocol %d\n", txProtocolId);
 
     int fd = 1;
-    if (useBeep == false && printTones == false) {
+    if (useBeep == false && printTones == false && printArduino == false) {
         if (ioctl(fd, KDMKTONE, 0)) {
             fd = open(CONSOLE, O_RDONLY);
         }
@@ -129,7 +139,7 @@ int main(int argc, char** argv) {
         const auto & tone = tonesCur.front();
         if (tone.freq_hz != lastF) {
             if (nFrames > 0) {
-                processTone(fd, lastF, nFrames*tone.duration_ms, useBeep, printTones);
+                processTone(fd, lastF, nFrames*tone.duration_ms, useBeep, printTones, printArduino);
             }
             nFrames = 0;
             lastF = tone.freq_hz;
@@ -139,7 +149,7 @@ int main(int argc, char** argv) {
 
     if (nFrames > 0) {
         const auto & tone = tones.front().front();
-        processTone(fd, lastF, nFrames*tone.duration_ms, useBeep, printTones);
+        processTone(fd, lastF, nFrames*tone.duration_ms, useBeep, printTones, printArduino);
     }
 
     return 0;

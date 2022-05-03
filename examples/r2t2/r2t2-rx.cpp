@@ -309,21 +309,30 @@ int main(int argc, char** argv) {
     if (argv[1]) {
         GGWave_setDefaultCaptureDeviceName(argv[1]);
     }
+#else
+    printf("Usage: %s [-cN] [-lN]\n", argv[0]);
+    printf("    -cN - select capture device N\n");
+    printf("    -lN - fixed payload length of size N, N in [1, %d]\n", GGWave::kMaxLengthFixed);
+    printf("\n");
 #endif
 
     const GGWave::TxProtocols protocols = {
-        { GGWAVE_TX_PROTOCOL_CUSTOM_0, { "[R2T2] Normal",  64,  9, 1, } },
-        { GGWAVE_TX_PROTOCOL_CUSTOM_1, { "[R2T2] Fast",    64,  6, 1, } },
-        { GGWAVE_TX_PROTOCOL_CUSTOM_2, { "[R2T2] Fastest", 64,  3, 1, } },
+        { GGWAVE_TX_PROTOCOL_CUSTOM_0, { "[R2T2] Normal",      64,  9, 1, } },
+        { GGWAVE_TX_PROTOCOL_CUSTOM_1, { "[R2T2] Fast",        64,  6, 1, } },
+        { GGWAVE_TX_PROTOCOL_CUSTOM_2, { "[R2T2] Fastest",     64,  3, 1, } },
+        { GGWAVE_TX_PROTOCOL_CUSTOM_3, { "[R2T2] Low Normal",  16,  9, 1, } },
+        { GGWAVE_TX_PROTOCOL_CUSTOM_4, { "[R2T2] Low Fast",    16,  6, 1, } },
+        { GGWAVE_TX_PROTOCOL_CUSTOM_5, { "[R2T2] Low Fastest", 16,  3, 1, } },
     };
 
-    auto argm = parseCmdArguments(argc, argv);
-    int captureId = argm["c"].empty() ? 0 : std::stoi(argm["c"]);
+    const auto argm = parseCmdArguments(argc, argv);
+    const int captureId = argm.count("c") == 0 ? 0 : std::stoi(argm.at("c"));
+    const int payloadLength = argm.count("l") == 0 ? 16 : std::stoi(argm.at("l"));
 
     bool isInitialized = false;
 
     g_doInit = [&]() {
-        if (GGWave_init(0, captureId, 16, 0) == false) {
+        if (GGWave_init(0, captureId, payloadLength, 0) == false) {
             fprintf(stderr, "Failed to initialize GGWave\n");
             return false;
         }
@@ -331,6 +340,7 @@ int main(int argc, char** argv) {
         g_ggWave->setRxProtocols(protocols);
 
         isInitialized = true;
+        printf("Listening for payload with length = %d bytes ..\n", payloadLength);
 
         return true;
     };

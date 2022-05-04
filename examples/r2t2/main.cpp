@@ -30,7 +30,10 @@ void processTone(int fd, double freq_hz, long duration_ms, bool useBeep, bool pr
     if (useBeep) {
         static char cmd[128];
         snprintf(cmd, 128, "beep -f %g -l %ld", freq_hz, duration_ms);
-        system(cmd);
+        int ret = system(cmd);
+        if (ret != 0) {
+            printf("system(\"%s\") failed with %d\n", cmd, ret);
+        }
         return;
     }
 

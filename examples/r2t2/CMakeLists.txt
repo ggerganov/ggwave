@@ -6,18 +6,15 @@ set(TARGET r2t2)
 if (NOT EMSCRIPTEN)
     add_executable(${TARGET}
         main.cpp
-        ggwave-mod/src/ggwave.cpp
-        ggwave-mod/src/resampler.cpp
         )
 
     target_include_directories(${TARGET} PRIVATE
         ..
-        ggwave-mod/include
-        ggwave-mod/src
         )
 
     target_link_libraries(${TARGET} PRIVATE
         ggwave-common
+        ggwave-mod
         )
 endif()
 
@@ -29,19 +26,16 @@ set(TARGET r2t2-rx)
 if (NOT EMSCRIPTEN)
     add_executable(${TARGET}
         r2t2-rx.cpp
-        ggwave-mod/src/ggwave.cpp
-        ggwave-mod/src/resampler.cpp
         )
 
     target_include_directories(${TARGET} PRIVATE
         ..
-        ggwave-mod/include
-        ggwave-mod/src
         ${SDL2_INCLUDE_DIRS}
         )
 
     target_link_libraries(${TARGET} PRIVATE
         ggwave-common
+        ggwave-mod
         ${SDL2_LIBRARIES}
         )
 else()
@@ -49,19 +43,16 @@ else()
 
     add_executable(${TARGET}
         r2t2-rx.cpp
-        ggwave-mod/src/ggwave.cpp
-        ggwave-mod/src/resampler.cpp
         )
 
     target_include_directories(${TARGET} PRIVATE
         ..
-        ggwave-mod/include
-        ggwave-mod/src
         ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${TARGET}/
         )
 
     target_link_libraries(${TARGET} PRIVATE
         ggwave-common
+        ggwave-mod
         )
 
     configure_file(${CMAKE_CURRENT_SOURCE_DIR}/index-tmpl.html ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${TARGET}/index.html @ONLY)

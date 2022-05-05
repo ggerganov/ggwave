@@ -79,6 +79,9 @@ if (GGWAVE_SUPPORT_SDL2)
         )
 endif()
 
+# modified ggwave used by some of the examples
+add_subdirectory(ggwave-mod/src)
+
 # examples
 
 if (EMSCRIPTEN)
@@ -93,6 +96,7 @@ if (GGWAVE_SUPPORT_SDL2)
         add_subdirectory(r2t2)
     endif()
 
+    add_subdirectory(arduino-rx)
     if (EMSCRIPTEN)
         # emscripten sdl2 examples
 

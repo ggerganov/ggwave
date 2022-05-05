@@ -11,12 +11,26 @@
 #include <map>
 //#include <random>
 
+#ifndef M_PI
+#define M_PI 3.14159265358979323846
+#endif
+
+#define ggprintf(...) \
+    g_fptr && fprintf(g_fptr, __VA_ARGS__)
+
 //
 // C interface
 //
 
 namespace {
+FILE * g_fptr = stderr;
 std::map<ggwave_Instance, GGWave *> g_instances;
+std::map<ggwave_Instance, GGWave::RxProtocols> g_rxProtocols;
+}
+
+extern "C"
+void ggwave_setLogFile(void * fptr) {
+    GGWave::setLogFile((FILE *) fptr);
 }
 
 extern "C"
@@ -58,12 +72,12 @@ int ggwave_encode(
     GGWave * ggWave = (GGWave *) g_instances[instance];
 
     if (ggWave == nullptr) {
-        fprintf(stderr, "Invalid GGWave instance %d\n", instance);
+        ggprintf("Invalid GGWave instance %d\n", instance);
         return -1;
     }
 
     if (ggWave->init(dataSize, dataBuffer, ggWave->getTxProtocol(txProtocolId), volume) == false) {
-        fprintf(stderr, "Failed to initialize GGWave instance %d\n", instance);
+        ggprintf("Failed to initialize GGWave instance %d\n", instance);
         return -1;
     }
 
@@ -85,7 +99,7 @@ int ggwave_encode(
     };
 
     if (ggWave->encode(cbWaveformOut) == false) {
-        fprintf(stderr, "Failed to encode data - GGWave instance %d\n", instance);
+        ggprintf("Failed to encode data - GGWave instance %d\n", instance);
         return -1;
     }
 
@@ -112,7 +126,7 @@ int ggwave_decode(
 
     ggWave->decode(cbWaveformInp);
 
-    // todo : avoid allocation
+    // TODO : avoid allocation
     GGWave::TxRxData rxData;
 
     auto rxDataLength = ggWave->takeRxData(rxData);
@@ -120,10 +134,70 @@ int ggwave_decode(
         // failed to decode message
         return -1;
     } else if (rxDataLength > 0) {
-        std::copy(rxData.begin(), rxData.end(), outputBuffer);
+        memcpy(outputBuffer, rxData.data(), rxDataLength);
     }
 
     return rxDataLength;
+}
+
+extern "C"
+int ggwave_ndecode(
+        ggwave_Instance instance,
+        const char * dataBuffer,
+        int dataSize,
+        char * outputBuffer,
+        int outputSize) {
+    // TODO : avoid duplicated code
+    GGWave * ggWave = (GGWave *) g_instances[instance];
+
+    GGWave::CBWaveformInp cbWaveformInp = [&](void * data, uint32_t nMaxBytes) -> uint32_t {
+        uint32_t nCopied = std::min((uint32_t) dataSize, nMaxBytes);
+        std::copy(dataBuffer, dataBuffer + nCopied, (char *) data);
+
+        dataSize -= nCopied;
+        dataBuffer += nCopied;
+
+        return nCopied;
+    };
+
+    ggWave->decode(cbWaveformInp);
+
+    // TODO : avoid allocation
+    GGWave::TxRxData rxData;
+
+    auto rxDataLength = ggWave->takeRxData(rxData);
+    if (rxDataLength == -1) {
+        // failed to decode message
+        return -1;
+    } else if (rxDataLength > outputSize) {
+        // the outputBuffer is not big enough to store the data
+        return -2;
+    } else if (rxDataLength > 0) {
+        memcpy(outputBuffer, rxData.data(), rxDataLength);
+    }
+
+    return rxDataLength;
+}
+
+extern "C"
+void ggwave_toggleRxProtocol(
+        ggwave_Instance instance,
+        ggwave_TxProtocolId rxProtocolId,
+        int state) {
+    // if never called - initialize with all available protocols
+    if (g_rxProtocols.find(instance) == g_rxProtocols.end()) {
+        g_rxProtocols[instance] = GGWave::getTxProtocols();
+    }
+
+    if (state == 0) {
+        // disable Rx protocol
+        g_rxProtocols[instance].erase(rxProtocolId);
+    } else if (state == 1) {
+        // enable Rx protocol
+        g_rxProtocols[instance][rxProtocolId] = GGWave::getTxProtocols().at(rxProtocolId);
+    }
+
+    g_instances[instance]->setRxProtocols(g_rxProtocols[instance]);
 }
 
 //
@@ -259,7 +333,7 @@ int bytesForSampleFormat(GGWave::SampleFormat sampleFormat) {
         case GGWAVE_SAMPLE_FORMAT_F32:          return sizeof(float);       break;
     };
 
-    fprintf(stderr, "Invalid sample format: %d\n", (int) sampleFormat);
+    ggprintf("Invalid sample format: %d\n", (int) sampleFormat);
 
     return 0;
 }
@@ -269,6 +343,10 @@ int bytesForSampleFormat(GGWave::SampleFormat sampleFormat) {
 struct GGWave::Impl {
     Resampler resampler;
 };
+
+void GGWave::setLogFile(FILE * fptr) {
+    g_fptr = fptr;
+}
 
 const GGWave::Parameters & GGWave::getDefaultParameters() {
     static ggwave_Parameters result {
@@ -366,12 +444,12 @@ GGWave::GGWave(const Parameters & parameters) :
     }
 
     if (m_sampleRateInp < kSampleRateMin) {
-        fprintf(stderr, "Error: capture sample rate (%g Hz) must be >= %g Hz\n", m_sampleRateInp, kSampleRateMin);
+        ggprintf("Error: capture sample rate (%g Hz) must be >= %g Hz\n", m_sampleRateInp, kSampleRateMin);
         throw std::runtime_error("Invalid capture/playback sample rate");
     }
 
     if (m_sampleRateInp > kSampleRateMax) {
-        fprintf(stderr, "Error: capture sample rate (%g Hz) must be <= %g Hz\n", m_sampleRateInp, kSampleRateMax);
+        ggprintf("Error: capture sample rate (%g Hz) must be <= %g Hz\n", m_sampleRateInp, kSampleRateMax);
         throw std::runtime_error("Invalid capture/playback sample rate");
     }
 
@@ -382,11 +460,11 @@ GGWave::~GGWave() {
 }
 
 bool GGWave::init(const std::string & text, const int volume) {
-    return init(text.size(), text.data(), getDefaultTxProtocol(), volume);
+    return init((int) text.size(), text.data(), getDefaultTxProtocol(), volume);
 }
 
 bool GGWave::init(const std::string & text, const TxProtocol & txProtocol, const int volume) {
-    return init(text.size(), text.data(), txProtocol, volume);
+    return init((int) text.size(), text.data(), txProtocol, volume);
 }
 
 bool GGWave::init(int dataSize, const char * dataBuffer, const int volume) {
@@ -395,18 +473,18 @@ bool GGWave::init(int dataSize, const char * dataBuffer, const int volume) {
 
 bool GGWave::init(int dataSize, const char * dataBuffer, const TxProtocol & txProtocol, const int volume) {
     if (dataSize < 0) {
-        fprintf(stderr, "Negative data size: %d\n", dataSize);
+        ggprintf("Negative data size: %d\n", dataSize);
         return false;
     }
 
     auto maxLength = m_isFixedPayloadLength ? m_payloadLength : kMaxLengthVarible;
     if (dataSize > maxLength) {
-        fprintf(stderr, "Truncating data from %d to %d bytes\n", dataSize, maxLength);
+        ggprintf("Truncating data from %d to %d bytes\n", dataSize, maxLength);
         dataSize = maxLength;
     }
 
     if (volume < 0 || volume > 100) {
-        fprintf(stderr, "Invalid volume: %d\n", volume);
+        ggprintf("Invalid volume: %d\n", volume);
         return false;
     }
 
@@ -481,7 +559,7 @@ uint32_t GGWave::encodeSize_samples() const {
     int nECCBytesPerTx = getECCBytesForLength(m_txDataLength);
     int sendDataLength = m_txDataLength + m_encodedDataOffset;
     int totalBytes = sendDataLength + nECCBytesPerTx;
-    int totalDataFrames = ((totalBytes + m_txProtocol.bytesPerTx - 1)/m_txProtocol.bytesPerTx)*m_txProtocol.framesPerTx;
+    int totalDataFrames = 2*((totalBytes + m_txProtocol.bytesPerTx - 1)/m_txProtocol.bytesPerTx)*m_txProtocol.framesPerTx;
 
     return (
             m_nMarkerFrames + totalDataFrames + m_nMarkerFrames
@@ -737,14 +815,14 @@ void GGWave::decode(const CBWaveformInp & cbWaveformInp) {
         }
 
         if (nBytesRecorded % m_sampleSizeBytesInp != 0) {
-            fprintf(stderr, "Failure during capture - provided bytes (%d) are not multiple of sample size (%d)\n",
+            ggprintf("Failure during capture - provided bytes (%d) are not multiple of sample size (%d)\n",
                     nBytesRecorded, m_sampleSizeBytesInp);
             m_samplesNeeded = m_samplesPerFrame;
             break;
         }
 
         if (nBytesRecorded > nBytesNeeded) {
-            fprintf(stderr, "Failure during capture - more samples were provided (%d) than requested (%d)\n",
+            ggprintf("Failure during capture - more samples were provided (%d) than requested (%d)\n",
                     nBytesRecorded/m_sampleSizeBytesInp, nBytesNeeded/m_sampleSizeBytesInp);
             m_samplesNeeded = m_samplesPerFrame;
             break;
@@ -888,7 +966,7 @@ bool GGWave::takeRxAmplitude(AmplitudeData & dst) {
 
 bool GGWave::computeFFTR(const float * src, float * dst, int N, float d) {
     if (N > kMaxSamplesPerFrame) {
-        fprintf(stderr, "computeFFTR: N (%d) must be <= %d\n", N, GGWave::kMaxSamplesPerFrame);
+        ggprintf("computeFFTR: N (%d) must be <= %d\n", N, GGWave::kMaxSamplesPerFrame);
         return false;
     }
 
@@ -945,7 +1023,7 @@ void GGWave::decode_variable() {
     }
 
     if (m_analyzingData) {
-        fprintf(stderr, "Analyzing captured data ..\n");
+        ggprintf("Analyzing captured data ..\n");
         auto tStart = std::chrono::high_resolution_clock::now();
 
         const int stepsPerFrame = 16;
@@ -1054,8 +1132,8 @@ void GGWave::decode_variable() {
                         if (m_rxData[0] != 0) {
                             std::string s((char *) m_rxData.data(), decodedLength);
 
-                            fprintf(stderr, "Decoded length = %d, protocol = '%s' (%d)\n", decodedLength, rxProtocol.name, rxProtocolId);
-                            fprintf(stderr, "Received sound data successfully: '%s'\n", s.c_str());
+                            ggprintf("Decoded length = %d, protocol = '%s' (%d)\n", decodedLength, rxProtocol.name, rxProtocolId);
+                            ggprintf("Received sound data successfully: '%s'\n", s.c_str());
 
                             isValid = true;
                             m_hasNewRxData = true;
@@ -1078,7 +1156,7 @@ void GGWave::decode_variable() {
         m_framesToRecord = 0;
 
         if (isValid == false) {
-            fprintf(stderr, "Failed to capture sound data. Please try again (length = %d)\n", m_rxData[0]);
+            ggprintf("Failed to capture sound data. Please try again (length = %d)\n", m_rxData[0]);
             m_lastRxDataLength = -1;
             m_framesToRecord = -1;
         }
@@ -1092,7 +1170,7 @@ void GGWave::decode_variable() {
         m_framesLeftToAnalyze = 0;
 
         auto tEnd = std::chrono::high_resolution_clock::now();
-        fprintf(stderr, "Time to analyze: %g ms\n", getTime_ms(tStart, tEnd));
+        ggprintf("Time to analyze: %g ms\n", getTime_ms(tStart, tEnd));
     }
 
     // check if receiving data
@@ -1131,7 +1209,7 @@ void GGWave::decode_variable() {
 
         if (isReceiving) {
             std::time_t timestamp = std::time(nullptr);
-            fprintf(stderr, "%sReceiving sound data ...\n", std::asctime(std::localtime(&timestamp)));
+            ggprintf("%sReceiving sound data ...\n", std::asctime(std::localtime(&timestamp)));
 
             m_receivingData = true;
             std::fill(m_rxData.begin(), m_rxData.end(), 0);
@@ -1180,7 +1258,7 @@ void GGWave::decode_variable() {
         if (isEnded && m_framesToRecord > 1) {
             std::time_t timestamp = std::time(nullptr);
             m_recvDuration_frames -= m_framesLeftToRecord - 1;
-            fprintf(stderr, "%sReceived end marker. Frames left = %d, recorded = %d\n", std::asctime(std::localtime(&timestamp)), m_framesLeftToRecord, m_recvDuration_frames);
+            ggprintf("%sReceived end marker. Frames left = %d, recorded = %d\n", std::asctime(std::localtime(&timestamp)), m_framesLeftToRecord, m_recvDuration_frames);
             m_nMarkersSuccess = 0;
             m_framesLeftToRecord = 1;
         }
@@ -1321,10 +1399,7 @@ void GGWave::decode_fixed() {
 
             if (rsData.Decode(m_txDataEncoded.data(), m_rxData.data()) == 0) {
                 if (m_rxData[0] != 0) {
-                    std::time_t timestamp = std::time(nullptr);
-                    std::string tstr = std::asctime(std::localtime(&timestamp));
-                    tstr.back() = 0;
-                    fprintf(stderr, "[%s] Received: '%s'\n", tstr.c_str(), m_rxData.data());
+                    ggprintf("Received sound data successfully: '%s'\n", m_rxData.data());
 
                     isValid = true;
                     m_hasNewRxData = true;

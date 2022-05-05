@@ -90,6 +90,23 @@ extern "C" {
     // the python module and unfortunately had to do it this way
     typedef int ggwave_Instance;
 
+    // Change file stream for internal ggwave logging. NULL - disable logging
+    //
+    //   Intentionally passing it as void * instead of FILE * to avoid including a header
+    //
+    //     // log to standard error
+    //     ggwave_setLogFile(stderr);
+    //
+    //     // log to standard output
+    //     ggwave_setLogFile(stdout);
+    //
+    //     // disable logging
+    //     ggwave_setLogFile(NULL);
+    //
+    //  Note: not thread-safe. Do not call while any GGWave instances are running
+    //
+    GGWAVE_API void ggwave_setLogFile(void * fptr);
+
     // Helper method to get default instance parameters
     GGWAVE_API ggwave_Parameters ggwave_getDefaultParameters(void);
 
@@ -189,8 +206,10 @@ extern "C" {
     //   If the return value is -1 then there was an error during the decoding process.
     //   Usually can occur if there is a lot of background noise in the audio.
     //
-    //   If the return value is greater than 0, then there will be that number of bytes
-    //   decoded in the outputBuffer
+    //   If the return value is greater than 0, then there are that number of bytes decoded.
+    //
+    //   IMPORTANT:
+    //   Notice that the decoded data written to the outputBuffer is NOT null terminated.
     //
     //   Example:
     //
@@ -217,6 +236,39 @@ extern "C" {
             const char * dataBuffer,
             int dataSize,
             char * outputBuffer);
+
+    // Memory-safe overload of ggwave_decode
+    //
+    //   outputSize     - optionally specify the size of the output buffer
+    //
+    //   If the return value is -2 then the provided outputBuffer was not big enough to
+    //   store the decoded data.
+    //
+    //   See ggwave_decode for more information
+    //
+    GGWAVE_API int ggwave_ndecode(
+            ggwave_Instance instance,
+            const char * dataBuffer,
+            int dataSize,
+            char * outputBuffer,
+            int outputSize);
+
+    // Toggle Rx protocols on and off
+    //
+    //   instance       - the GGWave instance to use
+    //   rxProtocolId   - Id of the Rx protocol to modify
+    //   state          - 0 - disable, 1 - enable
+    //
+    //   If an Rx protocol is enabled, the GGWave instance will attempt to decode received
+    //   data using this protocol. By default, all protocols are enabled.
+    //   Use this function to restrict the number of Rx protocols used in the decoding
+    //   process. This helps to reduce the number of false positives and improves the transmission
+    //   accuracy, especially when the Tx/Rx protocol is known in advance.
+    //
+    GGWAVE_API void ggwave_toggleRxProtocol(
+            ggwave_Instance instance,
+            ggwave_TxProtocolId rxProtocolId,
+            int state);
 
 #ifdef __cplusplus
 }
@@ -272,15 +324,19 @@ public:
 
     static const TxProtocols & getTxProtocols() {
         static const TxProtocols kTxProtocols {
-            { GGWAVE_TX_PROTOCOL_AUDIBLE_NORMAL,        { "Normal",       40,  9, 3, } },
-            { GGWAVE_TX_PROTOCOL_AUDIBLE_FAST,          { "Fast",         40,  6, 3, } },
-            { GGWAVE_TX_PROTOCOL_AUDIBLE_FASTEST,       { "Fastest",      40,  3, 3, } },
-            { GGWAVE_TX_PROTOCOL_ULTRASOUND_NORMAL,     { "[U] Normal",   320, 9, 3, } },
-            { GGWAVE_TX_PROTOCOL_ULTRASOUND_FAST,       { "[U] Fast",     320, 6, 3, } },
-            { GGWAVE_TX_PROTOCOL_ULTRASOUND_FASTEST,    { "[U] Fastest",  320, 3, 3, } },
-            { GGWAVE_TX_PROTOCOL_DT_NORMAL,             { "[DT] Normal",  24,  9, 1, } },
-            { GGWAVE_TX_PROTOCOL_DT_FAST,               { "[DT] Fast",    24,  6, 1, } },
-            { GGWAVE_TX_PROTOCOL_DT_FASTEST,            { "[DT] Fastest", 24,  3, 1, } },
+            //{ GGWAVE_TX_PROTOCOL_AUDIBLE_NORMAL,        { "Normal",       40,  9, 3, } },
+            //{ GGWAVE_TX_PROTOCOL_AUDIBLE_FAST,          { "Fast",         40,  6, 3, } },
+            //{ GGWAVE_TX_PROTOCOL_AUDIBLE_FASTEST,       { "Fastest",      40,  3, 3, } },
+            //{ GGWAVE_TX_PROTOCOL_ULTRASOUND_NORMAL,     { "[U] Normal",   320, 9, 3, } },
+            //{ GGWAVE_TX_PROTOCOL_ULTRASOUND_FAST,       { "[U] Fast",     320, 6, 3, } },
+            //{ GGWAVE_TX_PROTOCOL_ULTRASOUND_FASTEST,    { "[U] Fastest",  320, 3, 3, } },
+            //{ GGWAVE_TX_PROTOCOL_DT_NORMAL,             { "[DT] Normal",  24,  9, 1, } },
+            //{ GGWAVE_TX_PROTOCOL_DT_FAST,               { "[DT] Fast",    24,  6, 1, } },
+            //{ GGWAVE_TX_PROTOCOL_DT_FASTEST,            { "[DT] Fastest", 24,  3, 1, } },
+
+            { GGWAVE_TX_PROTOCOL_DT_NORMAL,  { "Arduino", 16,  9, 1, } },
+            { GGWAVE_TX_PROTOCOL_DT_FAST,    { "Arduino", 16,  6, 1, } },
+            { GGWAVE_TX_PROTOCOL_DT_FASTEST, { "Arduino", 16,  3, 1, } },
         };
 
         return kTxProtocols;
@@ -305,6 +361,15 @@ public:
 
     GGWave(const Parameters & parameters);
     ~GGWave();
+
+    // set file stream for the internal ggwave logging
+    //
+    //  By default, ggwave prints internal log messages to stderr.
+    //  To disable logging all together, call this method with nullptr.
+    //
+    //  Note: not thread-safe. Do not call while any GGWave instances are running
+    //
+    static void setLogFile(FILE * fptr);
 
     static const Parameters & getDefaultParameters();
 
@@ -369,7 +434,7 @@ public:
 
     // Tx
 
-    static TxProtocolId getDefaultTxProtocolId()     { return GGWAVE_TX_PROTOCOL_AUDIBLE_FAST; }
+    static TxProtocolId getDefaultTxProtocolId()     { return GGWAVE_TX_PROTOCOL_DT_NORMAL; }
     static const TxProtocol & getDefaultTxProtocol() { return getTxProtocols().at(getDefaultTxProtocolId()); }
     static const TxProtocol & getTxProtocol(int id)  { return getTxProtocols().at(TxProtocolId(id)); }
     static const TxProtocol & getTxProtocol(TxProtocolId id) { return getTxProtocols().at(id); }
@@ -387,6 +452,8 @@ public:
     bool stopReceiving();
     void setRxProtocols(const RxProtocols & rxProtocols) { m_rxProtocols = rxProtocols; }
     const RxProtocols & getRxProtocols() const { return m_rxProtocols; }
+
+    int lastRxDataLength() const { return m_lastRxDataLength; }
 
     const TxRxData & getRxData()            const { return m_rxData; }
     const RxProtocol & getRxProtocol()      const { return m_rxProtocol; }

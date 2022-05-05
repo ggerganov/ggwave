@@ -25,5 +25,23 @@ void loop() {
     GGWave::send(kPinSpeaker, "This is GGWave!!", GGWave::TX_ARDUINO_512_FASTEST);
     digitalWrite(kPinLed0, LOW);
 
+    delay(250);
+
+    digitalWrite(kPinLed0, HIGH);
+    GGWave::send(kPinSpeaker, "This is NORMAL", GGWave::TX_ARDUINO_512_NORMAL);
+    digitalWrite(kPinLed0, LOW);
+
+    delay(250);
+
+    digitalWrite(kPinLed0, HIGH);
+    GGWave::send(kPinSpeaker, "This is FAST", GGWave::TX_ARDUINO_512_FAST);
+    digitalWrite(kPinLed0, LOW);
+
+    delay(250);
+
+    digitalWrite(kPinLed0, HIGH);
+    GGWave::send(kPinSpeaker, "This is FASTEST", GGWave::TX_ARDUINO_512_FASTEST);
+    digitalWrite(kPinLed0, LOW);
+
     delay(5000);
 }

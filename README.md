@@ -18,6 +18,8 @@ Click on the images below to hear what it sounds like:
 
 https://user-images.githubusercontent.com/1991296/166411509-5e1b9bcb-3655-40b1-9dc3-9bec72889dcf.mp4
 
+https://user-images.githubusercontent.com/1991296/167311587-3239f133-c134-4274-9b51-9d9f2d2e8b08.mp4
+
 ## Details
 
 This library allows you to communicate small amounts of data between air-gapped devices using sound. It implements a simple FSK-based transmission protocol that can be easily integrated in various projects. The bandwidth rate is between 8-16 bytes/sec depending on the protocol parameters. Error correction codes (ECC) are used to improve demodulation robustness.

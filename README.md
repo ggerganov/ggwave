@@ -18,7 +18,7 @@ Click on the images below to hear what it sounds like:
 
 https://user-images.githubusercontent.com/1991296/166411509-5e1b9bcb-3655-40b1-9dc3-9bec72889dcf.mp4
 
-https://user-images.githubusercontent.com/1991296/167311587-3239f133-c134-4274-9b51-9d9f2d2e8b08.mp4
+https://user-images.githubusercontent.com/1991296/168469004-aeb9b9fe-cf81-4db7-b602-62e4ae659341.mp4
 
 ## Details
 

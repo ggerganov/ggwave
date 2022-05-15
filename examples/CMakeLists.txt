@@ -96,7 +96,7 @@ if (GGWAVE_SUPPORT_SDL2)
         add_subdirectory(r2t2)
     endif()
 
-    add_subdirectory(arduino-rx)
+    add_subdirectory(arduino-rx-web)
     if (EMSCRIPTEN)
         # emscripten sdl2 examples
 

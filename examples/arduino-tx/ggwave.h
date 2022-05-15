@@ -910,6 +910,7 @@ void send(uint8_t pin, const uint8_t * data, const Parameters & parameters) {
     }
 
     noTone(pin);
+    digitalWrite(pin, LOW);
 }
 
 void send(uint8_t pin, const uint8_t * data, TxProtocolId protocolId = TX_ARDUINO_512_FASTEST) {
@@ -931,7 +932,7 @@ void send_text(uint8_t pin, const char * text, TxProtocolId protocolId = TX_ARDU
     char tx[kDataLength_bytes];
     memset(tx, 0, sizeof(tx));
     strncpy(tx, text, sizeof(tx));
-    send(pin, tx, protocolId);
+    send(pin, (uint8_t *) tx, protocolId);
 }
 
 }

@@ -286,15 +286,15 @@ extern "C" {
 
 class GGWave {
 public:
-    static constexpr auto kBaseSampleRate = 10000.0f;
-    static constexpr auto kSampleRateMin = 6000.0f;
+    static constexpr auto kBaseSampleRate = 6000.0f;
+    static constexpr auto kSampleRateMin = 1000.0f;
     static constexpr auto kSampleRateMax = 10000.0f;
-    static constexpr auto kDefaultSamplesPerFrame = 256;
+    static constexpr auto kDefaultSamplesPerFrame = 128;
     static constexpr auto kDefaultVolume = 10;
     static constexpr auto kDefaultSoundMarkerThreshold = 3.0f;
     static constexpr auto kDefaultMarkerFrames = 16;
     static constexpr auto kDefaultEncodedDataOffset = 3;
-    static constexpr auto kMaxSamplesPerFrame = 256;
+    static constexpr auto kMaxSamplesPerFrame = 128;
     static constexpr auto kMaxDataBits = 256;
     static constexpr auto kMaxDataSize = 256;
     static constexpr auto kMaxLengthVarible = 140;
@@ -324,15 +324,15 @@ public:
 
     static const TxProtocols & getTxProtocols() {
         static const TxProtocols kTxProtocols {
-            { GGWAVE_TX_PROTOCOL_AUDIBLE_NORMAL,        { "Normal",       40,  9, 3, } },
-            { GGWAVE_TX_PROTOCOL_AUDIBLE_FAST,          { "Fast",         40,  6, 3, } },
-            { GGWAVE_TX_PROTOCOL_AUDIBLE_FASTEST,       { "Fastest",      40,  3, 3, } },
+            //{ GGWAVE_TX_PROTOCOL_AUDIBLE_NORMAL,        { "Normal",       40,  9, 3, } },
+            //{ GGWAVE_TX_PROTOCOL_AUDIBLE_FAST,          { "Fast",         40,  6, 3, } },
+            //{ GGWAVE_TX_PROTOCOL_AUDIBLE_FASTEST,       { "Fastest",      40,  3, 3, } },
             //{ GGWAVE_TX_PROTOCOL_ULTRASOUND_NORMAL,     { "[U] Normal",   320, 9, 3, } },
             //{ GGWAVE_TX_PROTOCOL_ULTRASOUND_FAST,       { "[U] Fast",     320, 6, 3, } },
             //{ GGWAVE_TX_PROTOCOL_ULTRASOUND_FASTEST,    { "[U] Fastest",  320, 3, 3, } },
             //{ GGWAVE_TX_PROTOCOL_DT_NORMAL,             { "[DT] Normal",  24,  9, 1, } },
             //{ GGWAVE_TX_PROTOCOL_DT_FAST,               { "[DT] Fast",    24,  6, 1, } },
-            //{ GGWAVE_TX_PROTOCOL_DT_FASTEST,            { "[DT] Fastest", 24,  3, 1, } },
+            { GGWAVE_TX_PROTOCOL_DT_FASTEST,            { "[DT] Fastest", 24,  3, 1, } },
         };
 
         return kTxProtocols;
@@ -430,7 +430,7 @@ public:
 
     // Tx
 
-    static TxProtocolId getDefaultTxProtocolId()     { return GGWAVE_TX_PROTOCOL_AUDIBLE_NORMAL; }
+    static TxProtocolId getDefaultTxProtocolId()     { return getTxProtocols().begin()->first; }
     static const TxProtocol & getDefaultTxProtocol() { return getTxProtocols().at(getDefaultTxProtocolId()); }
     static const TxProtocol & getTxProtocol(int id)  { return getTxProtocols().at(TxProtocolId(id)); }
     static const TxProtocol & getTxProtocol(TxProtocolId id) { return getTxProtocols().at(id); }

@@ -1294,6 +1294,10 @@ void GGWave::decode_fixed() {
         const int binStart = rxProtocol.freqStart;
         const int binDelta = 16;
 
+        if (binStart > kMaxSamplesPerFrame) {
+            continue;
+        }
+
         const int totalLength = m_payloadLength + getECCBytesForLength(m_payloadLength);
         const int totalTxs = (totalLength + rxProtocol.bytesPerTx - 1)/rxProtocol.bytesPerTx;
 

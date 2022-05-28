@@ -6,7 +6,7 @@
 static const char channels = 1;
 
 // default PCM output frequency
-static const int frequency = 10000;
+static const int frequency = GGWave::kBaseSampleRate;
 
 const int qmax = 1024;
 volatile int qhead = 0;
@@ -52,7 +52,7 @@ void loop() {
     auto p = GGWave::getDefaultParameters();
     p.sampleRateInp = frequency;
     p.sampleFormatInp = GGWAVE_SAMPLE_FORMAT_I16;
-    p.payloadLength = 4;
+    p.payloadLength = 16;
     GGWave instance(p);
 
     static GGWave::CBWaveformInp cbWaveformInp = [&](void * data, uint32_t nMaxBytes) {

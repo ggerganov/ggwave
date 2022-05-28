@@ -287,14 +287,14 @@ extern "C" {
 class GGWave {
 public:
     static constexpr auto kBaseSampleRate = 48000.0f;
-    static constexpr auto kSampleRateMin = 6000.0f;
+    static constexpr auto kSampleRateMin = 1000.0f;
     static constexpr auto kSampleRateMax = 96000.0f;
     static constexpr auto kDefaultSamplesPerFrame = 1024;
     static constexpr auto kDefaultVolume = 10;
     static constexpr auto kDefaultSoundMarkerThreshold = 3.0f;
     static constexpr auto kDefaultMarkerFrames = 16;
     static constexpr auto kDefaultEncodedDataOffset = 3;
-    static constexpr auto kMaxSamplesPerFrame = 2048;
+    static constexpr auto kMaxSamplesPerFrame = 1024;
     static constexpr auto kMaxDataBits = 256;
     static constexpr auto kMaxDataSize = 256;
     static constexpr auto kMaxLengthVarible = 140;

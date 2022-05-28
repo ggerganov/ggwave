@@ -122,7 +122,7 @@ bool GGWave_init(
         playbackSpec.freq = GGWave::kBaseSampleRate + sampleRateOffset;
         playbackSpec.format = AUDIO_S16SYS;
         playbackSpec.channels = 1;
-        playbackSpec.samples = 16*1024;
+        playbackSpec.samples = (16*1024*GGWave::kBaseSampleRate)/48000;
         playbackSpec.callback = NULL;
 
         SDL_zero(g_obtainedSpecOut);

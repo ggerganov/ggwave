@@ -98,7 +98,7 @@ bool GGWave_init(
         SDL_AudioSpec playbackSpec;
         SDL_zero(playbackSpec);
 
-        playbackSpec.freq = GGWave::kBaseSampleRate + g_sampleRateOffset;
+        playbackSpec.freq = GGWave::kDefaultSampleRate + g_sampleRateOffset;
         playbackSpec.format = AUDIO_S16SYS;
         playbackSpec.channels = 1;
         playbackSpec.samples = 16*1024;
@@ -139,7 +139,7 @@ bool GGWave_init(
     if (g_devIdInp == 0) {
         SDL_AudioSpec captureSpec;
         captureSpec = g_obtainedSpecOut;
-        captureSpec.freq = GGWave::kBaseSampleRate + g_sampleRateOffset;
+        captureSpec.freq = GGWave::kDefaultSampleRate + g_sampleRateOffset;
         captureSpec.format = AUDIO_F32SYS;
         captureSpec.samples = g_nSamplesPerFrame;
 
@@ -403,9 +403,9 @@ int main(int argc, char** argv) {
             return false;
         }
 
-        g_freqDataSize = (3*GGWave::kBaseSampleRate)/g_nSamplesPerFrame;
+        g_freqDataSize = (3*GGWave::kDefaultSampleRate)/g_nSamplesPerFrame;
 
-        float df = float(GGWave::kBaseSampleRate)/g_nSamplesPerFrame;
+        float df = float(GGWave::kDefaultSampleRate)/g_nSamplesPerFrame;
         g_freqData.resize(g_nSamplesPerFrame/2);
         for (int i = 0; i < g_nSamplesPerFrame/2; ++i) {
             g_freqData[i].freq = df*i;

@@ -153,7 +153,7 @@ struct GGWaveStats {
     int samplesPerFrame;
     float sampleRateInp;
     float sampleRateOut;
-    float sampleRateBase;
+    float sampleRate;
     int sampleSizeBytesInp;
     int sampleSizeBytesOut;
 };
@@ -650,10 +650,12 @@ void updateCore() {
                 inputCurrent.payloadLength,
                 sampleRateInpOld,
                 sampleRateOutOld + inputCurrent.sampleRateOffset,
+                GGWave::kDefaultSampleRate,
                 GGWave::kDefaultSamplesPerFrame,
                 GGWave::kDefaultSoundMarkerThreshold,
                 sampleFormatInpOld,
-                sampleFormatOutOld
+                sampleFormatOutOld,
+                GGWAVE_OPERATING_MODE_BOTH_RX_AND_TX,
             };
 
             GGWave_reset(&parameters);
@@ -758,7 +760,7 @@ void updateCore() {
         g_buffer.stateCore.stats.samplesPerFrame = ggWave->getSamplesPerFrame();
         g_buffer.stateCore.stats.sampleRateInp = ggWave->getSampleRateInp();
         g_buffer.stateCore.stats.sampleRateOut = ggWave->getSampleRateOut();
-        g_buffer.stateCore.stats.sampleRateBase = GGWave::kBaseSampleRate;
+        g_buffer.stateCore.stats.sampleRate = GGWave::kDefaultSampleRate;
         g_buffer.stateCore.stats.sampleSizeBytesInp = ggWave->getSampleSizeBytesInp();
         g_buffer.stateCore.stats.sampleSizeBytesOut = ggWave->getSampleSizeBytesOut();
     }
@@ -1170,7 +1172,7 @@ void renderMain() {
         }
         {
             const auto & protocol = settings.txProtocols.at(GGWave::TxProtocolId(settings.protocolId));
-            ImGui::Text("%4.2f B/s", (float(0.715f*protocol.bytesPerTx)/(protocol.framesPerTx*statsCurrent.samplesPerFrame))*statsCurrent.sampleRateBase);
+            ImGui::Text("%4.2f B/s", (float(0.715f*protocol.bytesPerTx)/(protocol.framesPerTx*statsCurrent.samplesPerFrame))*statsCurrent.sampleRate);
         }
 
         {
@@ -1179,7 +1181,7 @@ void renderMain() {
             ImGui::SetCursorScreenPos({ posSave.x + kLabelWidth, posSave.y });
         }
         {
-            const float df = statsCurrent.sampleRateBase/statsCurrent.samplesPerFrame;
+            const float df = statsCurrent.sampleRate/statsCurrent.samplesPerFrame;
             const auto & protocol = settings.txProtocols.at(GGWave::TxProtocolId(settings.protocolId));
             ImGui::Text("%6.2f Hz - %6.2f Hz", df*protocol.freqStart, df*(protocol.freqStart + 2*16*protocol.bytesPerTx));
         }

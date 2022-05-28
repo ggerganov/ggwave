@@ -57,6 +57,12 @@ extern "C" {
         GGWAVE_TX_PROTOCOL_CUSTOM_9,
     } ggwave_TxProtocolId;
 
+    typedef enum {
+        GGWAVE_OPERATING_MODE_BOTH_RX_AND_TX,
+        GGWAVE_OPERATING_MODE_ONLY_RX,
+        //GGWAVE_OPERATING_MODE_ONLY_TX, // Not supported yet
+    } ggwave_OperatingMode;
+
     // GGWave instance parameters
     //
     //   If payloadLength <= 0, then GGWave will transmit with variable payload length
@@ -68,21 +74,31 @@ extern "C" {
     //   different decoding scheme is applied. This is useful in cases where the
     //   length of the payload is known in advance.
     //
-    //   The sample rates are values typically between 8000 and 96000.
-    //   Default value: GGWave::kBaseSampleRate
+    //   The sample rates are values typically between 1000 and 96000.
+    //   Default value: GGWave::kDefaultSampleRate
+    //
+    //   The captured audio is resampled to the specified sampleRate if sampleRatInp
+    //   is different from sampleRate. Same applies to the transmitted audio.
     //
     //   The samplesPerFrame is the number of samples on which ggwave performs FFT.
     //   This affects the number of bins in the Fourier spectrum.
     //   Default value: GGWave::kDefaultSamplesPerFrame
     //
+    //   The operatingMode controls which functions of the ggwave instance are enabled.
+    //   Use this parameter to reduce the memory footprint of the ggwave instance. For
+    //   example, if only Rx is enabled, then the memory buffers needed for the Tx will
+    //   not be allocated.
+    //
     typedef struct {
         int payloadLength;                      // payload length
         float sampleRateInp;                    // capture sample rate
         float sampleRateOut;                    // playback sample rate
+        float sampleRate;                       // the operating sample rate
         int samplesPerFrame;                    // number of samples per audio frame
         float soundMarkerThreshold;             // sound marker detection threshold
         ggwave_SampleFormat sampleFormatInp;    // format of the captured audio samples
         ggwave_SampleFormat sampleFormatOut;    // format of the playback audio samples
+        ggwave_OperatingMode operatingMode;     // operating mode
     } ggwave_Parameters;
 
     // GGWave instances are identified with an integer and are stored
@@ -286,9 +302,9 @@ extern "C" {
 
 class GGWave {
 public:
-    static constexpr auto kBaseSampleRate = 48000.0f;
     static constexpr auto kSampleRateMin = 1000.0f;
     static constexpr auto kSampleRateMax = 96000.0f;
+    static constexpr auto kDefaultSampleRate = 48000.0f;
     static constexpr auto kDefaultSamplesPerFrame = 1024;
     static constexpr auto kDefaultVolume = 10;
     static constexpr auto kDefaultSoundMarkerThreshold = 3.0f;
@@ -383,14 +399,14 @@ public:
 
     // expected waveform size of the encoded Tx data in bytes
     //
-    //   When the output sampling rate is not equal to kBaseSampleRate the result of this method is overestimation of
+    //   When the output sampling rate is not equal to operating sample rate the result of this method is overestimation of
     //   the actual number of bytes that would be produced
     //
     uint32_t encodeSize_bytes() const;
 
     // expected waveform size of the encoded Tx data in samples
     //
-    //   When the output sampling rate is not equal to kBaseSampleRate the result of this method is overestimation of
+    //   When the output sampling rate is not equal to operating sample rate the result of this method is overestimation of
     //   the actual number of samples that would be produced
     //
     uint32_t encodeSize_samples() const;
@@ -482,6 +498,7 @@ private:
 
     const float m_sampleRateInp;
     const float m_sampleRateOut;
+    const float m_sampleRate;
     const int m_samplesPerFrame;
     const float m_isamplesPerFrame;
     const int m_sampleSizeBytesInp;
@@ -505,8 +522,10 @@ private:
 
     bool m_isFixedPayloadLength;
     int m_payloadLength;
+    TxRxData m_dataEncoded;
 
     // Rx
+    bool m_isRxEnabled;
     bool m_receivingData;
     bool m_analyzingData;
 
@@ -547,13 +566,12 @@ private:
     std::vector<SpectrumData> m_spectrumHistoryFixed;
 
     // Tx
+    bool m_isTxEnabled;
     bool m_hasNewTxData;
     float m_sendVolume;
 
     int m_txDataLength;
     TxRxData m_txData;
-    TxRxData m_txDataEncoded;
-
     TxProtocol m_txProtocol;
 
     AmplitudeData m_outputBlock;

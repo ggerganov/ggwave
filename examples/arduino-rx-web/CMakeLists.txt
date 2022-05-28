@@ -1,11 +1,11 @@
 #
-# arduino-rx
+# arduino-rx-web
 
-set(TARGET arduino-rx)
+set(TARGET arduino-rx-web)
 
 if (NOT EMSCRIPTEN)
     add_executable(${TARGET}
-        arduino-rx.cpp
+        arduino-rx-web.cpp
         )
 
     target_include_directories(${TARGET} PRIVATE

@@ -89,6 +89,8 @@ if (EMSCRIPTEN)
     add_subdirectory(buttons)
 else()
     add_subdirectory(ggwave-to-file)
+
+    add_subdirectory(arduino-rx)
 endif()
 
 if (GGWAVE_SUPPORT_SDL2)

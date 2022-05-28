@@ -12,7 +12,7 @@
 int main(int argc, char** argv) {
     fprintf(stderr, "Usage: %s [-vN] [-sN] [-pN] [-lN]\n", argv[0]);
     fprintf(stderr, "    -vN - output volume, N in (0, 100], (default: 50)\n");
-    fprintf(stderr, "    -sN - output sample rate, N in [%d, %d], (default: %d)\n", (int) GGWave::kSampleRateMin, (int) GGWave::kSampleRateMax, (int) GGWave::kBaseSampleRate);
+    fprintf(stderr, "    -sN - output sample rate, N in [%d, %d], (default: %d)\n", (int) GGWave::kSampleRateMin, (int) GGWave::kSampleRateMax, (int) GGWave::kDefaultSampleRate);
     fprintf(stderr, "    -pN - select the transmission protocol id (default: 1)\n");
     fprintf(stderr, "    -lN - fixed payload length of size N, N in [1, %d]\n", GGWave::kMaxLengthFixed);
     fprintf(stderr, "\n");
@@ -35,7 +35,7 @@ int main(int argc, char** argv) {
     }
 
     int volume = argm["v"].empty() ? 50 : std::stoi(argm["v"]);
-    float sampleRateOut = argm["s"].empty() ? GGWave::kBaseSampleRate : std::stof(argm["s"]);
+    float sampleRateOut = argm["s"].empty() ? GGWave::kDefaultSampleRate : std::stof(argm["s"]);
     int protocolId = argm["p"].empty() ? 1 : std::stoi(argm["p"]);
     int payloadLength = argm["l"].empty() ? -1 : std::stoi(argm["l"]);
 
@@ -71,7 +71,17 @@ int main(int argc, char** argv) {
 
     fprintf(stderr, "Generating waveform for message '%s' ...\n", message.c_str());
 
-    GGWave ggWave({ payloadLength, GGWave::kBaseSampleRate, sampleRateOut, 1024, GGWave::kDefaultSamplesPerFrame, GGWAVE_SAMPLE_FORMAT_F32, GGWAVE_SAMPLE_FORMAT_I16 });
+    GGWave ggWave({
+        payloadLength,
+        GGWave::kDefaultSampleRate,
+        sampleRateOut,
+        GGWave::kDefaultSampleRate,
+        GGWave::kDefaultSamplesPerFrame,
+        GGWave::kDefaultSoundMarkerThreshold,
+        GGWAVE_SAMPLE_FORMAT_F32,
+        GGWAVE_SAMPLE_FORMAT_I16,
+        GGWAVE_OPERATING_MODE_BOTH_RX_AND_TX,
+    });
     ggWave.init(message.size(), message.data(), ggWave.getTxProtocol(protocolId), volume);
 
     std::vector<char> bufferPCM;

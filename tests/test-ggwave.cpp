@@ -228,7 +228,7 @@ int main(int argc, char ** argv) {
     }
 
     // playback / capture at different sample rates
-    for (int srInp = GGWave::kBaseSampleRate/6; srInp <= 2*GGWave::kBaseSampleRate; srInp += 1371) {
+    for (int srInp = GGWave::kDefaultSampleRate/6; srInp <= 2*GGWave::kDefaultSampleRate; srInp += 1371) {
         printf("Testing: sample rate = %d\n", srInp);
 
         auto parameters = GGWave::getDefaultParameters();

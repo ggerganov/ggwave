@@ -6,7 +6,7 @@
 static const char channels = 1;
 
 // default PCM output frequency
-static const int frequency = GGWave::kBaseSampleRate;
+static const int frequency = 6000;
 
 const int qmax = 1024;
 volatile int qhead = 0;
@@ -51,9 +51,14 @@ void loop() {
     //delay(1000);
     auto p = GGWave::getDefaultParameters();
     p.sampleRateInp = frequency;
+    p.sampleRate = frequency;
     p.sampleFormatInp = GGWAVE_SAMPLE_FORMAT_I16;
+    p.samplesPerFrame = 128;
     p.payloadLength = 16;
+    p.operatingMode = GGWAVE_OPERATING_MODE_ONLY_RX;
     GGWave instance(p);
+    instance.setRxProtocols({{GGWAVE_TX_PROTOCOL_DT_FASTEST, instance.getTxProtocol(GGWAVE_TX_PROTOCOL_DT_FASTEST)}});
+    Serial.println("Instance initialized");
 
     static GGWave::CBWaveformInp cbWaveformInp = [&](void * data, uint32_t nMaxBytes) {
         if (2*qsize < nMaxBytes) {

@@ -119,10 +119,10 @@ bool GGWave_init(
         SDL_AudioSpec playbackSpec;
         SDL_zero(playbackSpec);
 
-        playbackSpec.freq = GGWave::kBaseSampleRate + sampleRateOffset;
+        playbackSpec.freq = GGWave::kDefaultSampleRate + sampleRateOffset;
         playbackSpec.format = AUDIO_S16SYS;
         playbackSpec.channels = 1;
-        playbackSpec.samples = (16*1024*GGWave::kBaseSampleRate)/48000;
+        playbackSpec.samples = 16*1024;
         playbackSpec.callback = NULL;
 
         SDL_zero(g_obtainedSpecOut);
@@ -162,7 +162,7 @@ bool GGWave_init(
     if (g_devIdInp == 0) {
         SDL_AudioSpec captureSpec;
         captureSpec = g_obtainedSpecOut;
-        captureSpec.freq = GGWave::kBaseSampleRate + sampleRateOffset;
+        captureSpec.freq = GGWave::kDefaultSampleRate + sampleRateOffset;
         captureSpec.format = AUDIO_F32SYS;
         captureSpec.samples = 1024;
 
@@ -217,10 +217,12 @@ bool GGWave_init(
             payloadLength,
             (float) g_obtainedSpecInp.freq,
             (float) g_obtainedSpecOut.freq,
+            GGWave::kDefaultSampleRate,
             GGWave::kDefaultSamplesPerFrame,
             GGWave::kDefaultSoundMarkerThreshold,
             sampleFormatInp,
-            sampleFormatOut});
+            sampleFormatOut,
+            GGWAVE_OPERATING_MODE_BOTH_RX_AND_TX});
     }
 
     return true;

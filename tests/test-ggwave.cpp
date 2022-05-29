@@ -209,7 +209,7 @@ int main(int argc, char ** argv) {
 
         std::string payload = "hello";
 
-        CHECK(instance.init(payload));
+        CHECK(instance.init(payload.c_str()));
 
         // data
         CHECK_F(instance.init(-1, "asd"));
@@ -241,7 +241,7 @@ int main(int argc, char ** argv) {
             parameters.sampleRateOut = srInp;
             GGWave instanceOut(parameters);
 
-            instanceOut.init(payload, instanceOut.getTxProtocol(GGWAVE_TX_PROTOCOL_DT_FASTEST), 25);
+            instanceOut.init(payload.c_str(), instanceOut.getTxProtocol(GGWAVE_TX_PROTOCOL_DT_FASTEST), 25);
             auto expectedSize = instanceOut.encodeSize_samples();
             instanceOut.encode(kCBWaveformOut.at(parameters.sampleFormatOut));
             printf("Expected = %d, actual = %d\n", expectedSize, nSamples);

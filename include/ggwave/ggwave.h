@@ -298,26 +298,25 @@ extern "C" {
 #include <functional>
 #include <vector>
 #include <map>
-#include <string>
 #include <memory>
 
 class GGWave {
 public:
-    static constexpr auto kSampleRateMin = 1000.0f;
-    static constexpr auto kSampleRateMax = 96000.0f;
-    static constexpr auto kDefaultSampleRate = 48000.0f;
-    static constexpr auto kDefaultSamplesPerFrame = 1024;
-    static constexpr auto kDefaultVolume = 10;
+    static constexpr auto kSampleRateMin               = 1000.0f;
+    static constexpr auto kSampleRateMax               = 96000.0f;
+    static constexpr auto kDefaultSampleRate           = 48000.0f;
+    static constexpr auto kDefaultSamplesPerFrame      = 1024;
+    static constexpr auto kDefaultVolume               = 10;
     static constexpr auto kDefaultSoundMarkerThreshold = 3.0f;
-    static constexpr auto kDefaultMarkerFrames = 16;
-    static constexpr auto kDefaultEncodedDataOffset = 3;
-    static constexpr auto kMaxSamplesPerFrame = 1024;
-    static constexpr auto kMaxDataBits = 256;
-    static constexpr auto kMaxDataSize = 256;
-    static constexpr auto kMaxLengthVarible = 140;
-    static constexpr auto kMaxLengthFixed = 16;
-    static constexpr auto kMaxSpectrumHistory = 4;
-    static constexpr auto kMaxRecordedFrames = 2048;
+    static constexpr auto kDefaultMarkerFrames         = 16;
+    static constexpr auto kDefaultEncodedDataOffset    = 3;
+    static constexpr auto kMaxSamplesPerFrame          = 1024;
+    static constexpr auto kMaxDataBits                 = 256;
+    static constexpr auto kMaxDataSize                 = 256;
+    static constexpr auto kMaxLengthVariable           = 140;
+    static constexpr auto kMaxLengthFixed              = 16;
+    static constexpr auto kMaxSpectrumHistory          = 4;
+    static constexpr auto kMaxRecordedFrames           = 2048;
 
     using Parameters    = ggwave_Parameters;
     using SampleFormat  = ggwave_SampleFormat;
@@ -361,14 +360,14 @@ public:
         double duration_ms;
     };
 
-    using Tones = std::vector<ToneData>;
+    using Tones         = std::vector<ToneData>;
     using WaveformTones = std::vector<Tones>;
 
     using AmplitudeData    = std::vector<float>;
     using AmplitudeDataI16 = std::vector<int16_t>;
     using SpectrumData     = std::vector<float>;
     using RecordedData     = std::vector<float>;
-    using TxRxData         = std::vector<std::uint8_t>;
+    using TxRxData         = std::vector<uint8_t>;
 
     using CBWaveformOut = std::function<void(const void * data, uint32_t nBytes)>;
     using CBWaveformInp = std::function<uint32_t(void * data, uint32_t nMaxBytes)>;
@@ -394,8 +393,8 @@ public:
     //
     //  returns false upon invalid parameters or failure to initialize
     //
-    bool init(const std::string & text, const int volume = kDefaultVolume);
-    bool init(const std::string & text, const TxProtocol & txProtocol, const int volume = kDefaultVolume);
+    bool init(const char * text, const int volume = kDefaultVolume);
+    bool init(const char * text, const TxProtocol & txProtocol, const int volume = kDefaultVolume);
     bool init(int dataSize, const char * dataBuffer, const int volume = kDefaultVolume);
     bool init(int dataSize, const char * dataBuffer, const TxProtocol & txProtocol, const int volume = kDefaultVolume);
 
@@ -576,6 +575,8 @@ private:
 
     // common
     TxRxData m_dataEncoded;
+    TxRxData m_workRSLength; // Reed-Solomon work buffers
+    TxRxData m_workRSData;
 
     // Impl
     struct Rx;

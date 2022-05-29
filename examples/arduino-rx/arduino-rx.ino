@@ -53,7 +53,7 @@ void loop() {
     p.sampleFormatInp = GGWAVE_SAMPLE_FORMAT_I16;
     p.samplesPerFrame = 128;
     p.payloadLength = 16;
-    p.operatingMode = GGWAVE_OPERATING_MODE_RX;
+    p.operatingMode = (ggwave_OperatingMode) (GGWAVE_OPERATING_MODE_RX | GGWAVE_OPERATING_MODE_TX | GGWAVE_OPERATING_MODE_TX_ONLY_TONES);
 
     GGWave ggwave(p);
     ggwave.setRxProtocols({
@@ -105,6 +105,25 @@ void loop() {
                 Serial.println(tEnd - tStart);
                 Serial.println(nr);
                 Serial.println((char *)result.data());
+
+                if (strcmp((char *)result.data(), "test") == 0) {
+                    ggwave.init("hello", ggwave.getTxProtocol(GGWAVE_TX_PROTOCOL_MT_FASTEST));
+                    ggwave.encode(nullptr);
+
+                    const auto & waveformTones = ggwave.getWaveformTones();
+                    for (int i = 0; i < (int) waveformTones.size(); ++i) {
+                        Serial.print(" - frame ");
+                        Serial.print(i);
+                        Serial.print(", ");
+                        Serial.print(waveformTones[i].size());
+                        Serial.print(": ");
+                        for (int j = 0; j < (int) waveformTones[i].size(); ++j) {
+                            Serial.print((int)(waveformTones[i][j].freq_hz));
+                            Serial.print(" ");
+                        }
+                        Serial.println();
+                    }
+                }
             }
         }
         if (err > 0) {

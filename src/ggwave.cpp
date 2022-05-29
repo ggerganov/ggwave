@@ -543,10 +543,12 @@ GGWave::GGWave(const Parameters & parameters) :
     if (m_isTxEnabled) {
         m_tx = std::unique_ptr<Tx>(new Tx());
 
-        {
-            const int maxDataBits = 2*16*maxBytesPerTx();
+        const int maxDataBits = 2*16*maxBytesPerTx();
 
-            m_tx->dataBits.resize(maxDataBits);
+        m_tx->txData.resize(kMaxDataSize);
+        m_tx->dataBits.resize(maxDataBits);
+
+        if (m_txOnlyTones == false) {
             m_tx->phaseOffsets.resize(maxDataBits);
             m_tx->bit0Amplitude.resize(maxDataBits);
             for (auto & a : m_tx->bit0Amplitude) {
@@ -556,13 +558,12 @@ GGWave::GGWave(const Parameters & parameters) :
             for (auto & a : m_tx->bit1Amplitude) {
                 a.resize(m_samplesPerFrame);
             }
-        }
 
-        m_tx->txData.resize(kMaxDataSize);
-        m_tx->outputBlock.resize(m_samplesPerFrame),
-        m_tx->outputBlockResampled.resize(2*m_samplesPerFrame),
-        m_tx->outputBlockTmp.resize(kMaxRecordedFrames*m_samplesPerFrame*m_sampleSizeBytesOut),
-        m_tx->outputBlockI16.resize(kMaxRecordedFrames*m_samplesPerFrame);
+            m_tx->outputBlock.resize(m_samplesPerFrame);
+            m_tx->outputBlockResampled.resize(2*m_samplesPerFrame);
+            m_tx->outputBlockTmp.resize(kMaxRecordedFrames*m_samplesPerFrame*m_sampleSizeBytesOut);
+            m_tx->outputBlockI16.resize(kMaxRecordedFrames*m_samplesPerFrame);
+        }
 
         // TODO
         // m_tx->waveformTones;
@@ -797,6 +798,7 @@ bool GGWave::encode(const CBWaveformOut & cbWaveformOut) {
         }
 
         if (m_txOnlyTones) {
+            m_tx->hasNewTxData = false;
             return true;
         }
     }

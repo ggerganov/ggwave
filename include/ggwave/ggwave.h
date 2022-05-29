@@ -313,7 +313,6 @@ public:
     static constexpr auto kDefaultMarkerFrames         = 16;
     static constexpr auto kDefaultEncodedDataOffset    = 3;
     static constexpr auto kMaxSamplesPerFrame          = 1024;
-    static constexpr auto kMaxDataBits                 = 256;
     static constexpr auto kMaxDataSize                 = 256;
     static constexpr auto kMaxLengthVariable           = 140;
     static constexpr auto kMaxLengthFixed              = 16;
@@ -334,6 +333,16 @@ public:
         int bytesPerTx;     // number of bytes in a chunk of data
 
         int nDataBitsPerTx() const { return 8*bytesPerTx; }
+
+        bool operator==(const TxProtocol & other) const {
+            return freqStart == other.freqStart &&
+                   framesPerTx == other.framesPerTx &&
+                   bytesPerTx == other.bytesPerTx;
+        }
+
+        bool operator!=(const TxProtocol & other) const {
+            return !(*this == other);
+        }
     };
 
     using RxProtocol = TxProtocol;
@@ -575,6 +584,7 @@ private:
     const bool m_isRxEnabled;
     const bool m_isTxEnabled;
     const bool m_needResampling;
+    const bool m_txOnlyTones;
 
     // common
     TxRxData m_dataEncoded;

@@ -6,11 +6,11 @@
 EMSCRIPTEN_BINDINGS(ggwave) {
     emscripten::enum_<ggwave_SampleFormat>("SampleFormat")
         .value("GGWAVE_SAMPLE_FORMAT_UNDEFINED", GGWAVE_SAMPLE_FORMAT_UNDEFINED)
-        .value("GGWAVE_SAMPLE_FORMAT_U8",  GGWAVE_SAMPLE_FORMAT_U8)
-        .value("GGWAVE_SAMPLE_FORMAT_I8",  GGWAVE_SAMPLE_FORMAT_I8)
-        .value("GGWAVE_SAMPLE_FORMAT_U16", GGWAVE_SAMPLE_FORMAT_U16)
-        .value("GGWAVE_SAMPLE_FORMAT_I16", GGWAVE_SAMPLE_FORMAT_I16)
-        .value("GGWAVE_SAMPLE_FORMAT_F32", GGWAVE_SAMPLE_FORMAT_F32)
+        .value("GGWAVE_SAMPLE_FORMAT_U8",        GGWAVE_SAMPLE_FORMAT_U8)
+        .value("GGWAVE_SAMPLE_FORMAT_I8",        GGWAVE_SAMPLE_FORMAT_I8)
+        .value("GGWAVE_SAMPLE_FORMAT_U16",       GGWAVE_SAMPLE_FORMAT_U16)
+        .value("GGWAVE_SAMPLE_FORMAT_I16",       GGWAVE_SAMPLE_FORMAT_I16)
+        .value("GGWAVE_SAMPLE_FORMAT_F32",       GGWAVE_SAMPLE_FORMAT_F32)
         ;
 
     emscripten::enum_<ggwave_TxProtocolId>("TxProtocolId")
@@ -36,15 +36,23 @@ EMSCRIPTEN_BINDINGS(ggwave) {
         .value("GGWAVE_TX_PROTOCOL_CUSTOM_9", GGWAVE_TX_PROTOCOL_CUSTOM_9)
         ;
 
+    emscripten::enum_<ggwave_OperatingMode>("OperatingMode")
+        .value("GGWAVE_OPERATING_MODE_BOTH_RX_AND_TX", GGWAVE_OPERATING_MODE_BOTH_RX_AND_TX)
+        .value("GGWAVE_OPERATING_MODE_ONLY_RX",        GGWAVE_OPERATING_MODE_ONLY_RX)
+        .value("GGWAVE_OPERATING_MODE_ONLY_TX",        GGWAVE_OPERATING_MODE_ONLY_TX)
+        ;
+
     emscripten::class_<ggwave_Parameters>("Parameters")
         .constructor<>()
-        .property("payloadLength", &ggwave_Parameters::payloadLength)
-        .property("sampleRateInp", &ggwave_Parameters::sampleRateInp)
-        .property("sampleRateOut", &ggwave_Parameters::sampleRateOut)
-        .property("samplesPerFrame", &ggwave_Parameters::samplesPerFrame)
-        .property("soundMarkerThreshold", &ggwave_Parameters::soundMarkerThreshold)
-        .property("sampleFormatInp", &ggwave_Parameters::sampleFormatInp)
-        .property("sampleFormatOut", &ggwave_Parameters::sampleFormatOut)
+        .property("payloadLength",        & ggwave_Parameters::payloadLength)
+        .property("sampleRateInp",        & ggwave_Parameters::sampleRateInp)
+        .property("sampleRateOut",        & ggwave_Parameters::sampleRateOut)
+        .property("sampleRate",           & ggwave_Parameters::sampleRate)
+        .property("samplesPerFrame",      & ggwave_Parameters::samplesPerFrame)
+        .property("soundMarkerThreshold", & ggwave_Parameters::soundMarkerThreshold)
+        .property("sampleFormatInp",      & ggwave_Parameters::sampleFormatInp)
+        .property("sampleFormatOut",      & ggwave_Parameters::sampleFormatOut)
+        .property("operatingMode",        & ggwave_Parameters::operatingMode)
         ;
 
     emscripten::function("getDefaultParameters", &ggwave_getDefaultParameters);

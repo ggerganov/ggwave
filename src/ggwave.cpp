@@ -343,7 +343,13 @@ int bytesForSampleFormat(GGWave::SampleFormat sampleFormat) {
 }
 
 struct GGWave::Impl {
-    Resampler resampler;
+    Impl(bool needResampling) {
+        if (needResampling) {
+            resampler = std::unique_ptr<Resampler>(new Resampler());
+        }
+    }
+
+    std::unique_ptr<Resampler> resampler;
 };
 
 void GGWave::setLogFile(FILE * fptr) {
@@ -384,39 +390,40 @@ GGWave::GGWave(const Parameters & parameters) :
     m_nMarkerFrames       (parameters.payloadLength > 0 ? 0 : kDefaultMarkerFrames),
     m_encodedDataOffset   (parameters.payloadLength > 0 ? 0 : kDefaultEncodedDataOffset),
     m_soundMarkerThreshold(parameters.soundMarkerThreshold),
-
-    // common
     m_isFixedPayloadLength(parameters.payloadLength > 0),
     m_payloadLength       (parameters.payloadLength),
+    m_isRxEnabled         (parameters.operatingMode == GGWAVE_OPERATING_MODE_BOTH_RX_AND_TX ||
+                           parameters.operatingMode == GGWAVE_OPERATING_MODE_ONLY_RX),
+    m_isTxEnabled         (parameters.operatingMode == GGWAVE_OPERATING_MODE_BOTH_RX_AND_TX),
+    m_needResampling      (m_sampleRateInp != m_sampleRate || m_sampleRateOut != m_sampleRate),
+
+    // common
     m_dataEncoded         (kMaxDataSize),
 
     // Rx
-    m_isRxEnabled(parameters.operatingMode == GGWAVE_OPERATING_MODE_BOTH_RX_AND_TX ||
-                  parameters.operatingMode == GGWAVE_OPERATING_MODE_ONLY_RX),
-
-    m_samplesNeeded           (m_samplesPerFrame),
-    m_fftInp                  (m_samplesPerFrame),
-    m_fftOut                  (2*m_samplesPerFrame),
+    m_samplesNeeded           (m_isRxEnabled ? m_samplesPerFrame : 0),
+    m_fftInp                  (m_isRxEnabled ? m_samplesPerFrame : 0),
+    m_fftOut                  (m_isRxEnabled ? 2*m_samplesPerFrame : 0),
     m_hasNewSpectrum          (false),
     m_hasNewAmplitude         (false),
-    m_sampleSpectrum          (m_samplesPerFrame),
-    m_sampleAmplitude         (m_sampleRateInp == m_sampleRate ? m_samplesPerFrame : m_samplesPerFrame + 128), // small extra space because sometimes resampling needs a few more samples
-    m_sampleAmplitudeResampled(m_sampleRateInp == m_sampleRate ? m_samplesPerFrame : 8*m_samplesPerFrame), // min input sampling rate is 0.125*m_sampleRate
-    m_sampleAmplitudeTmp      (m_sampleRateInp == m_sampleRate ? m_samplesPerFrame*m_sampleSizeBytesInp : 8*m_samplesPerFrame*m_sampleSizeBytesInp),
+    m_sampleSpectrum          (m_isRxEnabled ? m_samplesPerFrame : 0),
+    m_sampleAmplitude         (m_isRxEnabled ? m_sampleRateInp == m_sampleRate ? m_samplesPerFrame : m_samplesPerFrame + 128 : 0), // small extra space because sometimes resampling needs a few more samples
+    m_sampleAmplitudeResampled(m_isRxEnabled ? m_sampleRateInp == m_sampleRate ? m_samplesPerFrame : 8*m_samplesPerFrame : 0), // min input sampling rate is 0.125*m_sampleRate
+    m_sampleAmplitudeTmp      (m_isRxEnabled ? m_sampleRateInp == m_sampleRate ? m_samplesPerFrame*m_sampleSizeBytesInp : 8*m_samplesPerFrame*m_sampleSizeBytesInp : 0),
     m_hasNewRxData            (false),
     m_lastRxDataLength        (0),
-    m_rxData                  (kMaxDataSize),
+    m_rxData                  (m_isRxEnabled ? kMaxDataSize : 0),
     m_rxProtocol              (getDefaultTxProtocol()),
     m_rxProtocolId            (getDefaultTxProtocolId()),
     m_rxProtocols             (getTxProtocols()),
     m_historyId               (0),
-    m_sampleAmplitudeAverage  (parameters.payloadLength > 0 ? 0 : m_samplesPerFrame),
-    m_sampleAmplitudeHistory  (parameters.payloadLength > 0 ? 0 : kMaxSpectrumHistory),
+    m_sampleAmplitudeAverage  (m_isFixedPayloadLength ? 0 : m_samplesPerFrame),
+    m_sampleAmplitudeHistory  (m_isFixedPayloadLength ? 0 : kMaxSpectrumHistory),
+    m_recordedAmplitude       (0),
     m_historyIdFixed          (0),
+    m_spectrumHistoryFixed    (0),
 
     // Tx
-    m_isTxEnabled(parameters.operatingMode == GGWAVE_OPERATING_MODE_BOTH_RX_AND_TX),
-
     m_hasNewTxData        (false),
     m_sendVolume          (0.1),
     m_txDataLength        (0),
@@ -425,7 +432,7 @@ GGWave::GGWave(const Parameters & parameters) :
     m_outputBlockResampled(m_isTxEnabled ? 2*m_samplesPerFrame : 0),
     m_outputBlockTmp      (m_isTxEnabled ? kMaxRecordedFrames*m_samplesPerFrame*m_sampleSizeBytesOut : 0),
     m_outputBlockI16      (m_isTxEnabled ? kMaxRecordedFrames*m_samplesPerFrame : 0),
-    m_impl(new Impl()) {
+    m_impl(new Impl(m_needResampling)) {
 
     if (m_payloadLength > 0) {
         // fixed payload length
@@ -576,7 +583,7 @@ uint32_t GGWave::encodeSize_samples() const {
     if (m_sampleRateOut != m_sampleRate) {
         factor = m_sampleRate/m_sampleRateOut;
         // note : +1 extra sample in order to overestimate the buffer size
-        samplesPerFrameOut = m_impl->resampler.resample(factor, m_samplesPerFrame, m_outputBlock.data(), nullptr) + 1;
+        samplesPerFrameOut = m_impl->resampler->resample(factor, m_samplesPerFrame, m_outputBlock.data(), nullptr) + 1;
     }
     int nECCBytesPerTx = getECCBytesForLength(m_txDataLength);
     int sendDataLength = m_txDataLength + m_encodedDataOffset;
@@ -591,7 +598,9 @@ uint32_t GGWave::encodeSize_samples() const {
 bool GGWave::encode(const CBWaveformOut & cbWaveformOut) {
     int frameId = 0;
 
-    m_impl->resampler.reset();
+    if (m_impl->resampler) {
+        m_impl->resampler->reset();
+    }
 
     std::vector<double> phaseOffsets(kMaxDataBits);
 
@@ -729,7 +738,7 @@ bool GGWave::encode(const CBWaveformOut & cbWaveformOut) {
 
         int samplesPerFrameOut = m_samplesPerFrame;
         if (m_sampleRateOut != m_sampleRate) {
-            samplesPerFrameOut = m_impl->resampler.resample(factor, m_samplesPerFrame, m_outputBlock.data(), m_outputBlockResampled.data());
+            samplesPerFrameOut = m_impl->resampler->resample(factor, m_samplesPerFrame, m_outputBlock.data(), m_outputBlockResampled.data());
         } else {
             m_outputBlockResampled = m_outputBlock;
         }
@@ -815,7 +824,7 @@ void GGWave::decode(const CBWaveformInp & cbWaveformInp) {
 
         if (m_sampleRateInp != m_sampleRate) {
             // note : predict 4 extra samples just to make sure we have enough data
-            nBytesNeeded = (m_impl->resampler.resample(1.0f/factor, m_samplesNeeded, m_sampleAmplitudeResampled.data(), nullptr) + 4)*m_sampleSizeBytesInp;
+            nBytesNeeded = (m_impl->resampler->resample(1.0f/factor, m_samplesNeeded, m_sampleAmplitudeResampled.data(), nullptr) + 4)*m_sampleSizeBytesInp;
         }
 
         uint32_t nBytesRecorded = 0;
@@ -901,11 +910,11 @@ void GGWave::decode(const CBWaveformInp & cbWaveformInp) {
             }
 
             // reset resampler state every minute
-            if (!m_receivingData && m_impl->resampler.nSamplesTotal() > 60.0f*factor*m_sampleRate) {
-                m_impl->resampler.reset();
+            if (!m_receivingData && m_impl->resampler->nSamplesTotal() > 60.0f*factor*m_sampleRate) {
+                m_impl->resampler->reset();
             }
 
-            int nSamplesResampled = offset + m_impl->resampler.resample(factor, nSamplesRecorded, m_sampleAmplitudeResampled.data(), m_sampleAmplitude.data() + offset);
+            int nSamplesResampled = offset + m_impl->resampler->resample(factor, nSamplesRecorded, m_sampleAmplitudeResampled.data(), m_sampleAmplitude.data() + offset);
             nSamplesRecorded = nSamplesResampled;
         } else {
             for (int i = 0; i < nSamplesRecorded; ++i) {

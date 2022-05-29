@@ -30,14 +30,21 @@ cdef extern from "ggwave.h" nogil:
         GGWAVE_TX_PROTOCOL_CUSTOM_8,
         GGWAVE_TX_PROTOCOL_CUSTOM_9
 
+    ctypedef enum ggwave_OperatingMode:
+        GGWAVE_OPERATING_MODE_BOTH_RX_AND_TX,
+        GGWAVE_OPERATING_MODE_ONLY_RX,
+        GGWAVE_OPERATING_MODE_ONLY_TX,
+
     ctypedef struct ggwave_Parameters:
         int payloadLength
         float sampleRateInp
         float sampleRateOut
+        float sampleRate
         int samplesPerFrame
         float soundMarkerThreshold
         ggwave_SampleFormat sampleFormatInp
         ggwave_SampleFormat sampleFormatOut
+        ggwave_OperatingMode operatingMode
 
     ctypedef int ggwave_Instance
 

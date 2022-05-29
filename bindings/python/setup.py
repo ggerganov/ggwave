@@ -38,7 +38,7 @@ setup(
     keywords = "data-over-sound fsk ecc serverless pairing qrcode ultrasound",
     # Build instructions
     ext_modules = [Extension("ggwave",
-                             [ggwave_module_src, "ggwave/src/ggwave.cpp", "ggwave/src/resampler.cpp"],
+                             [ggwave_module_src, "ggwave/src/ggwave.cpp"],
                              include_dirs=["ggwave/include", "ggwave/include/ggwave"],
                              depends=["ggwave/include/ggwave/ggwave.h"],
                              language="c++",

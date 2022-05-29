@@ -450,7 +450,7 @@ public:
     //
     //   Call this method after calling encode() to get a list of the tones participating in the generated waveform
     //
-    const WaveformTones & getWaveformTones() { return m_waveformTones; }
+    const WaveformTones & getWaveformTones() const;
 
     bool takeTxAmplitudeI16(AmplitudeDataI16 & dst);
 
@@ -486,6 +486,53 @@ public:
     //   N must be <= kMaxSamplesPerFrame
     //
     static bool computeFFTR(const float * src, float * dst, int N, float d);
+
+    // resample audio waveforms from one sample rate to another using
+    // sinc interpolation
+    class Resampler {
+    public:
+        // this controls the number of neighboring samples
+        // which are used to interpolate the new samples. The
+        // processing time is linearly related to this width
+        static const int kWidth = 64;
+
+        Resampler();
+
+        void reset();
+
+        int nSamplesTotal() const { return m_state.nSamplesTotal; }
+
+        int resample(
+                float factor,
+                int nSamples,
+                const float * samplesInp,
+                float * samplesOut);
+
+    private:
+        float getData(int j) const;
+        void newData(float data);
+        void makeSinc();
+        double sinc(double x) const;
+
+        static const int kDelaySize = 140;
+
+        // this defines how finely the sinc function is sampled for storage in the table
+        static const int kSamplesPerZeroCrossing = 32;
+
+        std::vector<float> m_sincTable;
+        std::vector<float> m_delayBuffer;
+        std::vector<float> m_edgeSamples;
+        std::vector<float> m_samplesInp;
+
+        struct State {
+            int nSamplesTotal = 0;
+            int timeInt = 0;
+            int timeLast = 0;
+            double timeNow = 0.0;
+        };
+
+        State m_state;
+    };
 
 private:
     void decode_fixed();
@@ -530,25 +577,14 @@ private:
     // common
     TxRxData m_dataEncoded;
 
-    // Tx
-    bool m_hasNewTxData;
-    float m_sendVolume;
-
-    int m_txDataLength;
-    TxRxData m_txData;
-    TxProtocol m_txProtocol;
-
-    AmplitudeData m_outputBlock;
-    AmplitudeData m_outputBlockResampled;
-    TxRxData m_outputBlockTmp;
-    AmplitudeDataI16 m_outputBlockI16;
-    AmplitudeDataI16 m_txAmplitudeDataI16;
-    WaveformTones m_waveformTones;
-
     // Impl
-    // todo : move all members inside Impl
-    struct Impl;
-    std::unique_ptr<Impl> m_impl;
+    struct Rx;
+    std::unique_ptr<Rx> m_rx;
+
+    struct Tx;
+    std::unique_ptr<Tx> m_tx;
+
+    std::unique_ptr<Resampler> m_resampler;
 };
 
 #endif

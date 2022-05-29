@@ -301,14 +301,15 @@ inline void addAmplitudeSmooth(
         const GGWave::AmplitudeData & src,
         GGWave::AmplitudeData & dst,
         float scalar, int startId, int finalId, int cycleMod, int nPerCycle) {
-    int nTotal = nPerCycle*finalId;
-    float frac = 0.15f;
-    float ds = frac*nTotal;
-    float ids = 1.0f/ds;
-    int nBegin = frac*nTotal;
-    int nEnd = (1.0f - frac)*nTotal;
+    const int nTotal = nPerCycle*finalId;
+    const float frac = 0.15f;
+    const float ds = frac*nTotal;
+    const float ids = 1.0f/ds;
+    const int nBegin = frac*nTotal;
+    const int nEnd = (1.0f - frac)*nTotal;
+
     for (int i = startId; i < finalId; i++) {
-        float k = cycleMod*finalId + i;
+        const float k = cycleMod*finalId + i;
         if (k < nBegin) {
             dst[i] += scalar*src[i]*(k*ids);
         } else if (k > nEnd) {
@@ -401,8 +402,15 @@ struct GGWave::Tx {
     int txDataLength = 0;
     int lastAmplitudeSize = 0;
 
+    std::vector<bool> dataBits;
+    std::vector<double> phaseOffsets;
+
+    std::vector<AmplitudeData> bit1Amplitude;
+    std::vector<AmplitudeData> bit0Amplitude;
+
     TxRxData   txData;
     TxProtocol txProtocol;
+    TxProtocol txProtocolLast;
 
     AmplitudeData    outputBlock;
     AmplitudeData    outputBlockResampled;
@@ -455,6 +463,7 @@ GGWave::GGWave(const Parameters & parameters) :
     m_isRxEnabled         (parameters.operatingMode & GGWAVE_OPERATING_MODE_RX),
     m_isTxEnabled         (parameters.operatingMode & GGWAVE_OPERATING_MODE_TX),
     m_needResampling      (m_sampleRateInp != m_sampleRate || m_sampleRateOut != m_sampleRate),
+    m_txOnlyTones         (parameters.operatingMode & GGWAVE_OPERATING_MODE_TX_ONLY_TONES),
 
     // common
     m_dataEncoded         (kMaxDataSize) {
@@ -514,7 +523,7 @@ GGWave::GGWave(const Parameters & parameters) :
 
             m_rx->spectrumHistoryFixed.resize(totalTxs*maxFramesPerTx());
             m_rx->detectedBins.resize(2*totalLength);
-            m_rx->detectedTones.resize(2*maxBytesPerTx()*16);
+            m_rx->detectedTones.resize(2*16*maxBytesPerTx());
         } else {
             // variable payload length
             m_rx->recordedAmplitude.resize(kMaxRecordedFrames*m_samplesPerFrame);
@@ -533,6 +542,23 @@ GGWave::GGWave(const Parameters & parameters) :
 
     if (m_isTxEnabled) {
         m_tx = std::unique_ptr<Tx>(new Tx());
+
+        m_tx->txProtocolLast = {};
+
+        {
+            const int maxDataBits = 2*16*maxBytesPerTx();
+
+            m_tx->dataBits.resize(maxDataBits);
+            m_tx->phaseOffsets.resize(maxDataBits);
+            m_tx->bit0Amplitude.resize(maxDataBits);
+            for (auto & a : m_tx->bit0Amplitude) {
+                a.resize(m_samplesPerFrame);
+            }
+            m_tx->bit1Amplitude.resize(maxDataBits);
+            for (auto & a : m_tx->bit1Amplitude) {
+                a.resize(m_samplesPerFrame);
+            }
+        }
 
         m_tx->txData.resize(kMaxDataSize);
         m_tx->outputBlock.resize(m_samplesPerFrame),
@@ -679,46 +705,41 @@ bool GGWave::encode(const CBWaveformOut & cbWaveformOut) {
         m_resampler->reset();
     }
 
-    std::vector<double> phaseOffsets(kMaxDataBits);
-
-    for (int k = 0; k < (int) phaseOffsets.size(); ++k) {
-        phaseOffsets[k] = (M_PI*k)/(m_tx->txProtocol.nDataBitsPerTx());
-    }
-
-    // note : what is the purpose of this shuffle ? I forgot .. :(
-    //std::random_device rd;
-    //std::mt19937 g(rd());
-
-    //std::shuffle(phaseOffsets.begin(), phaseOffsets.end(), g);
-
-    std::vector<bool> dataBits(kMaxDataBits);
-
-    std::vector<AmplitudeData> bit1Amplitude(kMaxDataBits);
-    std::vector<AmplitudeData> bit0Amplitude(kMaxDataBits);
-
-    for (int k = 0; k < (int) dataBits.size(); ++k) {
-        double freq = bitFreq(m_tx->txProtocol, k);
-
-        bit1Amplitude[k].resize(m_samplesPerFrame);
-        bit0Amplitude[k].resize(m_samplesPerFrame);
-
-        double phaseOffset = phaseOffsets[k];
-        double curHzPerSample = m_hzPerSample;
-        double curIHzPerSample = 1.0/curHzPerSample;
-        for (int i = 0; i < m_samplesPerFrame; i++) {
-            double curi = i;
-            bit1Amplitude[k][i] = std::sin((2.0*M_PI)*(curi*m_isamplesPerFrame)*(freq*curIHzPerSample) + phaseOffset);
+    if (m_tx->txProtocol != m_tx->txProtocolLast) {
+        for (int k = 0; k < (int) m_tx->phaseOffsets.size(); ++k) {
+            m_tx->phaseOffsets[k] = (M_PI*k)/(m_tx->txProtocol.nDataBitsPerTx());
         }
-        for (int i = 0; i < m_samplesPerFrame; i++) {
-            double curi = i;
-            bit0Amplitude[k][i] = std::sin((2.0*M_PI)*(curi*m_isamplesPerFrame)*((freq + m_hzPerSample*m_freqDelta_bin)*curIHzPerSample) + phaseOffset);
+
+        // note : what is the purpose of this shuffle ? I forgot .. :(
+        //std::random_device rd;
+        //std::mt19937 g(rd());
+
+        //std::shuffle(phaseOffsets.begin(), phaseOffsets.end(), g);
+
+        for (int k = 0; k < (int) m_tx->dataBits.size(); ++k) {
+            const double freq = bitFreq(m_tx->txProtocol, k);
+
+            const double phaseOffset = m_tx->phaseOffsets[k];
+            const double curHzPerSample = m_hzPerSample;
+            const double curIHzPerSample = 1.0/curHzPerSample;
+
+            for (int i = 0; i < m_samplesPerFrame; i++) {
+                const double curi = i;
+                m_tx->bit1Amplitude[k][i] = std::sin((2.0*M_PI)*(curi*m_isamplesPerFrame)*(freq*curIHzPerSample) + phaseOffset);
+            }
+
+            for (int i = 0; i < m_samplesPerFrame; i++) {
+                const double curi = i;
+                m_tx->bit0Amplitude[k][i] = std::sin((2.0*M_PI)*(curi*m_isamplesPerFrame)*((freq + m_hzPerSample*m_freqDelta_bin)*curIHzPerSample) + phaseOffset);
+            }
         }
     }
+    m_tx->txProtocolLast = m_tx->txProtocol;
 
-    int nECCBytesPerTx = getECCBytesForLength(m_tx->txDataLength);
-    int sendDataLength = m_tx->txDataLength + m_encodedDataOffset;
-    int totalBytes = sendDataLength + nECCBytesPerTx;
-    int totalDataFrames = ((totalBytes + m_tx->txProtocol.bytesPerTx - 1)/m_tx->txProtocol.bytesPerTx)*m_tx->txProtocol.framesPerTx;
+    const int nECCBytesPerTx = getECCBytesForLength(m_tx->txDataLength);
+    const int sendDataLength = m_tx->txDataLength + m_encodedDataOffset;
+    const int totalBytes = sendDataLength + nECCBytesPerTx;
+    const int totalDataFrames = ((totalBytes + m_tx->txProtocol.bytesPerTx - 1)/m_tx->txProtocol.bytesPerTx)*m_tx->txProtocol.framesPerTx;
 
     if (m_isFixedPayloadLength == false) {
         RS::ReedSolomon rsLength(1, m_encodedDataOffset - 1, m_workRSLength.data());
@@ -747,10 +768,10 @@ bool GGWave::encode(const CBWaveformOut & cbWaveformOut) {
                 m_tx->waveformTones.back().push_back({});
                 m_tx->waveformTones.back().back().duration_ms = (1000.0*m_samplesPerFrame)/m_sampleRate;
                 if (i%2 == 0) {
-                    ::addAmplitudeSmooth(bit1Amplitude[i], m_tx->outputBlock, m_tx->sendVolume, 0, m_samplesPerFrame, frameId, m_nMarkerFrames);
+                    ::addAmplitudeSmooth(m_tx->bit1Amplitude[i], m_tx->outputBlock, m_tx->sendVolume, 0, m_samplesPerFrame, frameId, m_nMarkerFrames);
                     m_tx->waveformTones.back().back().freq_hz = bitFreq(m_tx->txProtocol, i);
                 } else {
-                    ::addAmplitudeSmooth(bit0Amplitude[i], m_tx->outputBlock, m_tx->sendVolume, 0, m_samplesPerFrame, frameId, m_nMarkerFrames);
+                    ::addAmplitudeSmooth(m_tx->bit0Amplitude[i], m_tx->outputBlock, m_tx->sendVolume, 0, m_samplesPerFrame, frameId, m_nMarkerFrames);
                     m_tx->waveformTones.back().back().freq_hz = bitFreq(m_tx->txProtocol, i) + m_hzPerSample;
                 }
             }
@@ -760,45 +781,45 @@ bool GGWave::encode(const CBWaveformOut & cbWaveformOut) {
             dataOffset /= m_tx->txProtocol.framesPerTx;
             dataOffset *= m_tx->txProtocol.bytesPerTx;
 
-            std::fill(dataBits.begin(), dataBits.end(), 0);
+            std::fill(m_tx->dataBits.begin(), m_tx->dataBits.end(), 0);
 
             for (int j = 0; j < m_tx->txProtocol.bytesPerTx; ++j) {
                 {
                     uint8_t d = m_dataEncoded[dataOffset + j] & 15;
-                    dataBits[(2*j + 0)*16 + d] = 1;
+                    m_tx->dataBits[(2*j + 0)*16 + d] = 1;
                 }
                 {
                     uint8_t d = m_dataEncoded[dataOffset + j] & 240;
-                    dataBits[(2*j + 1)*16 + (d >> 4)] = 1;
+                    m_tx->dataBits[(2*j + 1)*16 + (d >> 4)] = 1;
                 }
             }
 
             for (int k = 0; k < 2*m_tx->txProtocol.bytesPerTx*16; ++k) {
-                if (dataBits[k] == 0) continue;
+                if (m_tx->dataBits[k] == 0) continue;
 
                 ++nFreq;
                 m_tx->waveformTones.back().push_back({});
                 m_tx->waveformTones.back().back().duration_ms = (1000.0*m_samplesPerFrame)/m_sampleRate;
                 if (k%2) {
-                    ::addAmplitudeSmooth(bit0Amplitude[k/2], m_tx->outputBlock, m_tx->sendVolume, 0, m_samplesPerFrame, cycleModMain, m_tx->txProtocol.framesPerTx);
+                    ::addAmplitudeSmooth(m_tx->bit0Amplitude[k/2], m_tx->outputBlock, m_tx->sendVolume, 0, m_samplesPerFrame, cycleModMain, m_tx->txProtocol.framesPerTx);
                     m_tx->waveformTones.back().back().freq_hz = bitFreq(m_tx->txProtocol, k/2) + m_hzPerSample;
                 } else {
-                    ::addAmplitudeSmooth(bit1Amplitude[k/2], m_tx->outputBlock, m_tx->sendVolume, 0, m_samplesPerFrame, cycleModMain, m_tx->txProtocol.framesPerTx);
+                    ::addAmplitudeSmooth(m_tx->bit1Amplitude[k/2], m_tx->outputBlock, m_tx->sendVolume, 0, m_samplesPerFrame, cycleModMain, m_tx->txProtocol.framesPerTx);
                     m_tx->waveformTones.back().back().freq_hz = bitFreq(m_tx->txProtocol, k/2);
                 }
             }
         } else if (frameId < m_nMarkerFrames + totalDataFrames + m_nMarkerFrames) {
             nFreq = m_nBitsInMarker;
 
-            int fId = frameId - (m_nMarkerFrames + totalDataFrames);
+            const int fId = frameId - (m_nMarkerFrames + totalDataFrames);
             for (int i = 0; i < m_nBitsInMarker; ++i) {
                 m_tx->waveformTones.back().push_back({});
                 m_tx->waveformTones.back().back().duration_ms = (1000.0*m_samplesPerFrame)/m_sampleRate;
                 if (i%2 == 0) {
-                    addAmplitudeSmooth(bit0Amplitude[i], m_tx->outputBlock, m_tx->sendVolume, 0, m_samplesPerFrame, fId, m_nMarkerFrames);
+                    addAmplitudeSmooth(m_tx->bit0Amplitude[i], m_tx->outputBlock, m_tx->sendVolume, 0, m_samplesPerFrame, fId, m_nMarkerFrames);
                     m_tx->waveformTones.back().back().freq_hz = bitFreq(m_tx->txProtocol, i) + m_hzPerSample;
                 } else {
-                    addAmplitudeSmooth(bit1Amplitude[i], m_tx->outputBlock, m_tx->sendVolume, 0, m_samplesPerFrame, fId, m_nMarkerFrames);
+                    addAmplitudeSmooth(m_tx->bit1Amplitude[i], m_tx->outputBlock, m_tx->sendVolume, 0, m_samplesPerFrame, fId, m_nMarkerFrames);
                     m_tx->waveformTones.back().back().freq_hz = bitFreq(m_tx->txProtocol, i);
                 }
             }
@@ -808,7 +829,7 @@ bool GGWave::encode(const CBWaveformOut & cbWaveformOut) {
         }
 
         if (nFreq == 0) nFreq = 1;
-        float scale = 1.0f/nFreq;
+        const float scale = 1.0f/nFreq;
         for (int i = 0; i < m_samplesPerFrame; ++i) {
             m_tx->outputBlock[i] *= scale;
         }

@@ -2,22 +2,24 @@
 
 #include <PDM.h>
 
+using TSample = int16_t;
+static const size_t kSampleSize_bytes = sizeof(TSample);
+
 // default number of output channels
 static const char channels = 1;
 
 // default PCM output frequency
 static const int frequency = 6000;
 
-const int qmax = 1024;
+static const int qpow = 9;
+static const int qmax = 1 << qpow;
+
 volatile int qhead = 0;
 volatile int qtail = 0;
 volatile int qsize = 0;
 
 // Buffer to read samples into, each sample is 16-bits
-short sampleBuffer[qmax];
-
-// Number of audio samples read
-//volatile int samplesRead = 0;
+TSample sampleBuffer[qmax];
 
 void setup() {
     Serial.begin(57600);
@@ -43,12 +45,8 @@ void setup() {
 volatile int err = 0;
 
 void loop() {
-    Serial.println("hello4");
-
-    //delay(1000);
-
     Serial.println("trying to create ggwave instance");
-    //delay(1000);
+
     auto p = GGWave::getDefaultParameters();
     p.sampleRateInp = frequency;
     p.sampleRate = frequency;
@@ -56,51 +54,62 @@ void loop() {
     p.samplesPerFrame = 128;
     p.payloadLength = 16;
     p.operatingMode = GGWAVE_OPERATING_MODE_ONLY_RX;
-    GGWave instance(p);
-    instance.setRxProtocols({
-            { GGWAVE_TX_PROTOCOL_DT_FASTEST, instance.getTxProtocol(GGWAVE_TX_PROTOCOL_DT_FASTEST) },
+
+    GGWave ggwave(p);
+    ggwave.setRxProtocols({
+            { GGWAVE_TX_PROTOCOL_DT_FASTEST, ggwave.getTxProtocol(GGWAVE_TX_PROTOCOL_DT_FASTEST) },
             });
     Serial.println("Instance initialized");
 
     static GGWave::CBWaveformInp cbWaveformInp = [&](void * data, uint32_t nMaxBytes) {
-        if (2*qsize < nMaxBytes) {
-            return 0;
+        const int nSamples = nMaxBytes/kSampleSize_bytes;
+        if (qsize < nSamples) {
+            return 0u;
         }
-        //Serial.println(nMaxBytes);
-        //Serial.println(qsize);
-        int nCopied = std::min((uint32_t) 2*qsize, nMaxBytes);
-        //Serial.println(qsize);
-        qsize -= nCopied / 2;
-        //Serial.println(nCopied);
-        //Serial.println("---------");
-        for (int i = 0; i < nCopied/2; ++i) {
-            //if (i == 0) Serial.println(sampleBuffer[qhead]);
-            //data[i] = sampleBuffer[qhead];
-            memcpy(((char *)data) + 2*i, (char *)(sampleBuffer + qhead), 2);
-            qhead = (qhead + 1) % qmax;
+
+        qsize -= nSamples;
+
+        TSample * pDst = (TSample *)(data);
+        TSample * pSrc = (TSample *)(sampleBuffer + qhead);
+
+        if (qhead + nSamples > qmax) {
+            // should never happen but just in case
+            memcpy(pDst, pSrc, (qmax - qhead)*kSampleSize_bytes);
+            memcpy(pDst + (qmax - qhead), sampleBuffer, (nSamples - (qmax - qhead))*kSampleSize_bytes);
+            qhead += nSamples - qmax;
+        } else {
+            memcpy(pDst, pSrc, nSamples*kSampleSize_bytes);
+            qhead += nSamples;
         }
-        //std::copy((char *) sampleBuffer, ((char *) sampleBuffer) + nCopied, (char *) data);
-        return nCopied;
+
+        return nSamples*kSampleSize_bytes;
     };
 
     int nr = 0;
+    int niter = 0;
     GGWave::TxRxData result;
     while (true) {
-        //Serial.println(sampleBuffer[10]);
-        if (qsize >= 512) {
-            //Serial.println(sampleBuffer[10]);
-            //Serial.println(qsize);
-            instance.decode(cbWaveformInp);
-            nr = instance.takeRxData(result);
+        if (qsize >= 128) {
+            auto tStart = millis();
+
+            ggwave.decode(cbWaveformInp);
+
+            auto tEnd = millis();
+            if (++niter % 10 == 0) {
+                Serial.println(tEnd - tStart);
+            }
+
+            nr = ggwave.takeRxData(result);
             if (nr > 0) {
+                Serial.println(tEnd - tStart);
                 Serial.println(nr);
                 Serial.println((char *)result.data());
             }
-            //samplesRead = 0;
         }
         if (err > 0) {
             Serial.println("ERRROR");
             Serial.println(err);
+            err = 0;
         }
     }
 }
@@ -111,23 +120,28 @@ NOTE: This callback is executed as part of an ISR.
 Therefore using `Serial` to print messages inside this function isn't supported.
  * */
 void onPDMdata() {
-    // Query the number of available bytes
-    int bytesAvailable = PDM.available();
-    int ns = bytesAvailable / 2;
-    if (qsize + ns > qmax) {
+    const int bytesAvailable = PDM.available();
+    const int nSamples = bytesAvailable/kSampleSize_bytes;
+
+    if (qsize + nSamples > qmax) {
+        // if you hit this error, try to increase qmax
+        err += 10;
+
         qhead = 0;
         qtail = 0;
         qsize = 0;
     }
 
-    // Read into the sample buffer
     PDM.read(sampleBuffer + qtail, bytesAvailable);
 
-    qtail += ns;
-    qsize += ns;
+    qtail += nSamples;
+    qsize += nSamples;
+
     if (qtail > qmax) {
-        ++err;
+        // if you hit this error, qmax is probably not a multiple of the recorded samples
+        err += 1;
     }
+
     if (qtail >= qmax) {
         qtail -= qmax;
     }

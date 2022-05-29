@@ -53,7 +53,7 @@ void loop() {
     p.sampleFormatInp = GGWAVE_SAMPLE_FORMAT_I16;
     p.samplesPerFrame = 128;
     p.payloadLength = 16;
-    p.operatingMode = GGWAVE_OPERATING_MODE_ONLY_RX;
+    p.operatingMode = GGWAVE_OPERATING_MODE_RX;
 
     GGWave ggwave(p);
     ggwave.setRxProtocols({

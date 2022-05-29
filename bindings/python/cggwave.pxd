@@ -31,9 +31,10 @@ cdef extern from "ggwave.h" nogil:
         GGWAVE_TX_PROTOCOL_CUSTOM_9
 
     ctypedef enum ggwave_OperatingMode:
-        GGWAVE_OPERATING_MODE_BOTH_RX_AND_TX,
-        GGWAVE_OPERATING_MODE_ONLY_RX,
-        GGWAVE_OPERATING_MODE_ONLY_TX,
+        GGWAVE_OPERATING_MODE_RX,
+        GGWAVE_OPERATING_MODE_TX,
+        GGWAVE_OPERATING_MODE_RX_AND_TX,
+        GGWAVE_OPERATING_MODE_TX_ONLY_TONES
 
     ctypedef struct ggwave_Parameters:
         int payloadLength

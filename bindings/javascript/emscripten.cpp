@@ -37,9 +37,10 @@ EMSCRIPTEN_BINDINGS(ggwave) {
         ;
 
     emscripten::enum_<ggwave_OperatingMode>("OperatingMode")
-        .value("GGWAVE_OPERATING_MODE_BOTH_RX_AND_TX", GGWAVE_OPERATING_MODE_BOTH_RX_AND_TX)
-        .value("GGWAVE_OPERATING_MODE_ONLY_RX",        GGWAVE_OPERATING_MODE_ONLY_RX)
-        .value("GGWAVE_OPERATING_MODE_ONLY_TX",        GGWAVE_OPERATING_MODE_ONLY_TX)
+        .value("GGWAVE_OPERATING_MODE_RX",            GGWAVE_OPERATING_MODE_RX)
+        .value("GGWAVE_OPERATING_MODE_TX",            GGWAVE_OPERATING_MODE_TX)
+        .value("GGWAVE_OPERATING_MODE_RX_AND_TX",     (ggwave_OperatingMode) (GGWAVE_OPERATING_MODE_RX | GGWAVE_OPERATING_MODE_TX))
+        .value("GGWAVE_OPERATING_MODE_TX_ONLY_TONES", GGWAVE_OPERATING_MODE_TX_ONLY_TONES)
         ;
 
     emscripten::class_<ggwave_Parameters>("Parameters")

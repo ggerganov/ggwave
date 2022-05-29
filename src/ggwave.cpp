@@ -699,8 +699,6 @@ uint32_t GGWave::encodeSize_samples() const {
 }
 
 bool GGWave::encode(const CBWaveformOut & cbWaveformOut) {
-    int frameId = 0;
-
     if (m_resampler) {
         m_resampler->reset();
     }
@@ -750,29 +748,93 @@ bool GGWave::encode(const CBWaveformOut & cbWaveformOut) {
     RS::ReedSolomon rsData = RS::ReedSolomon(m_tx->txDataLength, nECCBytesPerTx, m_workRSData.data());
     rsData.Encode(m_tx->txData.data() + 1, m_dataEncoded.data() + m_encodedDataOffset);
 
-    const float factor = m_sampleRate/m_sampleRateOut;
+    // generate tones
+    {
+        int frameId = 0;
+        bool hasNewData = m_tx->hasNewTxData;
 
+        m_tx->waveformTones.clear();
+        while (hasNewData) {
+            m_tx->waveformTones.push_back({});
+
+            if (frameId < m_nMarkerFrames) {
+                for (int i = 0; i < m_nBitsInMarker; ++i) {
+                    m_tx->waveformTones.back().push_back({});
+                    m_tx->waveformTones.back().back().duration_ms = (1000.0*m_samplesPerFrame)/m_sampleRate;
+                    if (i%2 == 0) {
+                        m_tx->waveformTones.back().back().freq_hz = bitFreq(m_tx->txProtocol, i);
+                    } else {
+                        m_tx->waveformTones.back().back().freq_hz = bitFreq(m_tx->txProtocol, i) + m_hzPerSample;
+                    }
+                }
+            } else if (frameId < m_nMarkerFrames + totalDataFrames) {
+                int dataOffset = frameId - m_nMarkerFrames;
+                dataOffset /= m_tx->txProtocol.framesPerTx;
+                dataOffset *= m_tx->txProtocol.bytesPerTx;
+
+                std::fill(m_tx->dataBits.begin(), m_tx->dataBits.end(), 0);
+
+                for (int j = 0; j < m_tx->txProtocol.bytesPerTx; ++j) {
+                    {
+                        uint8_t d = m_dataEncoded[dataOffset + j] & 15;
+                        m_tx->dataBits[(2*j + 0)*16 + d] = 1;
+                    }
+                    {
+                        uint8_t d = m_dataEncoded[dataOffset + j] & 240;
+                        m_tx->dataBits[(2*j + 1)*16 + (d >> 4)] = 1;
+                    }
+                }
+
+                for (int k = 0; k < 2*m_tx->txProtocol.bytesPerTx*16; ++k) {
+                    if (m_tx->dataBits[k] == 0) continue;
+
+                    m_tx->waveformTones.back().push_back({});
+                    m_tx->waveformTones.back().back().duration_ms = (1000.0*m_samplesPerFrame)/m_sampleRate;
+                    if (k%2) {
+                        m_tx->waveformTones.back().back().freq_hz = bitFreq(m_tx->txProtocol, k/2) + m_hzPerSample;
+                    } else {
+                        m_tx->waveformTones.back().back().freq_hz = bitFreq(m_tx->txProtocol, k/2);
+                    }
+                }
+            } else if (frameId < m_nMarkerFrames + totalDataFrames + m_nMarkerFrames) {
+                for (int i = 0; i < m_nBitsInMarker; ++i) {
+                    m_tx->waveformTones.back().push_back({});
+                    m_tx->waveformTones.back().back().duration_ms = (1000.0*m_samplesPerFrame)/m_sampleRate;
+                    if (i%2 == 0) {
+                        m_tx->waveformTones.back().back().freq_hz = bitFreq(m_tx->txProtocol, i) + m_hzPerSample;
+                    } else {
+                        m_tx->waveformTones.back().back().freq_hz = bitFreq(m_tx->txProtocol, i);
+                    }
+                }
+            } else {
+                hasNewData = false;
+                break;
+            }
+
+            ++frameId;
+        }
+
+        if (m_txOnlyTones) {
+            return true;
+        }
+    }
+
+    int frameId = 0;
     uint32_t offset = 0;
-    m_tx->waveformTones.clear();
+    const float factor = m_sampleRate/m_sampleRateOut;
 
     while (m_tx->hasNewTxData) {
         std::fill(m_tx->outputBlock.begin(), m_tx->outputBlock.end(), 0.0f);
 
         uint16_t nFreq = 0;
-        m_tx->waveformTones.push_back({});
-
         if (frameId < m_nMarkerFrames) {
             nFreq = m_nBitsInMarker;
 
             for (int i = 0; i < m_nBitsInMarker; ++i) {
-                m_tx->waveformTones.back().push_back({});
-                m_tx->waveformTones.back().back().duration_ms = (1000.0*m_samplesPerFrame)/m_sampleRate;
                 if (i%2 == 0) {
                     ::addAmplitudeSmooth(m_tx->bit1Amplitude[i], m_tx->outputBlock, m_tx->sendVolume, 0, m_samplesPerFrame, frameId, m_nMarkerFrames);
-                    m_tx->waveformTones.back().back().freq_hz = bitFreq(m_tx->txProtocol, i);
                 } else {
                     ::addAmplitudeSmooth(m_tx->bit0Amplitude[i], m_tx->outputBlock, m_tx->sendVolume, 0, m_samplesPerFrame, frameId, m_nMarkerFrames);
-                    m_tx->waveformTones.back().back().freq_hz = bitFreq(m_tx->txProtocol, i) + m_hzPerSample;
                 }
             }
         } else if (frameId < m_nMarkerFrames + totalDataFrames) {
@@ -798,14 +860,10 @@ bool GGWave::encode(const CBWaveformOut & cbWaveformOut) {
                 if (m_tx->dataBits[k] == 0) continue;
 
                 ++nFreq;
-                m_tx->waveformTones.back().push_back({});
-                m_tx->waveformTones.back().back().duration_ms = (1000.0*m_samplesPerFrame)/m_sampleRate;
                 if (k%2) {
                     ::addAmplitudeSmooth(m_tx->bit0Amplitude[k/2], m_tx->outputBlock, m_tx->sendVolume, 0, m_samplesPerFrame, cycleModMain, m_tx->txProtocol.framesPerTx);
-                    m_tx->waveformTones.back().back().freq_hz = bitFreq(m_tx->txProtocol, k/2) + m_hzPerSample;
                 } else {
                     ::addAmplitudeSmooth(m_tx->bit1Amplitude[k/2], m_tx->outputBlock, m_tx->sendVolume, 0, m_samplesPerFrame, cycleModMain, m_tx->txProtocol.framesPerTx);
-                    m_tx->waveformTones.back().back().freq_hz = bitFreq(m_tx->txProtocol, k/2);
                 }
             }
         } else if (frameId < m_nMarkerFrames + totalDataFrames + m_nMarkerFrames) {
@@ -813,14 +871,10 @@ bool GGWave::encode(const CBWaveformOut & cbWaveformOut) {
 
             const int fId = frameId - (m_nMarkerFrames + totalDataFrames);
             for (int i = 0; i < m_nBitsInMarker; ++i) {
-                m_tx->waveformTones.back().push_back({});
-                m_tx->waveformTones.back().back().duration_ms = (1000.0*m_samplesPerFrame)/m_sampleRate;
                 if (i%2 == 0) {
                     addAmplitudeSmooth(m_tx->bit0Amplitude[i], m_tx->outputBlock, m_tx->sendVolume, 0, m_samplesPerFrame, fId, m_nMarkerFrames);
-                    m_tx->waveformTones.back().back().freq_hz = bitFreq(m_tx->txProtocol, i) + m_hzPerSample;
                 } else {
                     addAmplitudeSmooth(m_tx->bit1Amplitude[i], m_tx->outputBlock, m_tx->sendVolume, 0, m_samplesPerFrame, fId, m_nMarkerFrames);
-                    m_tx->waveformTones.back().back().freq_hz = bitFreq(m_tx->txProtocol, i);
                 }
             }
         } else {

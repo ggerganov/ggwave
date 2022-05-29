@@ -333,16 +333,6 @@ public:
         int bytesPerTx;     // number of bytes in a chunk of data
 
         int nDataBitsPerTx() const { return 8*bytesPerTx; }
-
-        bool operator==(const TxProtocol & other) const {
-            return freqStart == other.freqStart &&
-                   framesPerTx == other.framesPerTx &&
-                   bytesPerTx == other.bytesPerTx;
-        }
-
-        bool operator!=(const TxProtocol & other) const {
-            return !(*this == other);
-        }
     };
 
     using RxProtocol = TxProtocol;

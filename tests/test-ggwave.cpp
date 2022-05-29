@@ -279,6 +279,11 @@ int main(int argc, char ** argv) {
                 printf("Testing: protocol = %s, in = %d, out = %d\n", txProtocol.second.name, formatInp, formatOut);
 
                 for (int length = 1; length <= (int) payload.size(); ++length) {
+                    // mono-tone protocols with variable length are not supported
+                    if (txProtocol.second.extra == 2) {
+                        break;
+                    }
+
                     // variable payload length
                     {
                         auto parameters = GGWave::getDefaultParameters();

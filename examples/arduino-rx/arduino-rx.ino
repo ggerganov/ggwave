@@ -52,11 +52,12 @@ void loop() {
     p.sampleRate = frequency;
     p.sampleFormatInp = GGWAVE_SAMPLE_FORMAT_I16;
     p.samplesPerFrame = 128;
-    p.payloadLength = 16;
+    p.payloadLength = 4;
     p.operatingMode = GGWAVE_OPERATING_MODE_RX;
 
     GGWave ggwave(p);
     ggwave.setRxProtocols({
+            //{ GGWAVE_TX_PROTOCOL_MT_FASTEST, ggwave.getTxProtocol(GGWAVE_TX_PROTOCOL_MT_FASTEST) },
             { GGWAVE_TX_PROTOCOL_DT_FASTEST, ggwave.getTxProtocol(GGWAVE_TX_PROTOCOL_DT_FASTEST) },
             });
     Serial.println("Instance initialized");

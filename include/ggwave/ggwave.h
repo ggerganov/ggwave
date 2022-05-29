@@ -364,8 +364,8 @@ public:
     }
 
     struct ToneData {
-        double freq_hz;
-        double duration_ms;
+        float freq_hz;
+        float duration_ms;
     };
 
     using Tones         = std::vector<ToneData>;

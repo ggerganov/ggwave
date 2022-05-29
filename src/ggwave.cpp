@@ -2,6 +2,7 @@
 
 #include "reed-solomon/rs.hpp"
 
+#include <cstdio>
 #include <chrono>
 #include <cmath>
 #include <map>
@@ -388,6 +389,8 @@ struct GGWave::Rx {
     int historyIdFixed = 0;
 
     std::vector<SpectrumData> spectrumHistoryFixed;
+    std::vector<uint8_t> detectedBins;
+    std::vector<uint8_t> detectedTones;
 };
 
 struct GGWave::Tx {
@@ -396,6 +399,7 @@ struct GGWave::Tx {
     float sendVolume = 0.1f;
 
     int txDataLength = 0;
+    int lastAmplitudeSize = 0;
 
     TxRxData   txData;
     TxProtocol txProtocol;
@@ -405,7 +409,6 @@ struct GGWave::Tx {
     TxRxData         outputBlockTmp;
     AmplitudeDataI16 outputBlockI16;
 
-    AmplitudeDataI16 txAmplitudeDataI16;
     WaveformTones    waveformTones;
 };
 
@@ -423,7 +426,7 @@ const GGWave::Parameters & GGWave::getDefaultParameters() {
         kDefaultSoundMarkerThreshold,
         GGWAVE_SAMPLE_FORMAT_F32,
         GGWAVE_SAMPLE_FORMAT_F32,
-        GGWAVE_OPERATING_MODE_BOTH_RX_AND_TX,
+        (ggwave_OperatingMode) (GGWAVE_OPERATING_MODE_RX | GGWAVE_OPERATING_MODE_TX),
     };
 
     return result;
@@ -449,10 +452,8 @@ GGWave::GGWave(const Parameters & parameters) :
     m_soundMarkerThreshold(parameters.soundMarkerThreshold),
     m_isFixedPayloadLength(parameters.payloadLength > 0),
     m_payloadLength       (parameters.payloadLength),
-    m_isRxEnabled         (parameters.operatingMode == GGWAVE_OPERATING_MODE_BOTH_RX_AND_TX ||
-                           parameters.operatingMode == GGWAVE_OPERATING_MODE_ONLY_RX),
-    m_isTxEnabled         (parameters.operatingMode == GGWAVE_OPERATING_MODE_BOTH_RX_AND_TX ||
-                           parameters.operatingMode == GGWAVE_OPERATING_MODE_ONLY_TX),
+    m_isRxEnabled         (parameters.operatingMode & GGWAVE_OPERATING_MODE_RX),
+    m_isTxEnabled         (parameters.operatingMode & GGWAVE_OPERATING_MODE_TX),
     m_needResampling      (m_sampleRateInp != m_sampleRate || m_sampleRateOut != m_sampleRate),
 
     // common
@@ -512,6 +513,8 @@ GGWave::GGWave(const Parameters & parameters) :
             const int totalTxs = (totalLength + minBytesPerTx() - 1)/minBytesPerTx();
 
             m_rx->spectrumHistoryFixed.resize(totalTxs*maxFramesPerTx());
+            m_rx->detectedBins.resize(2*totalLength);
+            m_rx->detectedTones.resize(2*maxBytesPerTx()*16);
         } else {
             // variable payload length
             m_rx->recordedAmplitude.resize(kMaxRecordedFrames*m_samplesPerFrame);
@@ -538,7 +541,6 @@ GGWave::GGWave(const Parameters & parameters) :
         m_tx->outputBlockI16.resize(kMaxRecordedFrames*m_samplesPerFrame);
 
         // TODO
-        // m_tx->txAmplitudeDataI16;
         // m_tx->waveformTones;
     }
 
@@ -883,10 +885,7 @@ bool GGWave::encode(const CBWaveformOut & cbWaveformOut) {
             } break;
     }
 
-    m_tx->txAmplitudeDataI16.resize(offset);
-    for (uint32_t i = 0; i < offset; ++i) {
-        m_tx->txAmplitudeDataI16[i] = m_tx->outputBlockI16[i];
-    }
+    m_tx->lastAmplitudeSize = offset;
 
     return true;
 }
@@ -1042,9 +1041,13 @@ const GGWave::SampleFormat & GGWave::getSampleFormatOut() const { return m_sampl
 const GGWave::WaveformTones & GGWave::getWaveformTones() const { return m_tx->waveformTones; }
 
 bool GGWave::takeTxAmplitudeI16(AmplitudeDataI16 & dst) {
-    if (m_tx->txAmplitudeDataI16.size() == 0) return false;
+    if (m_tx->lastAmplitudeSize == 0) return false;
 
-    dst = std::move(m_tx->txAmplitudeDataI16);
+    if ((int) dst.size() < m_tx->lastAmplitudeSize) {
+        dst.resize(m_tx->lastAmplitudeSize);
+    }
+    std::copy(m_tx->outputBlockI16.begin(), m_tx->outputBlockI16.begin() + m_tx->lastAmplitudeSize, dst.begin());
+    m_tx->lastAmplitudeSize = 0;
 
     return true;
 }
@@ -1603,21 +1606,14 @@ void GGWave::decode_fixed() {
         }
 
         const int nTones = 2*rxProtocol.bytesPerTx;
-        std::vector<int> detectedBins(2*totalLength);
+        std::fill(m_rx->detectedBins.begin(), m_rx->detectedBins.end(), 0);
 
-        struct ToneData {
-            int nMax[16];
-        };
-
-        std::vector<ToneData> tones(nTones);
-
-        bool detectedSignal = true;
+        int txNeededTotal   = 0;
         int txDetectedTotal = 0;
-        int txNeededTotal = 0;
+        bool detectedSignal = true;
+
         for (int k = 0; k < totalTxs; ++k) {
-            for (auto & tone : tones) {
-                std::fill(tone.nMax, tone.nMax + 16, 0);
-            }
+            std::fill(m_rx->detectedTones.begin(), m_rx->detectedTones.begin() + 16*nTones, 0);
 
             for (int i = 0; i < rxProtocol.framesPerTx; ++i) {
                 int historyId = historyStartId + k*rxProtocol.framesPerTx + i;
@@ -1652,23 +1648,23 @@ void GGWave::decode_fixed() {
                         }
                     }
 
-                    tones[2*j + 0].nMax[f0bin]++;
-                    tones[2*j + 1].nMax[f1bin]++;
+                    m_rx->detectedTones[(2*j + 0)*16 + f0bin]++;
+                    m_rx->detectedTones[(2*j + 1)*16 + f1bin]++;
                 }
             }
 
-            int txDetected = 0;
             int txNeeded = 0;
+            int txDetected = 0;
             for (int j = 0; j < rxProtocol.bytesPerTx; ++j) {
                 if (k*rxProtocol.bytesPerTx + j >= totalLength) break;
                 txNeeded += 2;
                 for (int b = 0; b < 16; ++b) {
-                    if (tones[2*j + 0].nMax[b] > rxProtocol.framesPerTx/2) {
-                        detectedBins[2*(k*rxProtocol.bytesPerTx + j) + 0] = b;
+                    if (m_rx->detectedTones[(2*j + 0)*16 + b] > rxProtocol.framesPerTx/2) {
+                        m_rx->detectedBins[2*(k*rxProtocol.bytesPerTx + j) + 0] = b;
                         txDetected++;
                     }
-                    if (tones[2*j + 1].nMax[b] > rxProtocol.framesPerTx/2) {
-                        detectedBins[2*(k*rxProtocol.bytesPerTx + j) + 1] = b;
+                    if (m_rx->detectedTones[(2*j + 1)*16 + b] > rxProtocol.framesPerTx/2) {
+                        m_rx->detectedBins[2*(k*rxProtocol.bytesPerTx + j) + 1] = b;
                         txDetected++;
                     }
                 }
@@ -1686,7 +1682,7 @@ void GGWave::decode_fixed() {
             RS::ReedSolomon rsData(m_payloadLength, getECCBytesForLength(m_payloadLength), m_workRSData.data());
 
             for (int j = 0; j < totalLength; ++j) {
-                m_dataEncoded[j] = (detectedBins[2*j + 1] << 4) + detectedBins[2*j + 0];
+                m_dataEncoded[j] = (m_rx->detectedBins[2*j + 1] << 4) + m_rx->detectedBins[2*j + 0];
             }
 
             if (rsData.Decode(m_dataEncoded.data(), m_rx->rxData.data()) == 0) {
@@ -1724,3 +1720,10 @@ int GGWave::minBytesPerTx() const {
     return res;
 }
 
+int GGWave::maxBytesPerTx() const {
+    int res = getTxProtocols().begin()->second.bytesPerTx;
+    for (const auto & protocol : getTxProtocols()) {
+        res = std::max(res, protocol.second.bytesPerTx);
+    }
+    return res;
+}

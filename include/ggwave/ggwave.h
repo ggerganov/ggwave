@@ -59,9 +59,11 @@ extern "C" {
 
     // Operating modes of ggwave
     typedef enum {
-        GGWAVE_OPERATING_MODE_BOTH_RX_AND_TX,
-        GGWAVE_OPERATING_MODE_ONLY_RX,
-        GGWAVE_OPERATING_MODE_ONLY_TX,
+        GGWAVE_OPERATING_MODE_RX            = 1 << 1,
+        GGWAVE_OPERATING_MODE_TX            = 1 << 2,
+        GGWAVE_OPERATING_MODE_RX_AND_TX     = (GGWAVE_OPERATING_MODE_RX |
+                                               GGWAVE_OPERATING_MODE_TX),
+        GGWAVE_OPERATING_MODE_TX_ONLY_TONES = 1 << 3,
     } ggwave_OperatingMode;
 
     // GGWave instance parameters
@@ -539,6 +541,7 @@ private:
 
     int maxFramesPerTx() const;
     int minBytesPerTx() const;
+    int maxBytesPerTx() const;
 
     double bitFreq(const TxProtocol & p, int bit) const {
         return m_hzPerSample*p.freqStart + m_freqDelta_hz*bit;

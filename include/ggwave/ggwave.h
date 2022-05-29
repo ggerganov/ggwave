@@ -429,25 +429,18 @@ public:
     void decode(const CBWaveformInp & cbWaveformInp);
 
     // instance state
-    const bool & hasTxData()    const { return m_hasNewTxData; }
-    const bool & isReceiving()  const { return m_receivingData; }
-    const bool & isAnalyzing()  const { return m_analyzingData; }
+    const bool & hasTxData() const;
 
-    const int & getFramesToRecord()         const { return m_framesToRecord; }
-    const int & getFramesLeftToRecord()     const { return m_framesLeftToRecord; }
-    const int & getFramesToAnalyze()        const { return m_framesToAnalyze; }
-    const int & getFramesLeftToAnalyze()    const { return m_framesLeftToAnalyze; }
-    const int & getSamplesPerFrame()        const { return m_samplesPerFrame; }
-    const int & getSampleSizeBytesInp()     const { return m_sampleSizeBytesInp; }
-    const int & getSampleSizeBytesOut()     const { return m_sampleSizeBytesOut; }
+    const int & getSamplesPerFrame()    const;
+    const int & getSampleSizeBytesInp() const;
+    const int & getSampleSizeBytesOut() const;
 
-    const float & getSampleRateInp()    const { return m_sampleRateInp; }
-    const float & getSampleRateOut()    const { return m_sampleRateOut; }
-    const SampleFormat & getSampleFormatInp()  const { return m_sampleFormatInp; }
-    const SampleFormat & getSampleFormatOut()  const { return m_sampleFormatOut; }
+    const float & getSampleRateInp() const;
+    const float & getSampleRateOut() const;
+    const SampleFormat & getSampleFormatInp() const;
+    const SampleFormat & getSampleFormatOut() const;
 
     // Tx
-
     static TxProtocolId getDefaultTxProtocolId()     { return GGWAVE_TX_PROTOCOL_AUDIBLE_FAST; }
     static const TxProtocol & getDefaultTxProtocol() { return getTxProtocols().at(getDefaultTxProtocolId()); }
     static const TxProtocol & getTxProtocol(int id)  { return getTxProtocols().at(TxProtocolId(id)); }
@@ -462,16 +455,23 @@ public:
     bool takeTxAmplitudeI16(AmplitudeDataI16 & dst);
 
     // Rx
+    const bool & isReceiving() const;
+    const bool & isAnalyzing() const;
+
+    const int & getFramesToRecord()      const;
+    const int & getFramesLeftToRecord()  const;
+    const int & getFramesToAnalyze()     const;
+    const int & getFramesLeftToAnalyze() const;
 
     bool stopReceiving();
-    void setRxProtocols(const RxProtocols & rxProtocols) { m_rxProtocols = rxProtocols; }
-    const RxProtocols & getRxProtocols() const { return m_rxProtocols; }
+    void setRxProtocols(const RxProtocols & rxProtocols);
+    const RxProtocols & getRxProtocols() const;
 
-    int lastRxDataLength() const { return m_lastRxDataLength; }
+    int lastRxDataLength() const;
 
-    const TxRxData & getRxData()            const { return m_rxData; }
-    const RxProtocol & getRxProtocol()      const { return m_rxProtocol; }
-    const RxProtocolId & getRxProtocolId()  const { return m_rxProtocolId; }
+    const TxRxData & getRxData()           const;
+    const RxProtocol & getRxProtocol()     const;
+    const RxProtocolId & getRxProtocolId() const;
 
     int takeRxData(TxRxData & dst);
     bool takeRxSpectrum(SpectrumData & dst);
@@ -529,46 +529,6 @@ private:
 
     // common
     TxRxData m_dataEncoded;
-
-    // Rx
-    bool m_receivingData;
-    bool m_analyzingData;
-
-    int m_nMarkersSuccess;
-    int m_markerFreqStart;
-    int m_recvDuration_frames;
-
-    int m_framesLeftToAnalyze;
-    int m_framesLeftToRecord;
-    int m_framesToAnalyze;
-    int m_framesToRecord;
-    int m_samplesNeeded;
-
-    std::vector<float> m_fftInp; // real
-    std::vector<float> m_fftOut; // complex
-
-    bool m_hasNewSpectrum;
-    bool m_hasNewAmplitude;
-    SpectrumData m_sampleSpectrum;
-    AmplitudeData m_sampleAmplitude;
-    AmplitudeData m_sampleAmplitudeResampled;
-    TxRxData m_sampleAmplitudeTmp;
-
-    bool m_hasNewRxData;
-    int m_lastRxDataLength;
-    TxRxData m_rxData;
-    TxProtocol m_rxProtocol;
-    TxProtocolId m_rxProtocolId;
-    TxProtocols m_rxProtocols;
-
-    int m_historyId;
-    AmplitudeData m_sampleAmplitudeAverage;
-    std::vector<AmplitudeData> m_sampleAmplitudeHistory;
-
-    RecordedData m_recordedAmplitude;
-
-    int m_historyIdFixed;
-    std::vector<SpectrumData> m_spectrumHistoryFixed;
 
     // Tx
     bool m_hasNewTxData;

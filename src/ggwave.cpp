@@ -410,7 +410,6 @@ struct GGWave::Tx {
 
     TxRxData   txData;
     TxProtocol txProtocol;
-    TxProtocol txProtocolLast;
 
     AmplitudeData    outputBlock;
     AmplitudeData    outputBlockResampled;
@@ -542,8 +541,6 @@ GGWave::GGWave(const Parameters & parameters) :
 
     if (m_isTxEnabled) {
         m_tx = std::unique_ptr<Tx>(new Tx());
-
-        m_tx->txProtocolLast = {};
 
         {
             const int maxDataBits = 2*16*maxBytesPerTx();
@@ -703,36 +700,33 @@ bool GGWave::encode(const CBWaveformOut & cbWaveformOut) {
         m_resampler->reset();
     }
 
-    if (m_tx->txProtocol != m_tx->txProtocolLast) {
-        for (int k = 0; k < (int) m_tx->phaseOffsets.size(); ++k) {
-            m_tx->phaseOffsets[k] = (M_PI*k)/(m_tx->txProtocol.nDataBitsPerTx());
+    for (int k = 0; k < (int) m_tx->phaseOffsets.size(); ++k) {
+        m_tx->phaseOffsets[k] = (M_PI*k)/(m_tx->txProtocol.nDataBitsPerTx());
+    }
+
+    // note : what is the purpose of this shuffle ? I forgot .. :(
+    //std::random_device rd;
+    //std::mt19937 g(rd());
+
+    //std::shuffle(phaseOffsets.begin(), phaseOffsets.end(), g);
+
+    for (int k = 0; k < (int) m_tx->dataBits.size(); ++k) {
+        const double freq = bitFreq(m_tx->txProtocol, k);
+
+        const double phaseOffset = m_tx->phaseOffsets[k];
+        const double curHzPerSample = m_hzPerSample;
+        const double curIHzPerSample = 1.0/curHzPerSample;
+
+        for (int i = 0; i < m_samplesPerFrame; i++) {
+            const double curi = i;
+            m_tx->bit1Amplitude[k][i] = std::sin((2.0*M_PI)*(curi*m_isamplesPerFrame)*(freq*curIHzPerSample) + phaseOffset);
         }
 
-        // note : what is the purpose of this shuffle ? I forgot .. :(
-        //std::random_device rd;
-        //std::mt19937 g(rd());
-
-        //std::shuffle(phaseOffsets.begin(), phaseOffsets.end(), g);
-
-        for (int k = 0; k < (int) m_tx->dataBits.size(); ++k) {
-            const double freq = bitFreq(m_tx->txProtocol, k);
-
-            const double phaseOffset = m_tx->phaseOffsets[k];
-            const double curHzPerSample = m_hzPerSample;
-            const double curIHzPerSample = 1.0/curHzPerSample;
-
-            for (int i = 0; i < m_samplesPerFrame; i++) {
-                const double curi = i;
-                m_tx->bit1Amplitude[k][i] = std::sin((2.0*M_PI)*(curi*m_isamplesPerFrame)*(freq*curIHzPerSample) + phaseOffset);
-            }
-
-            for (int i = 0; i < m_samplesPerFrame; i++) {
-                const double curi = i;
-                m_tx->bit0Amplitude[k][i] = std::sin((2.0*M_PI)*(curi*m_isamplesPerFrame)*((freq + m_hzPerSample*m_freqDelta_bin)*curIHzPerSample) + phaseOffset);
-            }
+        for (int i = 0; i < m_samplesPerFrame; i++) {
+            const double curi = i;
+            m_tx->bit0Amplitude[k][i] = std::sin((2.0*M_PI)*(curi*m_isamplesPerFrame)*((freq + m_hzPerSample*m_freqDelta_bin)*curIHzPerSample) + phaseOffset);
         }
     }
-    m_tx->txProtocolLast = m_tx->txProtocol;
 
     const int nECCBytesPerTx = getECCBytesForLength(m_tx->txDataLength);
     const int sendDataLength = m_tx->txDataLength + m_encodedDataOffset;

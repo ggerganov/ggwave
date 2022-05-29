@@ -44,6 +44,9 @@ extern "C" {
         GGWAVE_TX_PROTOCOL_DT_NORMAL,
         GGWAVE_TX_PROTOCOL_DT_FAST,
         GGWAVE_TX_PROTOCOL_DT_FASTEST,
+        GGWAVE_TX_PROTOCOL_MT_NORMAL,
+        GGWAVE_TX_PROTOCOL_MT_FAST,
+        GGWAVE_TX_PROTOCOL_MT_FASTEST,
 
         GGWAVE_TX_PROTOCOL_CUSTOM_0,
         GGWAVE_TX_PROTOCOL_CUSTOM_1,
@@ -331,6 +334,7 @@ public:
         int freqStart;      // FFT bin index of the lowest frequency
         int framesPerTx;    // number of frames to transmit a single chunk of data
         int bytesPerTx;     // number of bytes in a chunk of data
+        int extra;          // 2 if this is a mono-tone protocol, 1 otherwise
 
         int nDataBitsPerTx() const { return 8*bytesPerTx; }
     };
@@ -342,15 +346,18 @@ public:
 
     static const TxProtocols & getTxProtocols() {
         static const TxProtocols kTxProtocols {
-            { GGWAVE_TX_PROTOCOL_AUDIBLE_NORMAL,        { "Normal",       40,  9, 3, } },
-            { GGWAVE_TX_PROTOCOL_AUDIBLE_FAST,          { "Fast",         40,  6, 3, } },
-            { GGWAVE_TX_PROTOCOL_AUDIBLE_FASTEST,       { "Fastest",      40,  3, 3, } },
-            { GGWAVE_TX_PROTOCOL_ULTRASOUND_NORMAL,     { "[U] Normal",   320, 9, 3, } },
-            { GGWAVE_TX_PROTOCOL_ULTRASOUND_FAST,       { "[U] Fast",     320, 6, 3, } },
-            { GGWAVE_TX_PROTOCOL_ULTRASOUND_FASTEST,    { "[U] Fastest",  320, 3, 3, } },
-            { GGWAVE_TX_PROTOCOL_DT_NORMAL,             { "[DT] Normal",  24,  9, 1, } },
-            { GGWAVE_TX_PROTOCOL_DT_FAST,               { "[DT] Fast",    24,  6, 1, } },
-            { GGWAVE_TX_PROTOCOL_DT_FASTEST,            { "[DT] Fastest", 24,  3, 1, } },
+            { GGWAVE_TX_PROTOCOL_AUDIBLE_NORMAL,        { "Normal",       40,  9, 3, 1, } },
+            { GGWAVE_TX_PROTOCOL_AUDIBLE_FAST,          { "Fast",         40,  6, 3, 1, } },
+            { GGWAVE_TX_PROTOCOL_AUDIBLE_FASTEST,       { "Fastest",      40,  3, 3, 1, } },
+            { GGWAVE_TX_PROTOCOL_ULTRASOUND_NORMAL,     { "[U] Normal",   320, 9, 3, 1, } },
+            { GGWAVE_TX_PROTOCOL_ULTRASOUND_FAST,       { "[U] Fast",     320, 6, 3, 1, } },
+            { GGWAVE_TX_PROTOCOL_ULTRASOUND_FASTEST,    { "[U] Fastest",  320, 3, 3, 1, } },
+            { GGWAVE_TX_PROTOCOL_DT_NORMAL,             { "[DT] Normal",  24,  9, 1, 1, } },
+            { GGWAVE_TX_PROTOCOL_DT_FAST,               { "[DT] Fast",    24,  6, 1, 1, } },
+            { GGWAVE_TX_PROTOCOL_DT_FASTEST,            { "[DT] Fastest", 24,  3, 1, 1, } },
+            { GGWAVE_TX_PROTOCOL_MT_NORMAL,             { "[MT] Normal",  24,  9, 1, 2, } },
+            { GGWAVE_TX_PROTOCOL_MT_FAST,               { "[MT] Fast",    24,  6, 1, 2, } },
+            { GGWAVE_TX_PROTOCOL_MT_FASTEST,            { "[MT] Fastest", 24,  3, 1, 2, } },
         };
 
         return kTxProtocols;

@@ -520,7 +520,8 @@ GGWave::GGWave(const Parameters & parameters) :
             const int totalLength = m_payloadLength + getECCBytesForLength(m_payloadLength);
             const int totalTxs = (totalLength + minBytesPerTx() - 1)/minBytesPerTx();
 
-            m_rx->spectrumHistoryFixed.resize(totalTxs*maxFramesPerTx());
+            // TODO: factor of 2 due to Mono-tone protocols
+            m_rx->spectrumHistoryFixed.resize(2*totalTxs*maxFramesPerTx());
             m_rx->detectedBins.resize(2*totalLength);
             m_rx->detectedTones.resize(2*16*maxBytesPerTx());
         } else {
@@ -618,6 +619,11 @@ bool GGWave::init(int dataSize, const char * dataBuffer, const TxProtocol & txPr
             return false;
         }
 
+        if (txProtocol.extra == 2 && m_isFixedPayloadLength == false) {
+            ggprintf("Mono-tone protocols with variable length are not supported\n");
+            return false;
+        }
+
         m_tx->txProtocol = txProtocol;
         m_tx->txDataLength = dataSize;
         m_tx->sendVolume = ((double)(volume))/100.0f;
@@ -685,10 +691,10 @@ uint32_t GGWave::encodeSize_samples() const {
         // note : +1 extra sample in order to overestimate the buffer size
         samplesPerFrameOut = m_resampler->resample(factor, m_samplesPerFrame, m_tx->outputBlock.data(), nullptr) + 1;
     }
-    int nECCBytesPerTx = getECCBytesForLength(m_tx->txDataLength);
-    int sendDataLength = m_tx->txDataLength + m_encodedDataOffset;
-    int totalBytes = sendDataLength + nECCBytesPerTx;
-    int totalDataFrames = ((totalBytes + m_tx->txProtocol.bytesPerTx - 1)/m_tx->txProtocol.bytesPerTx)*m_tx->txProtocol.framesPerTx;
+    const int nECCBytesPerTx = getECCBytesForLength(m_tx->txDataLength);
+    const int sendDataLength = m_tx->txDataLength + m_encodedDataOffset;
+    const int totalBytes = sendDataLength + nECCBytesPerTx;
+    const int totalDataFrames = m_tx->txProtocol.extra*((totalBytes + m_tx->txProtocol.bytesPerTx - 1)/m_tx->txProtocol.bytesPerTx)*m_tx->txProtocol.framesPerTx;
 
     return (
             m_nMarkerFrames + totalDataFrames + m_nMarkerFrames
@@ -703,7 +709,7 @@ bool GGWave::encode(const CBWaveformOut & cbWaveformOut) {
     const int nECCBytesPerTx = getECCBytesForLength(m_tx->txDataLength);
     const int sendDataLength = m_tx->txDataLength + m_encodedDataOffset;
     const int totalBytes = sendDataLength + nECCBytesPerTx;
-    const int totalDataFrames = ((totalBytes + m_tx->txProtocol.bytesPerTx - 1)/m_tx->txProtocol.bytesPerTx)*m_tx->txProtocol.framesPerTx;
+    const int totalDataFrames = m_tx->txProtocol.extra*((totalBytes + m_tx->txProtocol.bytesPerTx - 1)/m_tx->txProtocol.bytesPerTx)*m_tx->txProtocol.framesPerTx;
 
     if (m_isFixedPayloadLength == false) {
         RS::ReedSolomon rsLength(1, m_encodedDataOffset - 1, m_workRSLength.data());
@@ -741,13 +747,23 @@ bool GGWave::encode(const CBWaveformOut & cbWaveformOut) {
                 std::fill(m_tx->dataBits.begin(), m_tx->dataBits.end(), 0);
 
                 for (int j = 0; j < m_tx->txProtocol.bytesPerTx; ++j) {
-                    {
-                        uint8_t d = m_dataEncoded[dataOffset + j] & 15;
-                        m_tx->dataBits[(2*j + 0)*16 + d] = 1;
-                    }
-                    {
-                        uint8_t d = m_dataEncoded[dataOffset + j] & 240;
-                        m_tx->dataBits[(2*j + 1)*16 + (d >> 4)] = 1;
+                    if (m_tx->txProtocol.extra == 1) {
+                        {
+                            uint8_t d = m_dataEncoded[dataOffset + j] & 15;
+                            m_tx->dataBits[(2*j + 0)*16 + d] = 1;
+                        }
+                        {
+                            uint8_t d = m_dataEncoded[dataOffset + j] & 240;
+                            m_tx->dataBits[(2*j + 1)*16 + (d >> 4)] = 1;
+                        }
+                    } else {
+                        if (dataOffset % m_tx->txProtocol.extra == 0) {
+                            uint8_t d = m_dataEncoded[dataOffset/m_tx->txProtocol.extra + j] & 15;
+                            m_tx->dataBits[(2*j + 0)*16 + d] = 1;
+                        } else {
+                            uint8_t d = m_dataEncoded[dataOffset/m_tx->txProtocol.extra + j] & 240;
+                            m_tx->dataBits[(2*j + 0)*16 + (d >> 4)] = 1;
+                        }
                     }
                 }
 
@@ -843,13 +859,23 @@ bool GGWave::encode(const CBWaveformOut & cbWaveformOut) {
             std::fill(m_tx->dataBits.begin(), m_tx->dataBits.end(), 0);
 
             for (int j = 0; j < m_tx->txProtocol.bytesPerTx; ++j) {
-                {
-                    uint8_t d = m_dataEncoded[dataOffset + j] & 15;
-                    m_tx->dataBits[(2*j + 0)*16 + d] = 1;
-                }
-                {
-                    uint8_t d = m_dataEncoded[dataOffset + j] & 240;
-                    m_tx->dataBits[(2*j + 1)*16 + (d >> 4)] = 1;
+                if (m_tx->txProtocol.extra == 1) {
+                    {
+                        uint8_t d = m_dataEncoded[dataOffset + j] & 15;
+                        m_tx->dataBits[(2*j + 0)*16 + d] = 1;
+                    }
+                    {
+                        uint8_t d = m_dataEncoded[dataOffset + j] & 240;
+                        m_tx->dataBits[(2*j + 1)*16 + (d >> 4)] = 1;
+                    }
+                } else {
+                    if (dataOffset % m_tx->txProtocol.extra == 0) {
+                        uint8_t d = m_dataEncoded[dataOffset/m_tx->txProtocol.extra + j] & 15;
+                        m_tx->dataBits[(2*j + 0)*16 + d] = 1;
+                    } else {
+                        uint8_t d = m_dataEncoded[dataOffset/m_tx->txProtocol.extra + j] & 240;
+                        m_tx->dataBits[(2*j + 0)*16 + (d >> 4)] = 1;
+                    }
                 }
             }
 
@@ -1406,6 +1432,11 @@ void GGWave::decode_variable() {
             const auto & rxProtocolId = rxProtocolPair.first;
             const auto & rxProtocol = rxProtocolPair.second;
 
+            // skip Rx protocol if it is mono-tone
+            if (rxProtocol.extra == 2) {
+                continue;
+            }
+
             // skip Rx protocol if start frequency is different from detected one
             if (rxProtocol.freqStart != m_rx->markerFreqStart) {
                 continue;
@@ -1664,13 +1695,14 @@ void GGWave::decode_fixed() {
 
         const int binStart = rxProtocol.freqStart;
         const int binDelta = 16;
+        const int binOffset = rxProtocol.extra == 1 ? binDelta : 0;
 
         if (binStart > m_samplesPerFrame) {
             continue;
         }
 
         const int totalLength = m_payloadLength + getECCBytesForLength(m_payloadLength);
-        const int totalTxs = (totalLength + rxProtocol.bytesPerTx - 1)/rxProtocol.bytesPerTx;
+        const int totalTxs = rxProtocol.extra*((totalLength + rxProtocol.bytesPerTx - 1)/rxProtocol.bytesPerTx);
 
         int historyStartId = m_rx->historyIdFixed - totalTxs*rxProtocol.framesPerTx;
         if (historyStartId < 0) {
@@ -1685,7 +1717,9 @@ void GGWave::decode_fixed() {
         bool detectedSignal = true;
 
         for (int k = 0; k < totalTxs; ++k) {
-            std::fill(m_rx->detectedTones.begin(), m_rx->detectedTones.begin() + 16*nTones, 0);
+            if (k % rxProtocol.extra == 0) {
+                std::fill(m_rx->detectedTones.begin(), m_rx->detectedTones.begin() + 16*nTones, 0);
+            }
 
             for (int i = 0; i < rxProtocol.framesPerTx; ++i) {
                 int historyId = historyStartId + k*rxProtocol.framesPerTx + i;
@@ -1711,7 +1745,7 @@ void GGWave::decode_fixed() {
                         }
 
                         {
-                            const auto & v = m_rx->spectrumHistoryFixed[historyId][binStart + 2*j*binDelta + binDelta + b];
+                            const auto & v = m_rx->spectrumHistoryFixed[historyId][binStart + 2*j*binDelta + binOffset + b];
 
                             if (f1max <= v) {
                                 f1max = v;
@@ -1720,23 +1754,25 @@ void GGWave::decode_fixed() {
                         }
                     }
 
-                    m_rx->detectedTones[(2*j + 0)*16 + f0bin]++;
-                    m_rx->detectedTones[(2*j + 1)*16 + f1bin]++;
+                    if ((k + 0)%rxProtocol.extra == 0) m_rx->detectedTones[(2*j + 0)*16 + f0bin]++;
+                    if ((k + 1)%rxProtocol.extra == 0) m_rx->detectedTones[(2*j + 1)*16 + f1bin]++;
                 }
             }
+
+            if (rxProtocol.extra > 1 && (k % rxProtocol.extra == 0)) continue;
 
             int txNeeded = 0;
             int txDetected = 0;
             for (int j = 0; j < rxProtocol.bytesPerTx; ++j) {
-                if (k*rxProtocol.bytesPerTx + j >= totalLength) break;
+                if ((k/rxProtocol.extra)*rxProtocol.bytesPerTx + j >= totalLength) break;
                 txNeeded += 2;
                 for (int b = 0; b < 16; ++b) {
                     if (m_rx->detectedTones[(2*j + 0)*16 + b] > rxProtocol.framesPerTx/2) {
-                        m_rx->detectedBins[2*(k*rxProtocol.bytesPerTx + j) + 0] = b;
+                        m_rx->detectedBins[2*((k/rxProtocol.extra)*rxProtocol.bytesPerTx + j) + 0] = b;
                         txDetected++;
                     }
                     if (m_rx->detectedTones[(2*j + 1)*16 + b] > rxProtocol.framesPerTx/2) {
-                        m_rx->detectedBins[2*(k*rxProtocol.bytesPerTx + j) + 1] = b;
+                        m_rx->detectedBins[2*((k/rxProtocol.extra)*rxProtocol.bytesPerTx + j) + 1] = b;
                         txDetected++;
                     }
                 }
@@ -1759,6 +1795,7 @@ void GGWave::decode_fixed() {
 
             if (rsData.Decode(m_dataEncoded.data(), m_rx->rxData.data()) == 0) {
                 if (m_rx->rxData[0] != 0) {
+                    ggprintf("Decoded length = %d, protocol = '%s' (%d)\n", m_rx->rxData[0], rxProtocol.name, rxProtocolId);
                     ggprintf("Received sound data successfully: '%s'\n", m_rx->rxData.data());
 
                     isValid = true;

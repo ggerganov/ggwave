@@ -41,7 +41,7 @@ int main(int argc, char** argv) {
         printf("    -t%d : %s\n", protocol.first, protocol.second.name);
     }
 
-    if (txProtocolId < 0 || txProtocolId > (int) ggWave->getTxProtocols().size()) {
+    if (txProtocolId < 0) {
         fprintf(stderr, "Unknown Tx protocol %d\n", txProtocolId);
         return -3;
     }

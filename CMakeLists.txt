@@ -13,10 +13,10 @@ if(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
     include(cmake/BuildTypes.cmake)
 
     # configure project version
-    configure_file(${CMAKE_SOURCE_DIR}/README-tmpl.md ${CMAKE_SOURCE_DIR}/README.md @ONLY)
-    configure_file(${CMAKE_SOURCE_DIR}/bindings/python/setup-tmpl.py ${CMAKE_SOURCE_DIR}/bindings/python/setup.py @ONLY)
+    configure_file(${CMAKE_SOURCE_DIR}/README-tmpl.md                        ${CMAKE_SOURCE_DIR}/README.md @ONLY)
+    configure_file(${CMAKE_SOURCE_DIR}/bindings/python/setup-tmpl.py         ${CMAKE_SOURCE_DIR}/bindings/python/setup.py @ONLY)
     configure_file(${CMAKE_SOURCE_DIR}/bindings/javascript/package-tmpl.json ${CMAKE_SOURCE_DIR}/bindings/javascript/package.json @ONLY)
-    configure_file(${CMAKE_SOURCE_DIR}/bindings/ios/Makefile-tmpl ${CMAKE_SOURCE_DIR}/bindings/ios/Makefile @ONLY)
+    configure_file(${CMAKE_SOURCE_DIR}/bindings/ios/Makefile-tmpl            ${CMAKE_SOURCE_DIR}/bindings/ios/Makefile @ONLY)
 else()
     set(GGWAVE_STANDALONE OFF)
 endif()

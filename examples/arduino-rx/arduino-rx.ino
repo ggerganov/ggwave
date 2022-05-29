@@ -57,7 +57,9 @@ void loop() {
     p.payloadLength = 16;
     p.operatingMode = GGWAVE_OPERATING_MODE_ONLY_RX;
     GGWave instance(p);
-    instance.setRxProtocols({{GGWAVE_TX_PROTOCOL_DT_FASTEST, instance.getTxProtocol(GGWAVE_TX_PROTOCOL_DT_FASTEST)}});
+    instance.setRxProtocols({
+            { GGWAVE_TX_PROTOCOL_DT_FASTEST, instance.getTxProtocol(GGWAVE_TX_PROTOCOL_DT_FASTEST) },
+            });
     Serial.println("Instance initialized");
 
     static GGWave::CBWaveformInp cbWaveformInp = [&](void * data, uint32_t nMaxBytes) {

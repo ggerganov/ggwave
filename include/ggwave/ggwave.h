@@ -57,10 +57,11 @@ extern "C" {
         GGWAVE_TX_PROTOCOL_CUSTOM_9,
     } ggwave_TxProtocolId;
 
+    // Operating modes of ggwave
     typedef enum {
         GGWAVE_OPERATING_MODE_BOTH_RX_AND_TX,
         GGWAVE_OPERATING_MODE_ONLY_RX,
-        //GGWAVE_OPERATING_MODE_ONLY_TX, // Not supported yet
+        GGWAVE_OPERATING_MODE_ONLY_TX,
     } ggwave_OperatingMode;
 
     // GGWave instance parameters
@@ -318,10 +319,11 @@ public:
     static constexpr auto kMaxSpectrumHistory = 4;
     static constexpr auto kMaxRecordedFrames = 2048;
 
-    using Parameters   = ggwave_Parameters;
-    using SampleFormat = ggwave_SampleFormat;
-    using TxProtocolId = ggwave_TxProtocolId;
-    using RxProtocolId = ggwave_TxProtocolId;
+    using Parameters    = ggwave_Parameters;
+    using SampleFormat  = ggwave_SampleFormat;
+    using TxProtocolId  = ggwave_TxProtocolId;
+    using RxProtocolId  = ggwave_TxProtocolId;
+    using OperatingMode = ggwave_OperatingMode;
 
     struct TxProtocol {
         const char * name;  // string identifier of the protocol
@@ -518,14 +520,17 @@ private:
 
     const float m_soundMarkerThreshold;
 
-    // common
+    const bool m_isFixedPayloadLength;
+    const int m_payloadLength;
 
-    bool m_isFixedPayloadLength;
-    int m_payloadLength;
+    const bool m_isRxEnabled;
+    const bool m_isTxEnabled;
+    const bool m_needResampling;
+
+    // common
     TxRxData m_dataEncoded;
 
     // Rx
-    bool m_isRxEnabled;
     bool m_receivingData;
     bool m_analyzingData;
 
@@ -566,7 +571,6 @@ private:
     std::vector<SpectrumData> m_spectrumHistoryFixed;
 
     // Tx
-    bool m_isTxEnabled;
     bool m_hasNewTxData;
     float m_sendVolume;
 

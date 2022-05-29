@@ -655,7 +655,7 @@ void updateCore() {
                 GGWave::kDefaultSoundMarkerThreshold,
                 sampleFormatInpOld,
                 sampleFormatOutOld,
-                GGWAVE_OPERATING_MODE_BOTH_RX_AND_TX,
+                (GGWave::OperatingMode) (GGWAVE_OPERATING_MODE_RX | GGWAVE_OPERATING_MODE_TX),
             };
 
             GGWave_reset(&parameters);

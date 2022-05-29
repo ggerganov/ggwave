@@ -80,7 +80,7 @@ int main(int argc, char** argv) {
         GGWave::kDefaultSoundMarkerThreshold,
         GGWAVE_SAMPLE_FORMAT_F32,
         GGWAVE_SAMPLE_FORMAT_I16,
-        GGWAVE_OPERATING_MODE_BOTH_RX_AND_TX,
+        GGWAVE_OPERATING_MODE_RX_AND_TX,
     });
     ggWave.init(message.size(), message.data(), ggWave.getTxProtocol(protocolId), volume);
 

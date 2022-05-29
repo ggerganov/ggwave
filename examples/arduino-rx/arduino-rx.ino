@@ -52,7 +52,7 @@ void loop() {
     p.sampleRate = frequency;
     p.sampleFormatInp = GGWAVE_SAMPLE_FORMAT_I16;
     p.samplesPerFrame = 128;
-    p.payloadLength = 4;
+    p.payloadLength = 16;
     p.operatingMode = GGWAVE_OPERATING_MODE_RX;
 
     GGWave ggwave(p);

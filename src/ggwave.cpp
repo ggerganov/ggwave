@@ -389,7 +389,7 @@ struct GGWave::Rx {
 
     int historyIdFixed = 0;
 
-    std::vector<SpectrumData> spectrumHistoryFixed;
+    std::vector<std::vector<uint8_t>> spectrumHistoryFixed;
     std::vector<uint8_t> detectedBins;
     std::vector<uint8_t> detectedTones;
 };
@@ -1675,14 +1675,20 @@ void GGWave::decode_fixed() {
     // calculate spectrum
     FFT(m_rx->sampleAmplitude.data(), m_rx->fftOut.data(), m_samplesPerFrame, 1.0);
 
+    float amax = 0.0f;
     for (int i = 0; i < m_samplesPerFrame; ++i) {
         m_rx->sampleSpectrum[i] = (m_rx->fftOut[2*i + 0]*m_rx->fftOut[2*i + 0] + m_rx->fftOut[2*i + 1]*m_rx->fftOut[2*i + 1]);
     }
     for (int i = 1; i < m_samplesPerFrame/2; ++i) {
         m_rx->sampleSpectrum[i] += m_rx->sampleSpectrum[m_samplesPerFrame - i];
+        amax = std::max(amax, m_rx->sampleSpectrum[i]);
     }
 
-    m_rx->spectrumHistoryFixed[m_rx->historyIdFixed] = m_rx->sampleSpectrum;
+    // float -> uint8_t
+    //m_rx->spectrumHistoryFixed[m_rx->historyIdFixed] = m_rx->sampleSpectrum;
+    for (int i = 0; i < m_samplesPerFrame; ++i) {
+        m_rx->spectrumHistoryFixed[m_rx->historyIdFixed][i] = std::min(255.0f, std::max(0.0f, std::round(m_rx->sampleSpectrum[i]/amax*255.0f)));
+    }
 
     if (++m_rx->historyIdFixed >= (int) m_rx->spectrumHistoryFixed.size()) {
         m_rx->historyIdFixed = 0;

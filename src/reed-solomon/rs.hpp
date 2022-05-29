@@ -12,7 +12,6 @@
 #include <assert.h>
 #include <string.h>
 #include <stdint.h>
-#include <vector>
 
 namespace RS {
 
@@ -24,12 +23,26 @@ public:
     const uint8_t msg_length;
     const uint8_t ecc_length;
 
+    uint8_t * heap_memory = nullptr;
     uint8_t * generator_cache = nullptr;
-    bool    generator_cached = false;
+    bool owns_heap_memory = false;
+    bool generator_cached = false;
 
-    ReedSolomon(uint8_t msg_length_p, uint8_t ecc_length_p) :
+    // used to pre-allocate a memory buffer for the Reed-Solomon class in order to avoid memory allocations
+    static size_t getWorkSize_bytes(uint8_t msg_length, uint8_t ecc_length) {
+        return ecc_length + 1 + MSG_CNT * msg_length + POLY_CNT * ecc_length * 2;
+    }
+
+    ReedSolomon(uint8_t msg_length_p, uint8_t ecc_length_p, uint8_t * heap_memory_p = nullptr) :
         msg_length(msg_length_p), ecc_length(ecc_length_p) {
-        generator_cache = new uint8_t[ecc_length + 1];
+        if (heap_memory_p) {
+            heap_memory = heap_memory_p;
+            owns_heap_memory = false;
+        } else {
+            heap_memory = new uint8_t[getWorkSize_bytes(msg_length, ecc_length)];
+            owns_heap_memory = true;
+        }
+        generator_cache = heap_memory;
 
         const uint8_t   enc_len  = msg_length + ecc_length;
         const uint8_t   poly_len = ecc_length * 2;
@@ -59,7 +72,9 @@ public:
     }
 
     ~ReedSolomon() {
-        delete [] generator_cache;
+        if (owns_heap_memory) {
+            delete[] heap_memory;
+        }
         // Dummy destructor, gcc-generated one crashes programm
         memory = NULL;
     }
@@ -75,8 +90,7 @@ public:
         //this->memory = stack_memory;
 
         // gg : allocation is now on the heap
-        std::vector<uint8_t> stack_memory(MSG_CNT * msg_length + POLY_CNT * ecc_length * 2);
-        this->memory = stack_memory.data();
+        this->memory = heap_memory + ecc_length + 1;
 
         const uint8_t* src_ptr = (const uint8_t*) src;
         uint8_t* dst_ptr = (uint8_t*) dst;
@@ -155,8 +169,7 @@ public:
         //this->memory = stack_memory;
 
         // gg : allocation is now on the heap
-        std::vector<uint8_t> stack_memory(MSG_CNT * msg_length + POLY_CNT * ecc_length * 2);
-        this->memory = stack_memory.data();
+        this->memory = heap_memory + ecc_length + 1;
 
         Poly *msg_in  = &polynoms[ID_MSG_IN];
         Poly *msg_out = &polynoms[ID_MSG_OUT];

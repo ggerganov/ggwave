@@ -173,14 +173,6 @@ bool GGWave_mainLoop() {
         return false;
     }
 
-    static GGWave::CBWaveformOut cbQueueAudio = [&](const void * data, uint32_t nBytes) {
-        SDL_QueueAudio(g_devIdOut, data, nBytes);
-    };
-
-    static GGWave::CBWaveformInp cbWaveformInp = [&](void * data, uint32_t nMaxBytes) {
-        return SDL_DequeueAudio(g_devIdInp, data, nMaxBytes);
-    };
-
     SDL_PauseAudioDevice(g_devIdInp, SDL_FALSE);
     if (!g_isCapturing) {
         SDL_ClearQueuedAudio(g_devIdInp);
@@ -190,7 +182,7 @@ bool GGWave_mainLoop() {
     static float data[g_nSamplesPerFrame];
     static float out[2*g_nSamplesPerFrame];
     do {
-        n = cbWaveformInp(data, sizeof(float)*g_nSamplesPerFrame);
+        n = SDL_DequeueAudio(g_devIdInp, data, sizeof(float)*g_nSamplesPerFrame);
         if (n <= 0) break;
 
         FFT(data, out, g_nSamplesPerFrame, 1.0);

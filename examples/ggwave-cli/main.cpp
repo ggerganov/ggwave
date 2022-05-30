@@ -62,11 +62,11 @@ int main(int argc, char** argv) {
 
                 if (printTones) {
                     printf("Printing generated waveform tones (Hz):\n");
-                    auto waveformTones = ggWave->getWaveformTones();
-                    for (int i = 0; i < (int) waveformTones.size(); ++i) {
+                    const auto tones = ggWave->txTones();
+                    for (int i = 0; i < (int) tones.size(); ++i) {
                         printf(" - frame %3d: ", i);
-                        for (int j = 0; j < (int) waveformTones[i].size(); ++j) {
-                            printf("%8.2f ", waveformTones[i][j].freq_hz);
+                        for (int j = 0; j < (int) tones[i].size(); ++j) {
+                            printf("%8.2f ", tones[i][j].freq_hz);
                         }
                         printf("\n");
                     }

@@ -152,7 +152,8 @@ extern "C" {
     //   volume         - the volume of the generated waveform [0, 100]
     //                    usually 25 is OK and you should not go over 50
     //   outputBuffer   - the generated audio waveform. must be big enough to fit the generated data
-    //   query          - if != 0, do not perform encoding.
+    //   query          - if == 0, encode data in to outputBuffer, returns number of bytes
+    //                    if != 0, do not perform encoding.
     //                    if == 1, return waveform size in bytes
     //                    if != 1, return waveform size in samples
     //
@@ -300,7 +301,6 @@ extern "C" {
 //
 
 #include <cstdint>
-#include <functional>
 #include <vector>
 #include <map>
 
@@ -367,17 +367,14 @@ public:
         float duration_ms;
     };
 
-    using Tones         = std::vector<ToneData>;
-    using WaveformTones = std::vector<Tones>;
+    using TonesPerFrame = std::vector<ToneData>;
+    using Tones = std::vector<TonesPerFrame>;
 
     using AmplitudeData    = std::vector<float>;
     using AmplitudeDataI16 = std::vector<int16_t>;
     using SpectrumData     = std::vector<float>;
     using RecordedData     = std::vector<float>;
     using TxRxData         = std::vector<uint8_t>;
-
-    using CBWaveformOut = std::function<void(const void * data, uint32_t nBytes)>;
-    using CBWaveformInp = std::function<uint32_t(void * data, uint32_t nMaxBytes)>;
 
     GGWave(const Parameters & parameters);
     ~GGWave();
@@ -425,14 +422,16 @@ public:
     //
     //   returns false if the encoding fails
     //
-    bool encode(const CBWaveformOut & cbWaveformOut);
+    uint32_t encode();
+
+    const void * txData() const;
 
     // decode an audio waveform
     //
     //   This methods calls cbWaveformInp multiple times (at least once) until it returns 0.
     //   Use the Rx methods to check if any data was decoded successfully.
     //
-    void decode(const CBWaveformInp & cbWaveformInp);
+    bool decode(const void * data, uint32_t nBytes);
 
     // instance state
     bool hasTxData() const;
@@ -456,7 +455,7 @@ public:
     //
     //   Call this method after calling encode() to get a list of the tones participating in the generated waveform
     //
-    const WaveformTones & getWaveformTones() const;
+    const Tones & txTones() const;
 
     bool takeTxAmplitudeI16(AmplitudeDataI16 & dst);
 

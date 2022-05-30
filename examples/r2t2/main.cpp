@@ -132,14 +132,12 @@ int main(int argc, char** argv) {
     }
 
     ggWave.init(message.size(), message.data(), protocols.at(GGWave::TxProtocolId(txProtocolId)), 10);
-
-    GGWave::CBWaveformOut tmp = [](const void * , uint32_t ){};
-    ggWave.encode(tmp);
+    ggWave.encode();
 
     int nFrames = 0;
     double lastF = -1.0f;
 
-    auto tones = ggWave.getWaveformTones();
+    auto tones = ggWave.txTones();
     for (auto & tonesCur : tones) {
         if (tonesCur.size() == 0) continue;
         const auto & tone = tonesCur.front();

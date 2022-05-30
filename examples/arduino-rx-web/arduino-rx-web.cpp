@@ -16,6 +16,7 @@
 #include <chrono>
 #include <string>
 #include <thread>
+#include <functional>
 
 namespace {
 
@@ -257,14 +258,6 @@ bool GGWave_mainLoop() {
         return false;
     }
 
-    static GGWave::CBWaveformOut cbWaveformOut = [&](const void * data, uint32_t nBytes) {
-        SDL_QueueAudio(g_devIdOut, data, nBytes);
-    };
-
-    static GGWave::CBWaveformInp cbWaveformInp = [&](void * data, uint32_t nMaxBytes) {
-        return SDL_DequeueAudio(g_devIdInp, data, nMaxBytes);
-    };
-
     if (g_ggWave->hasTxData() == false) {
         SDL_PauseAudioDevice(g_devIdOut, SDL_FALSE);
 
@@ -273,22 +266,29 @@ bool GGWave_mainLoop() {
 
         if ((int) SDL_GetQueuedAudioSize(g_devIdOut) < g_ggWave->getSamplesPerFrame()*g_ggWave->getSampleSizeBytesOut()) {
             SDL_PauseAudioDevice(g_devIdInp, SDL_FALSE);
-            if (::getTime_ms(tLastNoData, tNow) > 500.0f) {
-                g_ggWave->decode(cbWaveformInp);
+            const int nHave = (int) SDL_GetQueuedAudioSize(g_devIdInp);
+            const int nNeed = g_ggWave->getSamplesPerFrame()*g_ggWave->getSampleSizeBytesInp();
+            if (::getTime_ms(tLastNoData, tNow) > 500.0f && nHave >= nNeed) {
+                static std::vector<uint8_t> dataInp(nNeed);
+                SDL_DequeueAudio(g_devIdInp, dataInp.data(), nNeed);
 
-                GGWave::TxRxData rxData;
-                int n = g_ggWave->takeRxData(rxData);
-                if (n > 0) {
-                    for (int i = 0; i < n; i++) {
-                        rxData[i] ^= kDSSMagic[i%kDSSMagic.size()];
+                if (g_ggWave->decode(dataInp.data(), dataInp.size()) == false) {
+                    fprintf(stderr, "Warning: failed to decode input data!\n");
+                } else {
+                    GGWave::TxRxData rxData;
+                    int n = g_ggWave->takeRxData(rxData);
+                    if (n > 0) {
+                        for (int i = 0; i < n; i++) {
+                            rxData[i] ^= kDSSMagic[i%kDSSMagic.size()];
+                        }
+                        std::time_t timestamp = std::time(nullptr);
+                        std::string tstr = std::asctime(std::localtime(&timestamp));
+                        tstr.back() = 0;
+                        printf("[%s] Received: '%s'\n", tstr.c_str(), rxData.data());
                     }
-                    std::time_t timestamp = std::time(nullptr);
-                    std::string tstr = std::asctime(std::localtime(&timestamp));
-                    tstr.back() = 0;
-                    printf("[%s] Received: '%s'\n", tstr.c_str(), rxData.data());
                 }
 
-                if ((int) SDL_GetQueuedAudioSize(g_devIdInp) > 32*g_ggWave->getSamplesPerFrame()*g_ggWave->getSampleSizeBytesInp()) {
+                if (nHave > 32*nNeed) {
                     fprintf(stderr, "Warning: slow processing, clearing queued audio buffer of %d bytes ...", SDL_GetQueuedAudioSize(g_devIdInp));
                     SDL_ClearQueuedAudio(g_devIdInp);
                 }
@@ -302,7 +302,8 @@ bool GGWave_mainLoop() {
         SDL_PauseAudioDevice(g_devIdOut, SDL_TRUE);
         SDL_PauseAudioDevice(g_devIdInp, SDL_TRUE);
 
-        g_ggWave->encode(cbWaveformOut);
+        const auto nBytes = g_ggWave->encode();
+        SDL_QueueAudio(g_devIdOut, g_ggWave->txData(), nBytes);
     }
 
     return true;

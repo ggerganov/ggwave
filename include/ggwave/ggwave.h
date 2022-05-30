@@ -436,16 +436,16 @@ public:
     void decode(const CBWaveformInp & cbWaveformInp);
 
     // instance state
-    const bool & hasTxData() const;
+    bool hasTxData() const;
 
-    const int & getSamplesPerFrame()    const;
-    const int & getSampleSizeBytesInp() const;
-    const int & getSampleSizeBytesOut() const;
+    int getSamplesPerFrame()    const;
+    int getSampleSizeBytesInp() const;
+    int getSampleSizeBytesOut() const;
 
-    const float & getSampleRateInp() const;
-    const float & getSampleRateOut() const;
-    const SampleFormat & getSampleFormatInp() const;
-    const SampleFormat & getSampleFormatOut() const;
+    float getSampleRateInp() const;
+    float getSampleRateOut() const;
+    SampleFormat getSampleFormatInp() const;
+    SampleFormat getSampleFormatOut() const;
 
     // Tx
     static TxProtocolId getDefaultTxProtocolId()     { return GGWAVE_TX_PROTOCOL_AUDIBLE_FAST; }
@@ -462,13 +462,13 @@ public:
     bool takeTxAmplitudeI16(AmplitudeDataI16 & dst);
 
     // Rx
-    const bool & isReceiving() const;
-    const bool & isAnalyzing() const;
+    bool isReceiving() const;
+    bool isAnalyzing() const;
 
-    const int & getFramesToRecord()      const;
-    const int & getFramesLeftToRecord()  const;
-    const int & getFramesToAnalyze()     const;
-    const int & getFramesLeftToAnalyze() const;
+    int getFramesToRecord()      const;
+    int getFramesLeftToRecord()  const;
+    int getFramesToAnalyze()     const;
+    int getFramesLeftToAnalyze() const;
 
     bool stopReceiving();
     void setRxProtocols(const RxProtocols & rxProtocols);

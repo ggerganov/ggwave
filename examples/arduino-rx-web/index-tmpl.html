@@ -58,7 +58,7 @@
             </div>
         </div>
 
-        <script type="text/javascript" src="ggwave-mod.js"></script>
+        <script type="text/javascript" src="ggwave.js"></script>
         <script type='text/javascript'>
             window.AudioContext = window.AudioContext || window.webkitAudioContext;
             window.OfflineAudioContext = window.OfflineAudioContext || window.webkitOfflineAudioContext;
@@ -132,7 +132,7 @@
                 }
 
                 // generate audio waveform
-                var waveform = ggwave.encode(instance, payload, ggwave.TxProtocolId.GGWAVE_TX_PROTOCOL_DT_FASTEST, 25)
+                var waveform = ggwave.encode(instance, payload, ggwave.TxProtocolId.GGWAVE_TX_PROTOCOL_MT_FASTEST, 25)
 
                 // play audio
                 var buf = convertTypedArray(waveform, Float32Array);

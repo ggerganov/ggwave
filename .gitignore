@@ -1,6 +1,7 @@
 build
 build-*
 compile_commands.json
+.exrc
 .clangd
 .cache
 .vimspector.json

@@ -643,6 +643,10 @@ bool GGWave::init(int dataSize, const char * dataBuffer, const TxProtocol & txPr
         if (m_isFixedPayloadLength) {
             m_tx->txDataLength = m_payloadLength;
         }
+    } else {
+        if (dataSize > 0) {
+            ggprintf("Tx is disabled - cannot transmit data with this ggwave instance\n");
+        }
     }
 
     // Rx
@@ -703,6 +707,11 @@ uint32_t GGWave::encodeSize_samples() const {
 }
 
 bool GGWave::encode(const CBWaveformOut & cbWaveformOut) {
+    if (m_isTxEnabled == false) {
+        ggprintf("Tx is disabled - cannot transmit data with this ggwave instance\n");
+        return false;
+    }
+
     if (m_resampler) {
         m_resampler->reset();
     }
@@ -991,7 +1000,12 @@ bool GGWave::encode(const CBWaveformOut & cbWaveformOut) {
 }
 
 void GGWave::decode(const CBWaveformInp & cbWaveformInp) {
-    while (m_tx->hasNewTxData == false) {
+    if (m_isRxEnabled == false) {
+        ggprintf("Rx is disabled - cannot receive data with this ggwave instance\n");
+        return;
+    }
+
+    while (!m_tx || m_tx->hasNewTxData == false) {
         // read capture data
         float factor = m_sampleRateInp/m_sampleRate;
         uint32_t nBytesNeeded = m_rx->samplesNeeded*m_sampleSizeBytesInp;
@@ -1123,16 +1137,16 @@ void GGWave::decode(const CBWaveformInp & cbWaveformInp) {
 // instance state
 //
 
-const bool & GGWave::hasTxData() const { return m_tx->hasNewTxData; }
+bool GGWave::hasTxData() const { return m_tx && m_tx->hasNewTxData; }
 
-const int & GGWave::getSamplesPerFrame()    const { return m_samplesPerFrame; }
-const int & GGWave::getSampleSizeBytesInp() const { return m_sampleSizeBytesInp; }
-const int & GGWave::getSampleSizeBytesOut() const { return m_sampleSizeBytesOut; }
+int GGWave::getSamplesPerFrame()    const { return m_samplesPerFrame; }
+int GGWave::getSampleSizeBytesInp() const { return m_sampleSizeBytesInp; }
+int GGWave::getSampleSizeBytesOut() const { return m_sampleSizeBytesOut; }
 
-const float & GGWave::getSampleRateInp() const { return m_sampleRateInp; }
-const float & GGWave::getSampleRateOut() const { return m_sampleRateOut; }
-const GGWave::SampleFormat & GGWave::getSampleFormatInp() const { return m_sampleFormatInp; }
-const GGWave::SampleFormat & GGWave::getSampleFormatOut() const { return m_sampleFormatOut; }
+float GGWave::getSampleRateInp() const { return m_sampleRateInp; }
+float GGWave::getSampleRateOut() const { return m_sampleRateOut; }
+GGWave::SampleFormat GGWave::getSampleFormatInp() const { return m_sampleFormatInp; }
+GGWave::SampleFormat GGWave::getSampleFormatOut() const { return m_sampleFormatOut; }
 
 //
 // Tx
@@ -1156,13 +1170,13 @@ bool GGWave::takeTxAmplitudeI16(AmplitudeDataI16 & dst) {
 // Rx
 //
 
-const bool & GGWave::isReceiving() const { return m_rx->receivingData; }
-const bool & GGWave::isAnalyzing() const { return m_rx->analyzingData; }
+bool GGWave::isReceiving() const { return m_rx->receivingData; }
+bool GGWave::isAnalyzing() const { return m_rx->analyzingData; }
 
-const int & GGWave::getFramesToRecord()      const { return m_rx->framesToRecord; }
-const int & GGWave::getFramesLeftToRecord()  const { return m_rx->framesLeftToRecord; }
-const int & GGWave::getFramesToAnalyze()     const { return m_rx->framesToAnalyze; }
-const int & GGWave::getFramesLeftToAnalyze() const { return m_rx->framesLeftToAnalyze; }
+int GGWave::getFramesToRecord()      const { return m_rx->framesToRecord; }
+int GGWave::getFramesLeftToRecord()  const { return m_rx->framesLeftToRecord; }
+int GGWave::getFramesToAnalyze()     const { return m_rx->framesToAnalyze; }
+int GGWave::getFramesLeftToAnalyze() const { return m_rx->framesLeftToAnalyze; }
 
 bool GGWave::stopReceiving() {
     if (m_rx->receivingData == false) {

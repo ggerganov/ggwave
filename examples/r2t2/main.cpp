@@ -53,12 +53,12 @@ int main(int argc, char** argv) {
     printf("\n");
 
     const GGWave::TxProtocols protocols = {
-        { GGWAVE_TX_PROTOCOL_CUSTOM_0, { "[R2T2] Normal",      64,  9, 1, } },
-        { GGWAVE_TX_PROTOCOL_CUSTOM_1, { "[R2T2] Fast",        64,  6, 1, } },
-        { GGWAVE_TX_PROTOCOL_CUSTOM_2, { "[R2T2] Fastest",     64,  3, 1, } },
-        { GGWAVE_TX_PROTOCOL_CUSTOM_3, { "[R2T2] Low Normal",  16,  9, 1, } },
-        { GGWAVE_TX_PROTOCOL_CUSTOM_4, { "[R2T2] Low Fast",    16,  6, 1, } },
-        { GGWAVE_TX_PROTOCOL_CUSTOM_5, { "[R2T2] Low Fastest", 16,  3, 1, } },
+        { GGWAVE_TX_PROTOCOL_CUSTOM_0, { "[R2T2] Normal",      64,  9, 1, 2, } },
+        { GGWAVE_TX_PROTOCOL_CUSTOM_1, { "[R2T2] Fast",        64,  6, 1, 2, } },
+        { GGWAVE_TX_PROTOCOL_CUSTOM_2, { "[R2T2] Fastest",     64,  3, 1, 2, } },
+        { GGWAVE_TX_PROTOCOL_CUSTOM_3, { "[R2T2] Low Normal",  16,  9, 1, 2, } },
+        { GGWAVE_TX_PROTOCOL_CUSTOM_4, { "[R2T2] Low Fast",    16,  6, 1, 2, } },
+        { GGWAVE_TX_PROTOCOL_CUSTOM_5, { "[R2T2] Low Fastest", 16,  3, 1, 2, } },
     };
 
     const auto argm = parseCmdArguments(argc, argv);
@@ -70,12 +70,15 @@ int main(int argc, char** argv) {
 
     GGWave ggWave({
         payloadLength,
-        GGWave::kBaseSampleRate,
-        GGWave::kBaseSampleRate,
+        GGWave::kDefaultSampleRate,
+        GGWave::kDefaultSampleRate,
+        GGWave::kDefaultSampleRate,
         GGWave::kDefaultSamplesPerFrame,
         GGWave::kDefaultSoundMarkerThreshold,
         GGWAVE_SAMPLE_FORMAT_F32,
-        GGWAVE_SAMPLE_FORMAT_F32});
+        GGWAVE_SAMPLE_FORMAT_F32,
+        (ggwave_OperatingMode) (GGWAVE_OPERATING_MODE_TX | GGWAVE_OPERATING_MODE_TX_ONLY_TONES),
+    });
 
     printf("Available Tx protocols:\n");
     for (const auto & protocol : protocols) {

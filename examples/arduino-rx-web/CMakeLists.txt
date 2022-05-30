@@ -15,10 +15,10 @@ if (NOT EMSCRIPTEN)
 
     target_link_libraries(${TARGET} PRIVATE
         ggwave-common
-        ggwave-mod
+        ggwave
         ${SDL2_LIBRARIES}
         )
 else()
-    configure_file(${CMAKE_CURRENT_SOURCE_DIR}/index-tmpl.html               ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${TARGET}/index.html @ONLY)
-    configure_file(${CMAKE_SOURCE_DIR}/examples/ggwave-mod/src/ggwave-mod.js ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${TARGET}/ggwave-mod.js COPYONLY)
+    configure_file(${CMAKE_CURRENT_SOURCE_DIR}/index-tmpl.html       ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${TARGET}/index.html @ONLY)
+    configure_file(${CMAKE_SOURCE_DIR}/bindings/javascript/ggwave.js ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${TARGET}/ggwave.js COPYONLY)
 endif()

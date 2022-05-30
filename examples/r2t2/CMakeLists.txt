@@ -14,7 +14,7 @@ if (NOT EMSCRIPTEN)
 
     target_link_libraries(${TARGET} PRIVATE
         ggwave-common
-        ggwave-mod
+        ggwave
         )
 endif()
 
@@ -35,7 +35,7 @@ if (NOT EMSCRIPTEN)
 
     target_link_libraries(${TARGET} PRIVATE
         ggwave-common
-        ggwave-mod
+        ggwave
         ${SDL2_LIBRARIES}
         )
 else()
@@ -52,7 +52,7 @@ else()
 
     target_link_libraries(${TARGET} PRIVATE
         ggwave-common
-        ggwave-mod
+        ggwave
         )
 
     configure_file(${CMAKE_CURRENT_SOURCE_DIR}/index-tmpl.html ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/${TARGET}/index.html @ONLY)

@@ -79,9 +79,6 @@ if (GGWAVE_SUPPORT_SDL2)
         )
 endif()
 
-# modified ggwave used by some of the examples
-add_subdirectory(ggwave-mod/src)
-
 # examples
 
 if (EMSCRIPTEN)

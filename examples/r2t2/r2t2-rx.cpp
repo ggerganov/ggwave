@@ -128,7 +128,7 @@ bool GGWave_init(
         SDL_AudioSpec playbackSpec;
         SDL_zero(playbackSpec);
 
-        playbackSpec.freq = GGWave::kBaseSampleRate + sampleRateOffset;
+        playbackSpec.freq = GGWave::kDefaultSampleRate + sampleRateOffset;
         playbackSpec.format = AUDIO_S16SYS;
         playbackSpec.channels = 1;
         playbackSpec.samples = 16*1024;
@@ -171,7 +171,7 @@ bool GGWave_init(
     if (g_devIdInp == 0) {
         SDL_AudioSpec captureSpec;
         captureSpec = g_obtainedSpecOut;
-        captureSpec.freq = GGWave::kBaseSampleRate + sampleRateOffset;
+        captureSpec.freq = GGWave::kDefaultSampleRate + sampleRateOffset;
         captureSpec.format = AUDIO_F32SYS;
         captureSpec.samples = 1024;
 
@@ -228,10 +228,13 @@ bool GGWave_init(
             payloadLength,
             (float) g_obtainedSpecInp.freq,
             (float) g_obtainedSpecOut.freq,
+            GGWave::kDefaultSampleRate,
             GGWave::kDefaultSamplesPerFrame,
             GGWave::kDefaultSoundMarkerThreshold,
             sampleFormatInp,
-            sampleFormatOut});
+            sampleFormatOut,
+            GGWAVE_OPERATING_MODE_RX,
+        });
     }
 
     return true;
@@ -317,12 +320,12 @@ int main(int argc, char** argv) {
 #endif
 
     const GGWave::TxProtocols protocols = {
-        { GGWAVE_TX_PROTOCOL_CUSTOM_0, { "[R2T2] Normal",      64,  9, 1, } },
-        { GGWAVE_TX_PROTOCOL_CUSTOM_1, { "[R2T2] Fast",        64,  6, 1, } },
-        { GGWAVE_TX_PROTOCOL_CUSTOM_2, { "[R2T2] Fastest",     64,  3, 1, } },
-        { GGWAVE_TX_PROTOCOL_CUSTOM_3, { "[R2T2] Low Normal",  16,  9, 1, } },
-        { GGWAVE_TX_PROTOCOL_CUSTOM_4, { "[R2T2] Low Fast",    16,  6, 1, } },
-        { GGWAVE_TX_PROTOCOL_CUSTOM_5, { "[R2T2] Low Fastest", 16,  3, 1, } },
+        { GGWAVE_TX_PROTOCOL_CUSTOM_0, { "[R2T2] Normal",      64,  9, 1, 2, } },
+        { GGWAVE_TX_PROTOCOL_CUSTOM_1, { "[R2T2] Fast",        64,  6, 1, 2, } },
+        { GGWAVE_TX_PROTOCOL_CUSTOM_2, { "[R2T2] Fastest",     64,  3, 1, 2, } },
+        { GGWAVE_TX_PROTOCOL_CUSTOM_3, { "[R2T2] Low Normal",  16,  9, 1, 2, } },
+        { GGWAVE_TX_PROTOCOL_CUSTOM_4, { "[R2T2] Low Fast",    16,  6, 1, 2, } },
+        { GGWAVE_TX_PROTOCOL_CUSTOM_5, { "[R2T2] Low Fastest", 16,  3, 1, 2, } },
     };
 
     const auto argm = parseCmdArguments(argc, argv);

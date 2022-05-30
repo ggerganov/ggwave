@@ -8,7 +8,7 @@ const int kPinButton0 = 2;
 const int kPinButton1 = 4;
 
 void setup() {
-    Serial.begin(57600);
+    //Serial.begin(57600);
 
     //pinMode(kPinLed0,    OUTPUT);
     //pinMode(kPinSpeaker, OUTPUT);
@@ -63,20 +63,6 @@ bool isDown = false;
 
 void loop() {
     Serial.println("hello");
-
-    auto p = GGWave::getDefaultParameters();
-    p.sampleFormatInp = GGWAVE_SAMPLE_FORMAT_I16;
-    p.samplesPerFrame = 128;
-    p.payloadLength = 4;
-    p.operatingMode = (ggwave_OperatingMode) (GGWAVE_OPERATING_MODE_TX | GGWAVE_OPERATING_MODE_TX_ONLY_TONES);
-
-    GGWave::getTxProtocols() = GGWave::TxProtocols({{ "[MT] Fastest", 24,  3, 1, 2, true, }});
-    GGWave ggwave(p);
-
-    while (true) {
-        delay(1000);
-        Serial.println("working");
-    }
 
     //int but0 = digitalRead(kPinButton0);
     //int but1 = digitalRead(kPinButton1);

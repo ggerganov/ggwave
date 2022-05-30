@@ -19,8 +19,9 @@ int main(int argc, char** argv) {
     fprintf(stderr, "    Available protocols:\n");
 
     const auto & protocols = GGWave::getTxProtocols();
-    for (const auto & protocol : protocols) {
-        fprintf(stderr, "      %d - %s\n", protocol.first, protocol.second.name);
+    for (int i = 0; i < (int) protocols.size(); ++i) {
+        const auto & protocol = protocols[i];
+        fprintf(stderr, "      %d - %s\n", i, protocol.name);
     }
     fprintf(stderr, "\n");
 

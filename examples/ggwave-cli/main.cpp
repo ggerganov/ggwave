@@ -37,8 +37,9 @@ int main(int argc, char** argv) {
 
     printf("Available Tx protocols:\n");
     const auto & protocols = GGWave::getTxProtocols();
-    for (const auto & protocol : protocols) {
-        printf("    -t%d : %s\n", protocol.first, protocol.second.name);
+    for (int i = 0; i < (int) protocols.size(); ++i) {
+        const auto & protocol = protocols[i];
+        printf("      %d - %s\n", i, protocol.name);
     }
 
     if (txProtocolId < 0) {

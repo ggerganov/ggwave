@@ -870,9 +870,7 @@ void renderMain() {
         float volume = 0.10f;
 
         GGWave::TxProtocols txProtocols;
-
         GGWave::RxProtocols rxProtocols;
-        std::map<GGWave::RxProtocolId, bool> rxProtocolSelected;
     };
 
     static WindowId windowId = WindowId::Messages;
@@ -964,9 +962,6 @@ void renderMain() {
         if (stateCurrent.flags.newTxProtocols) {
             settings.txProtocols = std::move(stateCurrent.txProtocols);
             settings.rxProtocols = settings.txProtocols;
-            for (auto & rxProtocol : settings.rxProtocols) {
-                settings.rxProtocolSelected[rxProtocol.first] = true;
-            }
         }
         stateCurrent.flags.clear();
         stateCurrent.update = false;
@@ -1153,8 +1148,10 @@ void renderMain() {
         }
         if (ImGui::BeginCombo("##txProtocol", settings.txProtocols.at(GGWave::TxProtocolId(settings.protocolId)).name)) {
             for (int i = 0; i < (int) settings.txProtocols.size(); ++i) {
+                const auto & txProtocol = settings.txProtocols.at(GGWave::TxProtocolId(i));
+                if (txProtocol.name == nullptr) continue;
                 const bool isSelected = (settings.protocolId == i);
-                if (ImGui::Selectable(settings.txProtocols.at(GGWave::TxProtocolId(i)).name, isSelected)) {
+                if (ImGui::Selectable(txProtocol.name, isSelected)) {
                     settings.protocolId = i;
                 }
 
@@ -1289,11 +1286,12 @@ void renderMain() {
         }
         {
             ImGui::PushID("RxProtocols");
-            for (const auto & rxProtocol : settings.rxProtocols) {
+            for (auto & rxProtocol : settings.rxProtocols) {
+                if (rxProtocol.name == nullptr) continue;
                 auto posSave = ImGui::GetCursorScreenPos();
                 ImGui::Text("%s", "");
                 ImGui::SetCursorScreenPos({ posSave.x + kLabelWidth, posSave.y });
-                if (ImGui::Checkbox(rxProtocol.second.name, &settings.rxProtocolSelected.at(rxProtocol.first))) {
+                if (ImGui::Checkbox(rxProtocol.name, &rxProtocol.enabled)) {
                     updateRxProtocols = true;
                 }
             }
@@ -1303,11 +1301,7 @@ void renderMain() {
         if (updateRxProtocols) {
             g_buffer.inputUI.update = true;
             g_buffer.inputUI.flags.changeRxProtocols = true;
-            g_buffer.inputUI.rxProtocols.clear();
-            for (const auto & rxProtocol : settings.rxProtocols) {
-                if (settings.rxProtocolSelected.at(rxProtocol.first) == false) continue;
-                g_buffer.inputUI.rxProtocols[rxProtocol.first] = rxProtocol.second;
-            }
+            g_buffer.inputUI.rxProtocols = settings.rxProtocols;
         }
 
         ScrollWhenDraggingOnVoid(ImVec2(0.0f, -mouse_delta.y), ImGuiMouseButton_Left);

@@ -303,7 +303,6 @@ extern "C" {
 #include <functional>
 #include <vector>
 #include <map>
-#include <memory>
 
 class GGWave {
 public:
@@ -590,12 +589,12 @@ private:
 
     // Impl
     struct Rx;
-    std::unique_ptr<Rx> m_rx;
+    Rx * m_rx;
 
     struct Tx;
-    std::unique_ptr<Tx> m_tx;
+    Tx * m_tx;
 
-    std::unique_ptr<Resampler> m_resampler;
+    Resampler * m_resampler;
 };
 
 #endif

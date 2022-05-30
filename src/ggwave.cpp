@@ -3,9 +3,9 @@
 #include "reed-solomon/rs.hpp"
 
 #include <cstdio>
-#include <chrono>
 #include <cmath>
 #include <map>
+#include <ctime>
 //#include <random>
 
 #ifndef M_PI
@@ -320,11 +320,6 @@ inline void addAmplitudeSmooth(
     }
 }
 
-template <class T>
-float getTime_ms(const T & tStart, const T & tEnd) {
-    return ((float)(std::chrono::duration_cast<std::chrono::microseconds>(tEnd - tStart).count()))/1000.0;
-}
-
 int getECCBytesForLength(int len) {
     return len < 4 ? 2 : std::max(4, 2*(len/5));
 }
@@ -493,7 +488,7 @@ GGWave::GGWave(const Parameters & parameters) :
     }
 
     if (m_isRxEnabled) {
-        m_rx = std::unique_ptr<Rx>(new Rx());
+        m_rx = new Rx();
 
         m_rx->samplesNeeded = m_samplesPerFrame;
 
@@ -541,7 +536,7 @@ GGWave::GGWave(const Parameters & parameters) :
     }
 
     if (m_isTxEnabled) {
-        m_tx = std::unique_ptr<Tx>(new Tx());
+        m_tx = new Tx();
 
         const int maxDataBits = 2*16*maxBytesPerTx();
 
@@ -580,13 +575,27 @@ GGWave::GGWave(const Parameters & parameters) :
     }
 
     if (m_needResampling) {
-        m_resampler = std::unique_ptr<Resampler>(new Resampler());
+        m_resampler = new Resampler();
     }
 
     init("", getDefaultTxProtocol(), 0);
 }
 
 GGWave::~GGWave() {
+    if (m_rx) {
+        delete m_rx;
+        m_rx = nullptr;
+    }
+
+    if (m_tx) {
+        delete m_tx;
+        m_tx = nullptr;
+    }
+
+    if (m_resampler) {
+        delete m_resampler;
+        m_resampler = nullptr;
+    }
 }
 
 bool GGWave::init(const char * text, const int volume) {
@@ -1438,7 +1447,6 @@ void GGWave::decode_variable() {
 
     if (m_rx->analyzingData) {
         ggprintf("Analyzing captured data ..\n");
-        auto tStart = std::chrono::high_resolution_clock::now();
 
         const int stepsPerFrame = 16;
         const int step = m_samplesPerFrame/stepsPerFrame;
@@ -1585,9 +1593,6 @@ void GGWave::decode_variable() {
 
         m_rx->framesToAnalyze = 0;
         m_rx->framesLeftToAnalyze = 0;
-
-        auto tEnd = std::chrono::high_resolution_clock::now();
-        ggprintf("Time to analyze: %g ms\n", getTime_ms(tStart, tEnd));
     }
 
     // check if receiving data

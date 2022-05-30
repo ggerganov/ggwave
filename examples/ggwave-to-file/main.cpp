@@ -84,16 +84,14 @@ int main(int argc, char** argv) {
     });
     ggWave.init(message.size(), message.data(), ggWave.getTxProtocol(protocolId), volume);
 
-    std::vector<char> bufferPCM;
-    GGWave::CBWaveformOut cbWaveformOut = [&](const void * data, uint32_t nBytes) {
-        bufferPCM.resize(nBytes);
-        std::memcpy(bufferPCM.data(), data, nBytes);
-    };
-
-    if (ggWave.encode(cbWaveformOut) == false) {
+    const auto nBytes = ggWave.encode();
+    if (nBytes == 0) {
         fprintf(stderr, "Failed to generate waveform!\n");
         return -4;
     }
+
+    std::vector<char> bufferPCM(nBytes);
+    std::memcpy(bufferPCM.data(), ggWave.txData(), nBytes);
 
     fprintf(stderr, "Output size = %d bytes\n", (int) bufferPCM.size());
 

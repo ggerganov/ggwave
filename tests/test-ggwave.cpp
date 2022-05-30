@@ -44,35 +44,18 @@ const std::set<GGWave::SampleFormat> kFormats = {
     GGWAVE_SAMPLE_FORMAT_F32,
 };
 
-template <typename T>
-GGWave::CBWaveformOut getCBWaveformOut(uint32_t & nSamples, std::vector<T> & buffer) {
-    return [&nSamples, &buffer](const void * data, uint32_t nBytes) {
-        nSamples = nBytes/sizeof(T);
-        CHECK(nSamples*sizeof(T) == nBytes);
-        buffer.resize(nSamples);
-        std::copy((char *) data, (char *) data + nBytes, (char *) buffer.data());
-    };
-}
-
-template <typename T>
-GGWave::CBWaveformInp getCBWaveformInp(uint32_t & nSamples, std::vector<T> & buffer) {
-    return [&nSamples, &buffer](void * data, uint32_t nMaxBytes) {
-        uint32_t nCopied = std::min((uint32_t) (nSamples*sizeof(T)), nMaxBytes);
-        const char * p = (char *) (buffer.data() + buffer.size() - nSamples);
-        std::copy(p, p + nCopied, (char *) data);
-        nSamples -= nCopied/sizeof(T);
-
-        return nCopied;
-    };
-}
-
 template <typename S, typename D>
-void convert(const std::vector<S> & src, std::vector<D> & dst) {
-    int n = src.size();
-    dst.resize(n);
+void convert(std::vector<uint8_t> & src) {
+    const int n = src.size()/sizeof(S);
+    std::vector<D> dst(n);
+    S v;
     for (int i = 0; i < n; ++i) {
-        dst[i] = ((float(src[i]) - kSampleOffset.at(typeid(S)))/kSampleScale.at(typeid(S)))*kSampleScale.at(typeid(D)) + kSampleOffset.at(typeid(D));
+        std::memcpy(&v, &src[i*sizeof(S)], sizeof(S));
+        dst[i] = ((float(v) - kSampleOffset.at(typeid(S)))/kSampleScale.at(typeid(S)))*kSampleScale.at(typeid(D)) + kSampleOffset.at(typeid(D));
     }
+
+    src.resize(n*sizeof(D));
+    std::memcpy(&src[0], &dst[0], n*sizeof(D));
 }
 
 int main(int argc, char ** argv) {
@@ -83,11 +66,7 @@ int main(int argc, char ** argv) {
         }
     }
 
-    std::vector<uint8_t>  bufferU8;
-    std::vector<int8_t>   bufferI8;
-    std::vector<uint16_t> bufferU16;
-    std::vector<int16_t>  bufferI16;
-    std::vector<float>    bufferF32;
+    std::vector<uint8_t> buffer;
 
     auto convertHelper = [&](GGWave::SampleFormat formatOut, GGWave::SampleFormat formatInp) {
         switch (formatOut) {
@@ -97,53 +76,53 @@ int main(int argc, char ** argv) {
                     switch (formatInp) {
                         case GGWAVE_SAMPLE_FORMAT_UNDEFINED: CHECK(false); break;
                         case GGWAVE_SAMPLE_FORMAT_U8:        break;
-                        case GGWAVE_SAMPLE_FORMAT_I8:        convert(bufferU8, bufferI8);  break;
-                        case GGWAVE_SAMPLE_FORMAT_U16:       convert(bufferU8, bufferU16); break;
-                        case GGWAVE_SAMPLE_FORMAT_I16:       convert(bufferU8, bufferI16); break;
-                        case GGWAVE_SAMPLE_FORMAT_F32:       convert(bufferU8, bufferF32); break;
+                        case GGWAVE_SAMPLE_FORMAT_I8:        convert<uint8_t, int8_t>  (buffer); break;
+                        case GGWAVE_SAMPLE_FORMAT_U16:       convert<uint8_t, uint16_t>(buffer); break;
+                        case GGWAVE_SAMPLE_FORMAT_I16:       convert<uint8_t, int16_t> (buffer); break;
+                        case GGWAVE_SAMPLE_FORMAT_F32:       convert<uint8_t, float>   (buffer); break;
                     };
                 } break;
             case GGWAVE_SAMPLE_FORMAT_I8:
                 {
                     switch (formatInp) {
                         case GGWAVE_SAMPLE_FORMAT_UNDEFINED: CHECK(false); break;
-                        case GGWAVE_SAMPLE_FORMAT_U8:        convert(bufferI8, bufferU8);  break;
+                        case GGWAVE_SAMPLE_FORMAT_U8:        convert<int8_t, uint8_t> (buffer); break;
                         case GGWAVE_SAMPLE_FORMAT_I8:        break;
-                        case GGWAVE_SAMPLE_FORMAT_U16:       convert(bufferI8, bufferU16); break;
-                        case GGWAVE_SAMPLE_FORMAT_I16:       convert(bufferI8, bufferI16); break;
-                        case GGWAVE_SAMPLE_FORMAT_F32:       convert(bufferI8, bufferF32); break;
+                        case GGWAVE_SAMPLE_FORMAT_U16:       convert<int8_t, uint16_t>(buffer); break;
+                        case GGWAVE_SAMPLE_FORMAT_I16:       convert<int8_t, int16_t> (buffer); break;
+                        case GGWAVE_SAMPLE_FORMAT_F32:       convert<int8_t, float>   (buffer); break;
                     };
                 } break;
             case GGWAVE_SAMPLE_FORMAT_U16:
                 {
                     switch (formatInp) {
                         case GGWAVE_SAMPLE_FORMAT_UNDEFINED: CHECK(false); break;
-                        case GGWAVE_SAMPLE_FORMAT_U8:        convert(bufferU16, bufferU8);  break;
-                        case GGWAVE_SAMPLE_FORMAT_I8:        convert(bufferU16, bufferI8);  break;
+                        case GGWAVE_SAMPLE_FORMAT_U8:        convert<uint16_t, uint8_t>(buffer); break;
+                        case GGWAVE_SAMPLE_FORMAT_I8:        convert<uint16_t, int8_t> (buffer); break;
                         case GGWAVE_SAMPLE_FORMAT_U16:       break;
-                        case GGWAVE_SAMPLE_FORMAT_I16:       convert(bufferU16, bufferI16); break;
-                        case GGWAVE_SAMPLE_FORMAT_F32:       convert(bufferU16, bufferF32); break;
+                        case GGWAVE_SAMPLE_FORMAT_I16:       convert<uint16_t, int16_t>(buffer); break;
+                        case GGWAVE_SAMPLE_FORMAT_F32:       convert<uint16_t, float>  (buffer); break;
                     };
                 } break;
             case GGWAVE_SAMPLE_FORMAT_I16:
                 {
                     switch (formatInp) {
                         case GGWAVE_SAMPLE_FORMAT_UNDEFINED: CHECK(false); break;
-                        case GGWAVE_SAMPLE_FORMAT_U8:        convert(bufferI16, bufferU8);  break;
-                        case GGWAVE_SAMPLE_FORMAT_I8:        convert(bufferI16, bufferI8);  break;
-                        case GGWAVE_SAMPLE_FORMAT_U16:       convert(bufferI16, bufferU16); break;
+                        case GGWAVE_SAMPLE_FORMAT_U8:        convert<int16_t, uint8_t> (buffer); break;
+                        case GGWAVE_SAMPLE_FORMAT_I8:        convert<int16_t, int8_t>  (buffer); break;
+                        case GGWAVE_SAMPLE_FORMAT_U16:       convert<int16_t, uint16_t>(buffer); break;
                         case GGWAVE_SAMPLE_FORMAT_I16:       break;
-                        case GGWAVE_SAMPLE_FORMAT_F32:       convert(bufferI16, bufferF32); break;
+                        case GGWAVE_SAMPLE_FORMAT_F32:       convert<int16_t, float>   (buffer); break;
                     };
                 } break;
             case GGWAVE_SAMPLE_FORMAT_F32:
                 {
                     switch (formatInp) {
                         case GGWAVE_SAMPLE_FORMAT_UNDEFINED: CHECK(false); break;
-                        case GGWAVE_SAMPLE_FORMAT_U8:        convert(bufferF32, bufferU8);  break;
-                        case GGWAVE_SAMPLE_FORMAT_I8:        convert(bufferF32, bufferI8);  break;
-                        case GGWAVE_SAMPLE_FORMAT_U16:       convert(bufferF32, bufferU16); break;
-                        case GGWAVE_SAMPLE_FORMAT_I16:       convert(bufferF32, bufferI16); break;
+                        case GGWAVE_SAMPLE_FORMAT_U8:        convert<float, uint8_t> (buffer); break;
+                        case GGWAVE_SAMPLE_FORMAT_I8:        convert<float, int8_t>  (buffer); break;
+                        case GGWAVE_SAMPLE_FORMAT_U16:       convert<float, uint16_t>(buffer); break;
+                        case GGWAVE_SAMPLE_FORMAT_I16:       convert<float, int16_t> (buffer); break;
                         case GGWAVE_SAMPLE_FORMAT_F32:       break;
                     };
                 } break;
@@ -155,53 +134,45 @@ int main(int argc, char ** argv) {
             case GGWAVE_SAMPLE_FORMAT_UNDEFINED: CHECK(false); break;
             case GGWAVE_SAMPLE_FORMAT_U8:
                 {
-                    for (auto & s : bufferU8) {
-                        s = std::max(0.0f, std::min(255.0f, (float) s + (frand() - 0.5f)*(level*256)));
+                    const int n = buffer.size()/sizeof(uint8_t);
+                    auto p = (uint8_t *) buffer.data();
+                    for (int i = 0; i < n; ++i) {
+                        p[i] = std::max(0.0f, std::min(255.0f, (float) p[i] + (frand() - 0.5f)*(level*256)));
                     }
                 } break;
             case GGWAVE_SAMPLE_FORMAT_I8:
                 {
-                    for (auto & s : bufferI8) {
-                        s = std::max(-128.0f, std::min(127.0f, (float) s + (frand() - 0.5f)*(level*256)));
+                    const int n = buffer.size()/sizeof(int8_t);
+                    auto p = (int8_t *) buffer.data();
+                    for (int i = 0; i < n; ++i) {
+                        p[i] = std::max(-128.0f, std::min(127.0f, (float) p[i] + (frand() - 0.5f)*(level*256)));
                     }
                 } break;
             case GGWAVE_SAMPLE_FORMAT_U16:
                 {
-                    for (auto & s : bufferU16) {
-                        s = std::max(0.0f, std::min(65535.0f, (float) s + (frand() - 0.5f)*(level*65536)));
+                    const int n = buffer.size()/sizeof(uint16_t);
+                    auto p = (uint16_t *) buffer.data();
+                    for (int i = 0; i < n; ++i) {
+                        p[i] = std::max(0.0f, std::min(65535.0f, (float) p[i] + (frand() - 0.5f)*(level*65536)));
                     }
                 } break;
             case GGWAVE_SAMPLE_FORMAT_I16:
                 {
-                    for (auto & s : bufferI16) {
-                        s = std::max(-32768.0f, std::min(32767.0f, (float) s + (frand() - 0.5f)*(level*65536)));
+                    const int n = buffer.size()/sizeof(int16_t);
+                    auto p = (int16_t *) buffer.data();
+                    for (int i = 0; i < n; ++i) {
+                        p[i] = std::max(-32768.0f, std::min(32767.0f, (float) p[i] + (frand() - 0.5f)*(level*65536)));
                     }
                 } break;
             case GGWAVE_SAMPLE_FORMAT_F32:
                 {
-                    for (auto & s : bufferF32) {
-                        s = std::max(-1.0f, std::min(1.0f, (float) s + (frand() - 0.5f)*(level)));
+                    const int n = buffer.size()/sizeof(float);
+                    auto p = (float *) buffer.data();
+                    for (int i = 0; i < n; ++i) {
+                        p[i] = std::max(-1.0f, std::min(1.0f, p[i] + (frand() - 0.5f)*(level)));
                     }
                 } break;
         };
-    };
-
-    uint32_t nSamples = 0;
-
-    const std::map<GGWave::SampleFormat, GGWave::CBWaveformOut> kCBWaveformOut = {
-        { GGWAVE_SAMPLE_FORMAT_U8,  getCBWaveformOut(nSamples, bufferU8)  },
-        { GGWAVE_SAMPLE_FORMAT_I8,  getCBWaveformOut(nSamples, bufferI8)  },
-        { GGWAVE_SAMPLE_FORMAT_U16, getCBWaveformOut(nSamples, bufferU16) },
-        { GGWAVE_SAMPLE_FORMAT_I16, getCBWaveformOut(nSamples, bufferI16) },
-        { GGWAVE_SAMPLE_FORMAT_F32, getCBWaveformOut(nSamples, bufferF32) },
-    };
-
-    const std::map<GGWave::SampleFormat, GGWave::CBWaveformInp> kCBWaveformInp = {
-        { GGWAVE_SAMPLE_FORMAT_U8,  getCBWaveformInp(nSamples, bufferU8)  },
-        { GGWAVE_SAMPLE_FORMAT_I8,  getCBWaveformInp(nSamples, bufferI8)  },
-        { GGWAVE_SAMPLE_FORMAT_U16, getCBWaveformInp(nSamples, bufferU16) },
-        { GGWAVE_SAMPLE_FORMAT_I16, getCBWaveformInp(nSamples, bufferI16) },
-        { GGWAVE_SAMPLE_FORMAT_F32, getCBWaveformInp(nSamples, bufferF32) },
     };
 
     {
@@ -234,7 +205,7 @@ int main(int argc, char ** argv) {
         auto parameters = GGWave::getDefaultParameters();
         parameters.soundMarkerThreshold = 3.0f;
 
-        std::string payload = "hello123";
+        const std::string payload = "hello123";
 
         // encode
         {
@@ -242,10 +213,11 @@ int main(int argc, char ** argv) {
             GGWave instanceOut(parameters);
 
             instanceOut.init(payload.c_str(), instanceOut.getTxProtocol(GGWAVE_TX_PROTOCOL_DT_FASTEST), 25);
-            auto expectedSize = instanceOut.encodeSize_samples();
-            instanceOut.encode(kCBWaveformOut.at(parameters.sampleFormatOut));
-            printf("Expected = %d, actual = %d\n", expectedSize, nSamples);
-            CHECK(expectedSize >= nSamples);
+            const auto expectedSize = instanceOut.encodeSize_bytes();
+            const auto nBytes = instanceOut.encode();
+            printf("Expected = %d, actual = %d\n", expectedSize, nBytes);
+            CHECK(expectedSize >= nBytes);
+            { auto p = (const uint8_t *)(instanceOut.txData()); buffer.resize(nBytes); memcpy(buffer.data(), p, nBytes); }
             addNoiseHelper(0.01, parameters.sampleFormatOut); // add some artificial noise
             convertHelper(parameters.sampleFormatOut, parameters.sampleFormatInp);
         }
@@ -256,7 +228,7 @@ int main(int argc, char ** argv) {
             GGWave instanceInp(parameters);
 
             instanceInp.setRxProtocols({{GGWAVE_TX_PROTOCOL_DT_FASTEST, instanceInp.getTxProtocol(GGWAVE_TX_PROTOCOL_DT_FASTEST)}});
-            instanceInp.decode(kCBWaveformInp.at(parameters.sampleFormatInp));
+            instanceInp.decode(buffer.data(), buffer.size());
 
             GGWave::TxRxData result;
             CHECK(instanceInp.takeRxData(result) == (int) payload.size());
@@ -266,7 +238,7 @@ int main(int argc, char ** argv) {
         }
     }
 
-    std::string payload = "a0Z5kR2g";
+    const std::string payload = "a0Z5kR2g";
 
     // encode / decode using different sample formats and Tx protocols
     for (const auto & formatOut : kFormats) {
@@ -293,12 +265,13 @@ int main(int argc, char ** argv) {
 
                         instance.setRxProtocols({{txProtocol.first, txProtocol.second}});
                         instance.init(length, payload.data(), txProtocol.second, 25);
-                        auto expectedSize = instance.encodeSize_samples();
-                        instance.encode(kCBWaveformOut.at(formatOut));
-                        printf("Expected = %d, actual = %d\n", expectedSize, nSamples);
-                        CHECK(expectedSize == nSamples);
+                        const auto expectedSize = instance.encodeSize_bytes();
+                        const auto nBytes = instance.encode();
+                        printf("Expected = %d, actual = %d\n", expectedSize, nBytes);
+                        CHECK(expectedSize == nBytes);
+                        { auto p = (const uint8_t *)(instance.txData()); buffer.resize(nBytes); memcpy(buffer.data(), p, nBytes); }
                         convertHelper(formatOut, formatInp);
-                        instance.decode(kCBWaveformInp.at(formatInp));
+                        instance.decode(buffer.data(), buffer.size());
 
                         GGWave::TxRxData result;
                         CHECK(instance.takeRxData(result) == length);
@@ -319,12 +292,13 @@ int main(int argc, char ** argv) {
 
                         instance.setRxProtocols({{txProtocol.first, txProtocol.second}});
                         instance.init(length, payload.data(), txProtocol.second, 10);
-                        auto expectedSize = instance.encodeSize_samples();
-                        instance.encode(kCBWaveformOut.at(formatOut));
-                        printf("Expected = %d, actual = %d\n", expectedSize, nSamples);
-                        CHECK(expectedSize == nSamples);
+                        const auto expectedSize = instance.encodeSize_bytes();
+                        const auto nBytes = instance.encode();
+                        printf("Expected = %d, actual = %d\n", expectedSize, nBytes);
+                        CHECK(expectedSize == nBytes);
+                        { auto p = (const uint8_t *)(instance.txData()); buffer.resize(nBytes); memcpy(buffer.data(), p, nBytes); }
                         convertHelper(formatOut, formatInp);
-                        instance.decode(kCBWaveformInp.at(formatInp));
+                        instance.decode(buffer.data(), buffer.size());
 
                         GGWave::TxRxData result;
                         CHECK(instance.takeRxData(result) == length);

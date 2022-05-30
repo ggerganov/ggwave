@@ -88,6 +88,7 @@ else()
     add_subdirectory(ggwave-to-file)
 
     add_subdirectory(arduino-rx)
+    add_subdirectory(arduino-tx)
 endif()
 
 if (GGWAVE_SUPPORT_SDL2)

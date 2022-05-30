@@ -58,6 +58,8 @@ extern "C" {
         GGWAVE_TX_PROTOCOL_CUSTOM_7,
         GGWAVE_TX_PROTOCOL_CUSTOM_8,
         GGWAVE_TX_PROTOCOL_CUSTOM_9,
+
+        GGWAVE_TX_PROTOCOL_COUNT,
     } ggwave_TxProtocolId;
 
     // Operating modes of ggwave
@@ -301,8 +303,8 @@ extern "C" {
 //
 
 #include <cstdint>
+#include <iosfwd>
 #include <vector>
-#include <map>
 
 class GGWave {
 public:
@@ -335,29 +337,39 @@ public:
         int bytesPerTx;     // number of bytes in a chunk of data
         int extra;          // 2 if this is a mono-tone protocol, 1 otherwise
 
+        bool enabled;
+
         int nDataBitsPerTx() const { return 8*bytesPerTx; }
     };
 
     using RxProtocol = TxProtocol;
 
-    using TxProtocols = std::map<TxProtocolId, TxProtocol>;
-    using RxProtocols = std::map<RxProtocolId, RxProtocol>;
+    using TxProtocols = std::vector<TxProtocol>;
+    using RxProtocols = std::vector<RxProtocol>;
 
-    static const TxProtocols & getTxProtocols() {
-        static const TxProtocols kTxProtocols {
-            { GGWAVE_TX_PROTOCOL_AUDIBLE_NORMAL,        { "Normal",       40,  9, 3, 1, } },
-            { GGWAVE_TX_PROTOCOL_AUDIBLE_FAST,          { "Fast",         40,  6, 3, 1, } },
-            { GGWAVE_TX_PROTOCOL_AUDIBLE_FASTEST,       { "Fastest",      40,  3, 3, 1, } },
-            { GGWAVE_TX_PROTOCOL_ULTRASOUND_NORMAL,     { "[U] Normal",   320, 9, 3, 1, } },
-            { GGWAVE_TX_PROTOCOL_ULTRASOUND_FAST,       { "[U] Fast",     320, 6, 3, 1, } },
-            { GGWAVE_TX_PROTOCOL_ULTRASOUND_FASTEST,    { "[U] Fastest",  320, 3, 3, 1, } },
-            { GGWAVE_TX_PROTOCOL_DT_NORMAL,             { "[DT] Normal",  24,  9, 1, 1, } },
-            { GGWAVE_TX_PROTOCOL_DT_FAST,               { "[DT] Fast",    24,  6, 1, 1, } },
-            { GGWAVE_TX_PROTOCOL_DT_FASTEST,            { "[DT] Fastest", 24,  3, 1, 1, } },
-            { GGWAVE_TX_PROTOCOL_MT_NORMAL,             { "[MT] Normal",  24,  9, 1, 2, } },
-            { GGWAVE_TX_PROTOCOL_MT_FAST,               { "[MT] Fast",    24,  6, 1, 2, } },
-            { GGWAVE_TX_PROTOCOL_MT_FASTEST,            { "[MT] Fastest", 24,  3, 1, 2, } },
-        };
+    static TxProtocols & getTxProtocols() {
+        static TxProtocols kTxProtocols(GGWAVE_TX_PROTOCOL_COUNT);
+
+        static bool kInitialized = false;
+        if (kInitialized == false) {
+            for (auto & txProtocol : kTxProtocols) {
+                txProtocol.enabled = false;
+            }
+
+            kTxProtocols[GGWAVE_TX_PROTOCOL_AUDIBLE_NORMAL]     = { "Normal",       40,  9, 3, 1, true, };
+            kTxProtocols[GGWAVE_TX_PROTOCOL_AUDIBLE_FAST]       = { "Fast",         40,  6, 3, 1, true, };
+            kTxProtocols[GGWAVE_TX_PROTOCOL_AUDIBLE_FASTEST]    = { "Fastest",      40,  3, 3, 1, true, };
+            kTxProtocols[GGWAVE_TX_PROTOCOL_ULTRASOUND_NORMAL]  = { "[U] Normal",   320, 9, 3, 1, true, };
+            kTxProtocols[GGWAVE_TX_PROTOCOL_ULTRASOUND_FAST]    = { "[U] Fast",     320, 6, 3, 1, true, };
+            kTxProtocols[GGWAVE_TX_PROTOCOL_ULTRASOUND_FASTEST] = { "[U] Fastest",  320, 3, 3, 1, true, };
+            kTxProtocols[GGWAVE_TX_PROTOCOL_DT_NORMAL]          = { "[DT] Normal",  24,  9, 1, 1, true, };
+            kTxProtocols[GGWAVE_TX_PROTOCOL_DT_FAST]            = { "[DT] Fast",    24,  6, 1, 1, true, };
+            kTxProtocols[GGWAVE_TX_PROTOCOL_DT_FASTEST]         = { "[DT] Fastest", 24,  3, 1, 1, true, };
+            kTxProtocols[GGWAVE_TX_PROTOCOL_MT_NORMAL]          = { "[MT] Normal",  24,  9, 1, 2, true, };
+            kTxProtocols[GGWAVE_TX_PROTOCOL_MT_FAST]            = { "[MT] Fast",    24,  6, 1, 2, true, };
+            kTxProtocols[GGWAVE_TX_PROTOCOL_MT_FASTEST]         = { "[MT] Fastest", 24,  3, 1, 2, true, };
+            kInitialized = true;
+        }
 
         return kTxProtocols;
     }
@@ -447,9 +459,9 @@ public:
 
     // Tx
     static TxProtocolId getDefaultTxProtocolId()     { return GGWAVE_TX_PROTOCOL_AUDIBLE_FAST; }
-    static const TxProtocol & getDefaultTxProtocol() { return getTxProtocols().at(getDefaultTxProtocolId()); }
-    static const TxProtocol & getTxProtocol(int id)  { return getTxProtocols().at(TxProtocolId(id)); }
-    static const TxProtocol & getTxProtocol(TxProtocolId id) { return getTxProtocols().at(id); }
+    static const TxProtocol & getDefaultTxProtocol() { return getTxProtocols()[getDefaultTxProtocolId()]; }
+    static const TxProtocol & getTxProtocol(int id)  { return getTxProtocols()[id]; }
+    static const TxProtocol & getTxProtocol(TxProtocolId id) { return getTxProtocols()[id]; }
 
     // get a list of the tones generated for the last waveform
     //

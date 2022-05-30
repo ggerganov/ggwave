@@ -53,12 +53,12 @@ int main(int argc, char** argv) {
     printf("\n");
 
     const GGWave::TxProtocols protocols = {
-        { GGWAVE_TX_PROTOCOL_CUSTOM_0, { "[R2T2] Normal",      64,  9, 1, 2, } },
-        { GGWAVE_TX_PROTOCOL_CUSTOM_1, { "[R2T2] Fast",        64,  6, 1, 2, } },
-        { GGWAVE_TX_PROTOCOL_CUSTOM_2, { "[R2T2] Fastest",     64,  3, 1, 2, } },
-        { GGWAVE_TX_PROTOCOL_CUSTOM_3, { "[R2T2] Low Normal",  16,  9, 1, 2, } },
-        { GGWAVE_TX_PROTOCOL_CUSTOM_4, { "[R2T2] Low Fast",    16,  6, 1, 2, } },
-        { GGWAVE_TX_PROTOCOL_CUSTOM_5, { "[R2T2] Low Fastest", 16,  3, 1, 2, } },
+        { "[R2T2] Normal",      64,  9, 1, 2, true, },
+        { "[R2T2] Fast",        64,  6, 1, 2, true, },
+        { "[R2T2] Fastest",     64,  3, 1, 2, true, },
+        { "[R2T2] Low Normal",  16,  9, 1, 2, true, },
+        { "[R2T2] Low Fast",    16,  6, 1, 2, true, },
+        { "[R2T2] Low Fastest", 16,  3, 1, 2, true, },
     };
 
     const auto argm = parseCmdArguments(argc, argv);
@@ -81,21 +81,13 @@ int main(int argc, char** argv) {
     });
 
     printf("Available Tx protocols:\n");
-    for (const auto & protocol : protocols) {
-        printf("    -t%-2d : %-16s", protocol.first, protocol.second.name);
-        if (protocol.first == GGWAVE_TX_PROTOCOL_CUSTOM_0) {
-            printf(" (8.5 sec)\n");
-        } else if (protocol.first == GGWAVE_TX_PROTOCOL_CUSTOM_1) {
-            printf(" (5.7 sec)\n");
-        } else if (protocol.first == GGWAVE_TX_PROTOCOL_CUSTOM_2) {
-            printf(" (2.9 sec)\n");
-        } else {
-            printf("\n");
-        }
+    for (int i = 0; i < (int) protocols.size(); ++i) {
+        const auto & protocol = protocols[i];
+        printf("    -t%-2d : %-16s\n", i, protocol.name);
     }
     printf("\n");
 
-    if (protocols.find(GGWave::TxProtocolId(txProtocolId)) == protocols.end()) {
+    if (txProtocolId < 0 || txProtocolId >= (int) protocols.size()) {
         fprintf(stderr, "Unknown Tx protocol %d\n", txProtocolId);
         return -3;
     }

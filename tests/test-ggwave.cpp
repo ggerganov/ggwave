@@ -8,6 +8,7 @@
 #include <vector>
 #include <set>
 #include <cstdint>
+#include <map>
 
 float frand() { return float(rand()%RAND_MAX)/RAND_MAX; }
 
@@ -227,7 +228,7 @@ int main(int argc, char ** argv) {
             parameters.sampleRateInp = srInp;
             GGWave instanceInp(parameters);
 
-            instanceInp.setRxProtocols({{GGWAVE_TX_PROTOCOL_DT_FASTEST, instanceInp.getTxProtocol(GGWAVE_TX_PROTOCOL_DT_FASTEST)}});
+            instanceInp.setRxProtocols({instanceInp.getTxProtocol(GGWAVE_TX_PROTOCOL_DT_FASTEST)});
             instanceInp.decode(buffer.data(), buffer.size());
 
             GGWave::TxRxData result;
@@ -248,11 +249,12 @@ int main(int argc, char ** argv) {
                 if (formatInp != GGWAVE_SAMPLE_FORMAT_F32) continue;
             }
             for (const auto & txProtocol : GGWave::getTxProtocols()) {
-                printf("Testing: protocol = %s, in = %d, out = %d\n", txProtocol.second.name, formatInp, formatOut);
+                if (txProtocol.enabled == false) continue;
+                printf("Testing: protocol = %s, in = %d, out = %d\n", txProtocol.name, formatInp, formatOut);
 
                 for (int length = 1; length <= (int) payload.size(); ++length) {
                     // mono-tone protocols with variable length are not supported
-                    if (txProtocol.second.extra == 2) {
+                    if (txProtocol.extra == 2) {
                         break;
                     }
 
@@ -263,8 +265,8 @@ int main(int argc, char ** argv) {
                         parameters.sampleFormatOut = formatOut;
                         GGWave instance(parameters);
 
-                        instance.setRxProtocols({{txProtocol.first, txProtocol.second}});
-                        instance.init(length, payload.data(), txProtocol.second, 25);
+                        instance.setRxProtocols({txProtocol});
+                        instance.init(length, payload.data(), txProtocol, 25);
                         const auto expectedSize = instance.encodeSize_bytes();
                         const auto nBytes = instance.encode();
                         printf("Expected = %d, actual = %d\n", expectedSize, nBytes);
@@ -290,8 +292,8 @@ int main(int argc, char ** argv) {
                         parameters.sampleFormatOut = formatOut;
                         GGWave instance(parameters);
 
-                        instance.setRxProtocols({{txProtocol.first, txProtocol.second}});
-                        instance.init(length, payload.data(), txProtocol.second, 10);
+                        instance.setRxProtocols({txProtocol});
+                        instance.init(length, payload.data(), txProtocol, 10);
                         const auto expectedSize = instance.encodeSize_bytes();
                         const auto nBytes = instance.encode();
                         printf("Expected = %d, actual = %d\n", expectedSize, nBytes);

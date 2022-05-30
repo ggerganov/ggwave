@@ -177,10 +177,10 @@ void ggwave_toggleRxProtocol(
 
     if (state == 0) {
         // disable Rx protocol
-        g_rxProtocols[instance].erase(rxProtocolId);
+        g_rxProtocols[instance][rxProtocolId].enabled = false;
     } else if (state == 1) {
         // enable Rx protocol
-        g_rxProtocols[instance][rxProtocolId] = GGWave::getTxProtocols().at(rxProtocolId);
+        g_rxProtocols[instance][rxProtocolId].enabled = true;
     }
 
     g_instances[instance]->setRxProtocols(g_rxProtocols[instance]);
@@ -1453,9 +1453,11 @@ void GGWave::decode_variable() {
         const int step = m_samplesPerFrame/stepsPerFrame;
 
         bool isValid = false;
-        for (const auto & rxProtocolPair : m_rx->rxProtocols) {
-            const auto & rxProtocolId = rxProtocolPair.first;
-            const auto & rxProtocol = rxProtocolPair.second;
+        for (int rxProtocolId = 0; rxProtocolId < (int) m_rx->rxProtocols.size(); ++rxProtocolId) {
+            const auto & rxProtocol = m_rx->rxProtocols[rxProtocolId];
+            if (rxProtocol.enabled == false) {
+                continue;
+            }
 
             // skip Rx protocol if it is mono-tone
             if (rxProtocol.extra == 2) {
@@ -1600,11 +1602,15 @@ void GGWave::decode_variable() {
     if (m_rx->receivingData == false) {
         bool isReceiving = false;
 
-        for (const auto & rxProtocol : getTxProtocols()) {
+        for (const auto & rxProtocol : m_rx->rxProtocols) {
+            if (rxProtocol.enabled == false) {
+                continue;
+            }
+
             int nDetectedMarkerBits = m_nBitsInMarker;
 
             for (int i = 0; i < m_nBitsInMarker; ++i) {
-                double freq = bitFreq(rxProtocol.second, i);
+                double freq = bitFreq(rxProtocol, i);
                 int bin = round(freq*m_ihzPerSample);
 
                 if (i%2 == 0) {
@@ -1615,7 +1621,7 @@ void GGWave::decode_variable() {
             }
 
             if (nDetectedMarkerBits == m_nBitsInMarker) {
-                m_rx->markerFreqStart = rxProtocol.second.freqStart;
+                m_rx->markerFreqStart = rxProtocol.freqStart;
                 isReceiving = true;
                 break;
             }
@@ -1649,11 +1655,15 @@ void GGWave::decode_variable() {
     } else {
         bool isEnded = false;
 
-        for (const auto & rxProtocol : getTxProtocols()) {
+        for (const auto & rxProtocol : m_rx->rxProtocols) {
+            if (rxProtocol.enabled == false) {
+                continue;
+            }
+
             int nDetectedMarkerBits = m_nBitsInMarker;
 
             for (int i = 0; i < m_nBitsInMarker; ++i) {
-                double freq = bitFreq(rxProtocol.second, i);
+                double freq = bitFreq(rxProtocol, i);
                 int bin = round(freq*m_ihzPerSample);
 
                 if (i%2 == 0) {
@@ -1717,9 +1727,11 @@ void GGWave::decode_fixed() {
     }
 
     bool isValid = false;
-    for (const auto & rxProtocolPair : m_rx->rxProtocols) {
-        const auto & rxProtocolId = rxProtocolPair.first;
-        const auto & rxProtocol = rxProtocolPair.second;
+    for (int rxProtocolId = 0; rxProtocolId < (int) m_rx->rxProtocols.size(); ++rxProtocolId) {
+        const auto & rxProtocol = m_rx->rxProtocols[rxProtocolId];
+        if (rxProtocol.enabled == false) {
+            continue;
+        }
 
         const int binStart = rxProtocol.freqStart;
         const int binDelta = 16;
@@ -1844,23 +1856,32 @@ void GGWave::decode_fixed() {
 int GGWave::maxFramesPerTx() const {
     int res = 0;
     for (const auto & protocol : getTxProtocols()) {
-        res = std::max(res, protocol.second.framesPerTx);
+        if (protocol.enabled == false) {
+            continue;
+        }
+        res = std::max(res, protocol.framesPerTx);
     }
     return res;
 }
 
 int GGWave::minBytesPerTx() const {
-    int res = getTxProtocols().begin()->second.bytesPerTx;
+    int res = 1;
     for (const auto & protocol : getTxProtocols()) {
-        res = std::min(res, protocol.second.bytesPerTx);
+        if (protocol.enabled == false) {
+            continue;
+        }
+        res = std::min(res, protocol.bytesPerTx);
     }
     return res;
 }
 
 int GGWave::maxBytesPerTx() const {
-    int res = getTxProtocols().begin()->second.bytesPerTx;
+    int res = 1;
     for (const auto & protocol : getTxProtocols()) {
-        res = std::max(res, protocol.second.bytesPerTx);
+        if (protocol.enabled == false) {
+            continue;
+        }
+        res = std::max(res, protocol.bytesPerTx);
     }
     return res;
 }

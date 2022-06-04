@@ -69,6 +69,7 @@ extern "C" {
         GGWAVE_OPERATING_MODE_RX_AND_TX     = (GGWAVE_OPERATING_MODE_RX |
                                                GGWAVE_OPERATING_MODE_TX),
         GGWAVE_OPERATING_MODE_TX_ONLY_TONES = 1 << 3,
+        GGWAVE_OPERATING_MODE_USE_DSS       = 1 << 4,
     } ggwave_OperatingMode;
 
     // GGWave instance parameters
@@ -447,6 +448,7 @@ public:
 
     // instance state
     bool hasTxData() const;
+    bool isDSSEnabled() const;
 
     int getSamplesPerFrame()    const;
     int getSampleSizeBytesInp() const;
@@ -475,6 +477,7 @@ public:
     bool isReceiving() const;
     bool isAnalyzing() const;
 
+    int getSamplesNeeded()       const;
     int getFramesToRecord()      const;
     int getFramesLeftToRecord()  const;
     int getFramesToAnalyze()     const;
@@ -499,10 +502,9 @@ public:
     //   src - input real-valued data, size is N
     //   dst - output complex-valued data, size is 2*N
     //
-    //   d is scaling factor
     //   N must be <= kMaxSamplesPerFrame
     //
-    static bool computeFFTR(const float * src, float * dst, int N, float d);
+    bool computeFFTR(const float * src, float * dst, int N);
 
     // resample audio waveforms from one sample rate to another using
     // sinc interpolation
@@ -592,11 +594,13 @@ private:
     const bool m_isTxEnabled;
     const bool m_needResampling;
     const bool m_txOnlyTones;
+    const bool m_isDSSEnabled;
 
     // common
     TxRxData m_dataEncoded;
     TxRxData m_workRSLength; // Reed-Solomon work buffers
     TxRxData m_workRSData;
+    TxRxData m_dssMagic;
 
     // Impl
     struct Rx;

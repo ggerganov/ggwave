@@ -36,15 +36,6 @@
 
 namespace {
 
-// Direct-sequence spread magic numbers
-// Used to xor the actual payload
-const std::array<uint8_t, 64> kDSSMagic = {
-    0x96, 0x9f, 0xb4, 0xaf, 0x1b, 0x91, 0xde, 0xc5, 0x45, 0x75, 0xe8, 0x2e, 0x0f, 0x32, 0x4a, 0x5f,
-    0xb4, 0x56, 0x95, 0xcb, 0x7f, 0x6a, 0x54, 0x6a, 0x48, 0xf2, 0x0b, 0x7b, 0xcd, 0xfb, 0x93, 0x6d,
-    0x3c, 0x77, 0x5e, 0xc3, 0x33, 0x47, 0xc0, 0xf1, 0x71, 0x32, 0x33, 0x27, 0x35, 0x68, 0x47, 0x1f,
-    0x4e, 0xac, 0x23, 0x42, 0x5f, 0x00, 0x37, 0xa4, 0x50, 0x6d, 0x48, 0x24, 0x91, 0x7c, 0xa1, 0x4e,
-};
-
 std::mutex g_mutex;
 char * toTimeString(const std::chrono::system_clock::time_point & tp) {
     std::lock_guard<std::mutex> lock(g_mutex);
@@ -139,6 +130,7 @@ struct Message {
     std::chrono::system_clock::time_point timestamp;
     std::string data;
     int protocolId;
+    bool dss;
     float volume;
     Type type;
 };
@@ -225,7 +217,6 @@ struct Input {
         bool changeNeedSpectrum = false;
         bool stopReceiving = false;
         bool changeRxProtocols = false;
-        bool changeDSS = false;
 
         void clear() { memset(this, 0, sizeof(Flags)); }
     } flags;
@@ -244,6 +235,7 @@ struct Input {
             dst.flags.needReinit = true;
             dst.sampleRateOffset = std::move(this->sampleRateOffset);
             dst.payloadLength = std::move(this->payloadLength);
+            dst.directSequenceSpread = std::move(this->directSequenceSpread);
         }
 
         if (this->flags.changeNeedSpectrum) {
@@ -261,12 +253,6 @@ struct Input {
             dst.update = true;
             dst.flags.changeRxProtocols = true;
             dst.rxProtocols = std::move(this->rxProtocols);
-        }
-
-        if (this->flags.changeDSS) {
-            dst.update = true;
-            dst.flags.changeDSS = true;
-            dst.directSequenceSpread = std::move(this->directSequenceSpread);
         }
 
         flags.clear();
@@ -608,7 +594,6 @@ void updateCore() {
 
     static bool isFirstCall = true;
     static bool needSpectrum = false;
-    static bool directSequenceSpread = false;
     static int rxDataLengthLast = 0;
     static float rxTimestampLast = 0.0f;
     static GGWave::TxRxData rxDataLast;
@@ -627,12 +612,6 @@ void updateCore() {
         if (inputCurrent.flags.newMessage) {
             int n = (int) inputCurrent.message.data.size();
 
-            if (directSequenceSpread) {
-                for (int i = 0; i < n; ++i) {
-                    inputCurrent.message.data[i] ^= kDSSMagic[i%kDSSMagic.size()];
-                }
-            }
-
             ggWave->init(
                     n, inputCurrent.message.data.data(),
                     ggWave->getTxProtocol(inputCurrent.message.protocolId),
@@ -646,6 +625,9 @@ void updateCore() {
             GGWave::SampleFormat sampleFormatOutOld = ggWave->getSampleFormatOut();
             auto rxProtocolsOld = ggWave->getRxProtocols();
 
+            GGWave::OperatingMode mode = GGWAVE_OPERATING_MODE_RX_AND_TX;
+            if (inputCurrent.directSequenceSpread) mode = GGWave::OperatingMode(mode | GGWAVE_OPERATING_MODE_USE_DSS);
+
             GGWave::Parameters parameters {
                 inputCurrent.payloadLength,
                 sampleRateInpOld,
@@ -655,7 +637,7 @@ void updateCore() {
                 GGWave::kDefaultSoundMarkerThreshold,
                 sampleFormatInpOld,
                 sampleFormatOutOld,
-                (GGWave::OperatingMode) (GGWAVE_OPERATING_MODE_RX | GGWAVE_OPERATING_MODE_TX),
+                mode,
             };
 
             GGWave_reset(&parameters);
@@ -676,10 +658,6 @@ void updateCore() {
             ggWave->setRxProtocols(inputCurrent.rxProtocols);
         }
 
-        if (inputCurrent.flags.changeDSS) {
-            directSequenceSpread = inputCurrent.directSequenceSpread;
-        }
-
         inputCurrent.flags.clear();
         inputCurrent.update = false;
     }
@@ -695,17 +673,12 @@ void updateCore() {
             std::chrono::system_clock::now(),
             "",
             ggWave->getRxProtocolId(),
+            ggWave->isDSSEnabled(),
             0,
             Message::Error,
         };
     } else if (rxDataLengthLast > 0 && ImGui::GetTime() - rxTimestampLast > 0.5f) {
         auto message = std::string((char *) rxDataLast.data(), rxDataLengthLast);
-
-        if (directSequenceSpread) {
-            for (int i = 0; i < rxDataLengthLast; ++i) {
-                message[i] ^= kDSSMagic[i%kDSSMagic.size()];
-            }
-        }
 
         const Message::Type type = isFileBroadcastMessage(message) ? Message::FileBroadcast : Message::Text;
         g_buffer.stateCore.update = true;
@@ -715,6 +688,7 @@ void updateCore() {
             std::chrono::system_clock::now(),
             std::move(message),
             ggWave->getRxProtocolId(),
+            ggWave->isDSSEnabled(),
             0,
             type,
         };
@@ -728,7 +702,7 @@ void updateCore() {
             static float tmp[2*NMax];
 
             int N = ggWave->getSamplesPerFrame();
-            ggWave->computeFFTR(g_buffer.stateCore.rxAmplitude.data(), tmp, N, 1.0);
+            ggWave->computeFFTR(g_buffer.stateCore.rxAmplitude.data(), tmp, N);
 
             g_buffer.stateCore.rxSpectrum.resize(N);
             for (int i = 0; i < N; ++i) {
@@ -1264,7 +1238,7 @@ void renderMain() {
         }
         if (ImGui::Checkbox("##direct-sequence-spread", &settings.directSequenceSpread)) {
             g_buffer.inputUI.update = true;
-            g_buffer.inputUI.flags.changeDSS = true;
+            g_buffer.inputUI.flags.needReinit = true;
             g_buffer.inputUI.directSequenceSpread = settings.directSequenceSpread;
         }
 
@@ -1375,6 +1349,13 @@ void renderMain() {
             ImGui::SameLine();
             ImGui::TextColored({ 0.0f, 0.6f, 0.4f, interp }, "%s", settings.txProtocols.at(GGWave::TxProtocolId(message.protocolId)).name);
             ImGui::SameLine();
+            if (message.dss) {
+                ImGui::TextColored({ 0.4f, 0.6f, 0.4f, interp }, "DSS");
+                if (ImGui::IsItemHovered()) {
+                    ImGui::SetTooltip("Direct Sequence Spread");
+                }
+                ImGui::SameLine();
+            }
             ImGui::TextDisabled("|");
 
             {
@@ -1449,7 +1430,7 @@ void renderMain() {
             if (ImGui::ButtonDisablable("Resend", {}, messageSelected.type != Message::Text)) {
                 g_buffer.inputUI.update = true;
                 g_buffer.inputUI.flags.newMessage = true;
-                g_buffer.inputUI.message = { false, std::chrono::system_clock::now(), messageSelected.data, messageSelected.protocolId, settings.volume, Message::Text };
+                g_buffer.inputUI.message = { false, std::chrono::system_clock::now(), messageSelected.data, messageSelected.protocolId, messageSelected.dss, settings.volume, Message::Text };
 
                 messageHistory.push_back(g_buffer.inputUI.message);
                 ImGui::CloseCurrentPopup();
@@ -1671,7 +1652,7 @@ void renderMain() {
                 inputLast = std::string(inputBuf);
                 g_buffer.inputUI.update = true;
                 g_buffer.inputUI.flags.newMessage = true;
-                g_buffer.inputUI.message = { false, std::chrono::system_clock::now(), std::string(inputBuf), settings.protocolId, settings.volume, Message::Text };
+                g_buffer.inputUI.message = { false, std::chrono::system_clock::now(), std::string(inputBuf), settings.protocolId, settings.directSequenceSpread, settings.volume, Message::Text };
 
                 messageHistory.push_back(g_buffer.inputUI.message);
 
@@ -1798,6 +1779,7 @@ void renderMain() {
                                 std::chrono::system_clock::now(),
                                 ::generateFileBroadcastMessage(),
                                 settings.protocolId,
+                                settings.directSequenceSpread,
                                 settings.volume,
                                 Message::FileBroadcast
                             };

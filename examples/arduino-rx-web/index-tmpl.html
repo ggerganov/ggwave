@@ -73,13 +73,6 @@
 
             const kPayloadLength = 16;
 
-            var kDSSMagic = [
-                0x96, 0x9f, 0xb4, 0xaf, 0x1b, 0x91, 0xde, 0xc5, 0x45, 0x75, 0xe8, 0x2e, 0x0f, 0x32, 0x4a, 0x5f,
-                0xb4, 0x56, 0x95, 0xcb, 0x7f, 0x6a, 0x54, 0x6a, 0x48, 0xf2, 0x0b, 0x7b, 0xcd, 0xfb, 0x93, 0x6d,
-                0x3c, 0x77, 0x5e, 0xc3, 0x33, 0x47, 0xc0, 0xf1, 0x71, 0x32, 0x33, 0x27, 0x35, 0x68, 0x47, 0x1f,
-                0x4e, 0xac, 0x23, 0x42, 0x5f, 0x00, 0x37, 0xa4, 0x50, 0x6d, 0x48, 0x24, 0x91, 0x7c, 0xa1, 0x4e,
-            ];
-
             // instantiate the ggwave instance
             // ggwave_factory comes from the ggwave.js module
             ggwave_factory().then(function(obj) {
@@ -126,9 +119,6 @@
                 }
                 for (var i = 0; i < text.length; i++) {
                     payload[i] = text.charCodeAt(i);
-                }
-                for (var i = 0; i < kPayloadLength; i++) {
-                    payload[i] = payload[i] ^ kDSSMagic[i];
                 }
 
                 // generate audio waveform
@@ -187,7 +177,6 @@
                             var payload = "";
                             res8 = convertTypedArray(res, Uint8Array);
                             for (var i = 0; i < kPayloadLength; i++) {
-                                res8[i] = res8[i] ^ kDSSMagic[i];
                                 payload += String.fromCharCode(res8[i]);
                                 if (res8[i] == 0) {
                                     break;

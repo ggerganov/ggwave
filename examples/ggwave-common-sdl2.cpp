@@ -79,7 +79,8 @@ bool GGWave_init(
         const int playbackId,
         const int captureId,
         const int payloadLength,
-        const float sampleRateOffset) {
+        const float sampleRateOffset,
+        const bool useDSS) {
 
     if (g_devIdInp && g_devIdOut) {
         return false;
@@ -213,6 +214,9 @@ bool GGWave_init(
     }
 
     if (reinit) {
+        ggwave_OperatingMode mode = GGWAVE_OPERATING_MODE_RX_AND_TX;
+        if (useDSS) mode = ggwave_OperatingMode(mode | GGWAVE_OPERATING_MODE_USE_DSS);
+
         g_ggWave = std::make_shared<GGWave>(GGWave::Parameters {
             payloadLength,
             (float) g_obtainedSpecInp.freq,
@@ -222,7 +226,7 @@ bool GGWave_init(
             GGWave::kDefaultSoundMarkerThreshold,
             sampleFormatInp,
             sampleFormatOut,
-            (GGWave::OperatingMode) (GGWAVE_OPERATING_MODE_RX | GGWAVE_OPERATING_MODE_TX),
+            mode,
         });
     }
 

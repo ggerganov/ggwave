@@ -18,17 +18,19 @@ int main(int argc, char** argv) {
     printf("    -pN - select playback device N\n");
     printf("    -tN - transmission protocol\n");
     printf("    -lN - fixed payload length of size N, N in [1, %d]\n", GGWave::kMaxLengthFixed);
+    printf("    -s  - use Direct Sequence Spread (DSS)\n");
     printf("    -v  - print generated tones on resend\n");
     printf("\n");
 
-    auto argm = parseCmdArguments(argc, argv);
-    int captureId = argm["c"].empty() ? 0 : std::stoi(argm["c"]);
-    int playbackId = argm["p"].empty() ? 0 : std::stoi(argm["p"]);
-    int txProtocolId = argm["t"].empty() ? 1 : std::stoi(argm["t"]);
-    int payloadLength = argm["l"].empty() ? -1 : std::stoi(argm["l"]);
-    bool printTones = argm.find("v") == argm.end() ? false : true;
+    const auto argm = parseCmdArguments(argc, argv);
+    const int captureId = argm.count("c") == 0 ? 0 : std::stoi(argm.at("c"));
+    const int playbackId = argm.count("p") == 0 ? 0 : std::stoi(argm.at("p"));
+    const int txProtocolId = argm.count("t") == 0 ? 1 : std::stoi(argm.at("t"));
+    const int payloadLength = argm.count("l") == 0 ? -1 : std::stoi(argm.at("l"));
+    const bool useDSS = argm.count("s") > 0;
+    const bool printTones = argm.count("v") > 0;
 
-    if (GGWave_init(playbackId, captureId, payloadLength) == false) {
+    if (GGWave_init(playbackId, captureId, payloadLength, 0.0f, useDSS) == false) {
         fprintf(stderr, "Failed to initialize GGWave\n");
         return -1;
     }
@@ -39,6 +41,9 @@ int main(int argc, char** argv) {
     const auto & protocols = GGWave::getTxProtocols();
     for (int i = 0; i < (int) protocols.size(); ++i) {
         const auto & protocol = protocols[i];
+        if (protocol.enabled == false) {
+            continue;
+        }
         printf("      %d - %s\n", i, protocol.name);
     }
 

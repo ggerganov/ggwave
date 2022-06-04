@@ -20,15 +20,6 @@
 
 namespace {
 
-// Direct-sequence spread magic numbers
-// Used to xor the actual payload
-const std::array<uint8_t, 64> kDSSMagic = {
-    0x96, 0x9f, 0xb4, 0xaf, 0x1b, 0x91, 0xde, 0xc5, 0x45, 0x75, 0xe8, 0x2e, 0x0f, 0x32, 0x4a, 0x5f,
-    0xb4, 0x56, 0x95, 0xcb, 0x7f, 0x6a, 0x54, 0x6a, 0x48, 0xf2, 0x0b, 0x7b, 0xcd, 0xfb, 0x93, 0x6d,
-    0x3c, 0x77, 0x5e, 0xc3, 0x33, 0x47, 0xc0, 0xf1, 0x71, 0x32, 0x33, 0x27, 0x35, 0x68, 0x47, 0x1f,
-    0x4e, 0xac, 0x23, 0x42, 0x5f, 0x00, 0x37, 0xa4, 0x50, 0x6d, 0x48, 0x24, 0x91, 0x7c, 0xa1, 0x4e,
-};
-
 std::string g_defaultCaptureDeviceName = "";
 
 SDL_AudioDeviceID g_devIdInp = 0;
@@ -99,7 +90,8 @@ bool GGWave_init(
         const int playbackId,
         const int captureId,
         const int payloadLength,
-        const float sampleRateOffset) {
+        const float sampleRateOffset,
+        const bool useDSS) {
 
     if (g_devIdInp && g_devIdOut) {
         return false;
@@ -235,6 +227,9 @@ bool GGWave_init(
     if (reinit) {
         if (g_ggWave) delete g_ggWave;
 
+        ggwave_OperatingMode mode = GGWAVE_OPERATING_MODE_RX_AND_TX;
+        if (useDSS) mode = ggwave_OperatingMode(mode | GGWAVE_OPERATING_MODE_USE_DSS);
+
         g_ggWave = new GGWave({
             payloadLength,
             (float) g_obtainedSpecInp.freq,
@@ -244,7 +239,7 @@ bool GGWave_init(
             GGWave::kDefaultSoundMarkerThreshold,
             sampleFormatInp,
             sampleFormatOut,
-            GGWAVE_OPERATING_MODE_RX_AND_TX,
+            mode,
         });
     }
 
@@ -278,9 +273,6 @@ bool GGWave_mainLoop() {
                     GGWave::TxRxData rxData;
                     int n = g_ggWave->takeRxData(rxData);
                     if (n > 0) {
-                        for (int i = 0; i < n; i++) {
-                            rxData[i] ^= kDSSMagic[i%kDSSMagic.size()];
-                        }
                         std::time_t timestamp = std::time(nullptr);
                         std::string tstr = std::asctime(std::localtime(&timestamp));
                         tstr.back() = 0;
@@ -359,7 +351,7 @@ int main(int argc, char** argv) {
     bool isInitialized = false;
 
     g_doInit = [&]() {
-        if (GGWave_init(0, captureId, payloadLength, 0) == false) {
+        if (GGWave_init(0, captureId, payloadLength, 0, true) == false) {
             fprintf(stderr, "Failed to initialize GGWave\n");
             return false;
         }

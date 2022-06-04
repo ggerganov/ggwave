@@ -34,7 +34,8 @@ cdef extern from "ggwave.h" nogil:
         GGWAVE_OPERATING_MODE_RX,
         GGWAVE_OPERATING_MODE_TX,
         GGWAVE_OPERATING_MODE_RX_AND_TX,
-        GGWAVE_OPERATING_MODE_TX_ONLY_TONES
+        GGWAVE_OPERATING_MODE_TX_ONLY_TONES,
+        GGWAVE_OPERATING_MODE_USE_DSS
 
     ctypedef struct ggwave_Parameters:
         int payloadLength

@@ -54,13 +54,6 @@
 
             const kPayloadLength = 3;
 
-            var kDSSMagic = [
-                0x96, 0x9f, 0xb4, 0xaf, 0x1b, 0x91, 0xde, 0xc5, 0x45, 0x75, 0xe8, 0x2e, 0x0f, 0x32, 0x4a, 0x5f,
-                0xb4, 0x56, 0x95, 0xcb, 0x7f, 0x6a, 0x54, 0x6a, 0x48, 0xf2, 0x0b, 0x7b, 0xcd, 0xfb, 0x93, 0x6d,
-                0x3c, 0x77, 0x5e, 0xc3, 0x33, 0x47, 0xc0, 0xf1, 0x71, 0x32, 0x33, 0x27, 0x35, 0x68, 0x47, 0x1f,
-                0x4e, 0xac, 0x23, 0x42, 0x5f, 0x00, 0x37, 0xa4, 0x50, 0x6d, 0x48, 0x24, 0x91, 0x7c, 0xa1, 0x4e,
-            ];
-
             // instantiate the ggwave instance
             // ggwave_factory comes from the ggwave.js module
             ggwave_factory().then(function(obj) {
@@ -93,12 +86,14 @@
                     parameters.payloadLength = kPayloadLength;
                     parameters.sampleRateInp = context.sampleRate;
                     parameters.sampleRateOut = context.sampleRate;
+                    parameters.operatingMode = GGWAVE_OPERATING_MODE_RX_AND_TX | GGWAVE_OPERATING_MODE_USE_DSS;
                     instance = ggwave.init(parameters);
 
                     parameters = ggwave_FluentPet.getDefaultParameters();
                     parameters.payloadLength = kPayloadLength;
                     parameters.sampleRateInp = context.sampleRate;
                     parameters.sampleRateOut = context.sampleRate - 512;
+                    parameters.operatingMode = GGWAVE_OPERATING_MODE_RX_AND_TX | GGWAVE_OPERATING_MODE_USE_DSS;
                     instance = ggwave_FluentPet.init(parameters);
                 }
             }
@@ -110,10 +105,9 @@
             function onSend(text) {
                 init();
 
-                // DSS : xor the text with the magic numbers
                 var payload = new Uint8Array(text.length);
                 for (var i = 0; i < text.length; i++) {
-                    payload[i] = text.charCodeAt(i) ^ kDSSMagic[i];
+                    payload[i] = text.charCodeAt(i);
                 }
 
                 // generate audio waveform
@@ -177,7 +171,7 @@
                             var payload = "";
                             res8 = convertTypedArray(res, Uint8Array);
                             for (var i = 0; i < 3; i++) {
-                                payload += String.fromCharCode(res8[i] ^ kDSSMagic[i]);
+                                payload += String.fromCharCode(res8[i]);
                             }
 
                             if (payload == 'RRR' || payload == 'GGG' || payload == 'BBB') {

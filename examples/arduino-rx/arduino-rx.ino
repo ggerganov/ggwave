@@ -49,51 +49,53 @@ void loop() {
 
     auto p = GGWave::getDefaultParameters();
     p.sampleRateInp = frequency;
+    p.sampleRateOut = frequency;
     p.sampleRate = frequency;
     p.sampleFormatInp = GGWAVE_SAMPLE_FORMAT_I16;
     p.samplesPerFrame = 128;
     p.payloadLength = 16;
-    p.operatingMode = (ggwave_OperatingMode) (GGWAVE_OPERATING_MODE_RX | GGWAVE_OPERATING_MODE_TX | GGWAVE_OPERATING_MODE_TX_ONLY_TONES);
+    p.operatingMode = (ggwave_OperatingMode) (GGWAVE_OPERATING_MODE_RX | GGWAVE_OPERATING_MODE_TX | GGWAVE_OPERATING_MODE_USE_DSS | GGWAVE_OPERATING_MODE_TX_ONLY_TONES);
+
+    {
+        auto & protocols = GGWave::getTxProtocols();
+        for (auto & p : protocols) {
+            p.enabled = false;
+        }
+        protocols[GGWAVE_TX_PROTOCOL_MT_FASTEST].enabled = true;
+        protocols[GGWAVE_TX_PROTOCOL_DT_FASTEST].enabled = true;
+    }
 
     GGWave ggwave(p);
     ggwave.setRxProtocols({
-            //{ GGWAVE_TX_PROTOCOL_MT_FASTEST, ggwave.getTxProtocol(GGWAVE_TX_PROTOCOL_MT_FASTEST) },
-            { GGWAVE_TX_PROTOCOL_DT_FASTEST, ggwave.getTxProtocol(GGWAVE_TX_PROTOCOL_DT_FASTEST) },
+            //ggwave.getTxProtocol(GGWAVE_TX_PROTOCOL_MT_FASTEST),
+            ggwave.getTxProtocol(GGWAVE_TX_PROTOCOL_DT_FASTEST),
             });
+
     Serial.println("Instance initialized");
-
-    static GGWave::CBWaveformInp cbWaveformInp = [&](void * data, uint32_t nMaxBytes) {
-        const int nSamples = nMaxBytes/kSampleSize_bytes;
-        if (qsize < nSamples) {
-            return 0u;
-        }
-
-        qsize -= nSamples;
-
-        TSample * pDst = (TSample *)(data);
-        TSample * pSrc = (TSample *)(sampleBuffer + qhead);
-
-        if (qhead + nSamples > qmax) {
-            // should never happen but just in case
-            memcpy(pDst, pSrc, (qmax - qhead)*kSampleSize_bytes);
-            memcpy(pDst + (qmax - qhead), sampleBuffer, (nSamples - (qmax - qhead))*kSampleSize_bytes);
-            qhead += nSamples - qmax;
-        } else {
-            memcpy(pDst, pSrc, nSamples*kSampleSize_bytes);
-            qhead += nSamples;
-        }
-
-        return nSamples*kSampleSize_bytes;
-    };
 
     int nr = 0;
     int niter = 0;
+
     GGWave::TxRxData result;
     while (true) {
-        if (qsize >= 128) {
+        while (qsize >= p.samplesPerFrame) {
             auto tStart = millis();
 
-            ggwave.decode(cbWaveformInp);
+            //Serial.print(qhead);
+            //Serial.print(" ");
+            //Serial.print(qtail);
+            //Serial.print(" ");
+            //Serial.print(qsize);
+            //Serial.print(" ");
+            //Serial.print(ggwave.getSamplesNeeded());
+            //Serial.println("");
+
+            ggwave.decode(sampleBuffer + qhead, p.samplesPerFrame*kSampleSize_bytes);
+            qsize -= p.samplesPerFrame;
+            qhead += p.samplesPerFrame;
+            if (qhead >= qmax) {
+                qhead = 0;
+            }
 
             auto tEnd = millis();
             if (++niter % 10 == 0) {
@@ -108,17 +110,17 @@ void loop() {
 
                 if (strcmp((char *)result.data(), "test") == 0) {
                     ggwave.init("hello", ggwave.getTxProtocol(GGWAVE_TX_PROTOCOL_MT_FASTEST));
-                    ggwave.encode(nullptr);
+                    ggwave.encode();
 
-                    const auto & waveformTones = ggwave.getWaveformTones();
-                    for (int i = 0; i < (int) waveformTones.size(); ++i) {
+                    const auto & tones = ggwave.txTones();
+                    for (int i = 0; i < (int) tones.size(); ++i) {
                         Serial.print(" - frame ");
                         Serial.print(i);
                         Serial.print(", ");
-                        Serial.print(waveformTones[i].size());
+                        Serial.print(tones[i].size());
                         Serial.print(": ");
-                        for (int j = 0; j < (int) waveformTones[i].size(); ++j) {
-                            Serial.print((int)(waveformTones[i][j].freq_hz));
+                        for (int j = 0; j < (int) tones[i].size(); ++j) {
+                            Serial.print((int)(tones[i][j].freq_hz));
                             Serial.print(" ");
                         }
                         Serial.println();

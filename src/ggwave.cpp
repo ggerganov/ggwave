@@ -365,7 +365,7 @@ struct GGWave::Rx {
 
     int historyIdFixed = 0;
 
-    std::vector<std::vector<uint8_t>> spectrumHistoryFixed;
+    std::vector<std::vector<uint16_t>> spectrumHistoryFixed;
     std::vector<uint8_t> detectedBins;
     std::vector<uint8_t> detectedTones;
 };
@@ -1716,10 +1716,20 @@ void GGWave::decode_fixed() {
         amax = std::max(amax, m_rx->sampleSpectrum[i]);
     }
 
-    // float -> uint8_t
+    // original, floating-point version
     //m_rx->spectrumHistoryFixed[m_rx->historyIdFixed] = m_rx->sampleSpectrum;
+
+    // in theory, using uint8_t should work alsmost the same and save 4 times the memory, but for some resone
+    // the result are not as good as with the floating-point version
+    // float -> uint8_t
+    //for (int i = 0; i < m_samplesPerFrame; ++i) {
+    //    m_rx->spectrumHistoryFixed[m_rx->historyIdFixed][i] = std::min(255.0, std::max(0.0, round(m_rx->sampleSpectrum[i]/amax*255.0f)));
+    //}
+
+    // hence we opt for the uint16_t version, saving 2 times the memory and getting similar results as the floating-point version
+    // float -> uint16_t
     for (int i = 0; i < m_samplesPerFrame; ++i) {
-        m_rx->spectrumHistoryFixed[m_rx->historyIdFixed][i] = std::min(255.0, std::max(0.0, round(m_rx->sampleSpectrum[i]/amax*255.0f)));
+        m_rx->spectrumHistoryFixed[m_rx->historyIdFixed][i] = std::min(65535.0, std::max(0.0, round(m_rx->sampleSpectrum[i]/amax*65535.0f)));
     }
 
     if (++m_rx->historyIdFixed >= (int) m_rx->spectrumHistoryFixed.size()) {
@@ -1771,8 +1781,8 @@ void GGWave::decode_fixed() {
                     int f0bin = -1;
                     int f1bin = -1;
 
-                    double f0max = 0.0;
-                    double f1max = 0.0;
+                    double f0max = -1.0;
+                    double f1max = -1.0;
 
                     for (int b = 0; b < 16; ++b) {
                         {

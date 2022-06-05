@@ -437,8 +437,9 @@ public:
     //    - GGWave::Protocols::tx()
     //
     //  For optimal performance and minimum memory usage, make sure to enable only the
-    //  Rx and Tx protocols that you need. For example, using a single protocol for Tx
-    //  is achieved like this:
+    //  Rx and Tx protocols that you need.
+    //
+    //  For example, using a single protocol for Tx is achieved like this:
     //
     //    Parameters parameters;
     //    parameters.operatingMode = GGWAVE_OPERATING_MODE_TX;

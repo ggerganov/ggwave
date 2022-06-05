@@ -2,10 +2,7 @@
 
 #include <PDM.h>
 
-const int kPinLed0    = 13;
 const int kPinSpeaker = 10;
-const int kPinButton0 = 2;
-const int kPinButton1 = 4;
 
 using TSample = int16_t;
 static const size_t kSampleSize_bytes = sizeof(TSample);
@@ -62,10 +59,7 @@ void setup() {
     Serial.begin(57600);
     while (!Serial);
 
-    pinMode(kPinLed0,    OUTPUT);
     pinMode(kPinSpeaker, OUTPUT);
-    pinMode(kPinButton0, INPUT);
-    pinMode(kPinButton1, INPUT);
 
     // Configure the data receive callback
     PDM.onReceive(onPDMdata);

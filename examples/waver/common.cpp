@@ -136,8 +136,8 @@ struct Message {
 };
 
 struct GGWaveStats {
-    bool isReceiving;
-    bool isAnalyzing;
+    bool receiving;
+    bool analyzing;
     int framesToRecord;
     int framesLeftToRecord;
     int framesToAnalyze;
@@ -146,8 +146,8 @@ struct GGWaveStats {
     float sampleRateInp;
     float sampleRateOut;
     float sampleRate;
-    int sampleSizeBytesInp;
-    int sampleSizeBytesOut;
+    int sampleSizeInp;
+    int sampleSizeOut;
 };
 
 struct State {
@@ -201,9 +201,11 @@ struct State {
     }
 
     Message message;
-    GGWave::SpectrumData rxSpectrum;
-    GGWave::AmplitudeData rxAmplitude;
-    GGWave::AmplitudeDataI16 txAmplitude;
+
+    GGWave::Spectrum     rxSpectrum;
+    GGWave::Amplitude    rxAmplitude;
+    GGWave::AmplitudeI16 txAmplitude;
+
     GGWaveStats stats;
     GGWave::TxProtocols txProtocols;
 };
@@ -302,7 +304,7 @@ GGSock::FileServer g_fileServer;
 
 // file received data
 struct FileInfoExtended {
-    bool isReceiving = false;
+    bool receiving = false;
     bool readyToShare = false;
     bool requestToShare = false;
     int nReceivedChunks = 0;
@@ -614,16 +616,16 @@ void updateCore() {
 
             ggWave->init(
                     n, inputCurrent.message.data.data(),
-                    ggWave->getTxProtocol(inputCurrent.message.protocolId),
+                    GGWave::TxProtocolId(inputCurrent.message.protocolId),
                     100*inputCurrent.message.volume);
         }
 
         if (inputCurrent.flags.needReinit) {
-            static auto sampleRateInpOld = ggWave->getSampleRateInp();
-            static auto sampleRateOutOld = ggWave->getSampleRateOut();
-            GGWave::SampleFormat sampleFormatInpOld = ggWave->getSampleFormatInp();
-            GGWave::SampleFormat sampleFormatOutOld = ggWave->getSampleFormatOut();
-            auto rxProtocolsOld = ggWave->getRxProtocols();
+            static auto sampleRateInpOld = ggWave->sampleRateInp();
+            static auto sampleRateOutOld = ggWave->sampleRateOut();
+            GGWave::SampleFormat sampleFormatInpOld = ggWave->sampleFormatInp();
+            GGWave::SampleFormat sampleFormatOutOld = ggWave->sampleFormatOut();
+            auto rxProtocolsOld = ggWave->rxProtocols();
 
             GGWave::OperatingMode mode = GGWAVE_OPERATING_MODE_RX_AND_TX;
             if (inputCurrent.directSequenceSpread) mode = GGWave::OperatingMode(mode | GGWAVE_OPERATING_MODE_USE_DSS);
@@ -643,7 +645,7 @@ void updateCore() {
             GGWave_reset(&parameters);
             ggWave = GGWave_instance();
 
-            ggWave->setRxProtocols(rxProtocolsOld);
+            ggWave->rxProtocols() = rxProtocolsOld;
         }
 
         if (inputCurrent.flags.changeNeedSpectrum) {
@@ -651,11 +653,11 @@ void updateCore() {
         }
 
         if (inputCurrent.flags.stopReceiving) {
-            ggWave->stopReceiving();
+            ggWave->rxStopReceiving();
         }
 
         if (inputCurrent.flags.changeRxProtocols) {
-            ggWave->setRxProtocols(inputCurrent.rxProtocols);
+            ggWave->rxProtocols() = inputCurrent.rxProtocols;
         }
 
         inputCurrent.flags.clear();
@@ -664,7 +666,7 @@ void updateCore() {
 
     GGWave_mainLoop();
 
-    rxDataLengthLast = ggWave->takeRxData(rxDataLast);
+    rxDataLengthLast = ggWave->rxTakeData(rxDataLast);
     if (rxDataLengthLast == -1) {
         g_buffer.stateCore.update = true;
         g_buffer.stateCore.flags.newMessage = true;
@@ -672,7 +674,7 @@ void updateCore() {
             true,
             std::chrono::system_clock::now(),
             "",
-            ggWave->getRxProtocolId(),
+            ggWave->rxProtocolId(),
             ggWave->isDSSEnabled(),
             0,
             Message::Error,
@@ -687,7 +689,7 @@ void updateCore() {
             true,
             std::chrono::system_clock::now(),
             std::move(message),
-            ggWave->getRxProtocolId(),
+            ggWave->rxProtocolId(),
             ggWave->isDSSEnabled(),
             0,
             type,
@@ -697,11 +699,11 @@ void updateCore() {
     }
 
     if (needSpectrum) {
-        if (ggWave->takeRxAmplitude(g_buffer.stateCore.rxAmplitude)) {
+        if (ggWave->rxTakeAmplitude(g_buffer.stateCore.rxAmplitude)) {
             static const int NMax = GGWave::kMaxSamplesPerFrame;
             static float tmp[2*NMax];
 
-            int N = ggWave->getSamplesPerFrame();
+            int N = ggWave->samplesPerFrame();
             ggWave->computeFFTR(g_buffer.stateCore.rxAmplitude.data(), tmp, N);
 
             g_buffer.stateCore.rxSpectrum.resize(N);
@@ -717,7 +719,7 @@ void updateCore() {
         }
     }
 
-    if (ggWave->takeTxAmplitudeI16(g_buffer.stateCore.txAmplitude)) {
+    if (ggWave->txTakeAmplitudeI16(g_buffer.stateCore.txAmplitude)) {
         g_buffer.stateCore.update = true;
         g_buffer.stateCore.flags.newTxAmplitude = true;
     }
@@ -725,24 +727,24 @@ void updateCore() {
     if (true) {
         g_buffer.stateCore.update = true;
         g_buffer.stateCore.flags.newStats = true;
-        g_buffer.stateCore.stats.isReceiving = ggWave->isReceiving();
-        g_buffer.stateCore.stats.isAnalyzing = ggWave->isAnalyzing();
-        g_buffer.stateCore.stats.framesToRecord = ggWave->getFramesToRecord();
-        g_buffer.stateCore.stats.framesLeftToRecord = ggWave->getFramesLeftToRecord();
-        g_buffer.stateCore.stats.framesToAnalyze = ggWave->getFramesToAnalyze();
-        g_buffer.stateCore.stats.framesLeftToAnalyze = ggWave->getFramesLeftToAnalyze();
-        g_buffer.stateCore.stats.samplesPerFrame = ggWave->getSamplesPerFrame();
-        g_buffer.stateCore.stats.sampleRateInp = ggWave->getSampleRateInp();
-        g_buffer.stateCore.stats.sampleRateOut = ggWave->getSampleRateOut();
-        g_buffer.stateCore.stats.sampleRate = GGWave::kDefaultSampleRate;
-        g_buffer.stateCore.stats.sampleSizeBytesInp = ggWave->getSampleSizeBytesInp();
-        g_buffer.stateCore.stats.sampleSizeBytesOut = ggWave->getSampleSizeBytesOut();
+        g_buffer.stateCore.stats.receiving           = ggWave->rxReceiving();
+        g_buffer.stateCore.stats.analyzing           = ggWave->rxAnalyzing();
+        g_buffer.stateCore.stats.framesToRecord      = ggWave->rxFramesToRecord();
+        g_buffer.stateCore.stats.framesLeftToRecord  = ggWave->rxFramesLeftToRecord();
+        g_buffer.stateCore.stats.framesToAnalyze     = ggWave->rxFramesToAnalyze();
+        g_buffer.stateCore.stats.framesLeftToAnalyze = ggWave->rxFramesLeftToAnalyze();
+        g_buffer.stateCore.stats.samplesPerFrame     = ggWave->samplesPerFrame();
+        g_buffer.stateCore.stats.sampleRateInp       = ggWave->sampleRateInp();
+        g_buffer.stateCore.stats.sampleRateOut       = ggWave->sampleRateOut();
+        g_buffer.stateCore.stats.sampleRate          = GGWave::kDefaultSampleRate;
+        g_buffer.stateCore.stats.sampleSizeInp       = ggWave->sampleSizeInp();
+        g_buffer.stateCore.stats.sampleSizeOut       = ggWave->sampleSizeOut();
     }
 
     if (isFirstCall) {
         g_buffer.stateCore.update = true;
         g_buffer.stateCore.flags.newTxProtocols = true;
-        g_buffer.stateCore.txProtocols = ggWave->getTxProtocols();
+        g_buffer.stateCore.txProtocols = GGWave::Protocols::tx();
 
         isFirstCall = false;
     }
@@ -773,7 +775,7 @@ void renderMain() {
                 const auto & uri = fileInfo.second.uri;
                 auto & fileInfoExtended = g_receivedFileInfosExtended[uri];
 
-                if (fileInfoExtended.isReceiving == false) {
+                if (fileInfoExtended.receiving == false) {
                     continue;
                 }
 
@@ -835,7 +837,7 @@ void renderMain() {
     };
 
     struct Settings {
-        int protocolId = GGWAVE_TX_PROTOCOL_AUDIBLE_FAST;
+        int protocolId = GGWAVE_PROTOCOL_AUDIBLE_FAST;
         bool isSampleRateOffset = false;
         float sampleRateOffset = -512.0f;
         bool isFixedLength = false;
@@ -882,8 +884,8 @@ void renderMain() {
     static double tLengthTx = 0.0f;
 
     static GGWaveStats statsCurrent;
-    static GGWave::SpectrumData spectrumCurrent;
-    static GGWave::AmplitudeDataI16 txAmplitudeDataCurrent;
+    static GGWave::Spectrum spectrumCurrent;
+    static GGWave::AmplitudeI16 txAmplitudeCurrent;
     static std::vector<Message> messageHistory;
     static std::string inputLast = "";
 
@@ -912,12 +914,12 @@ void renderMain() {
             hasAudioCaptureData = !spectrumCurrent.empty();
         }
         if (stateCurrent.flags.newTxAmplitude) {
-            txAmplitudeDataCurrent = std::move(stateCurrent.txAmplitude);
+            txAmplitudeCurrent = std::move(stateCurrent.txAmplitude);
 
             tStartTx = ImGui::GetTime() + (16.0f*1024.0f)/statsCurrent.sampleRateOut;
-            tLengthTx = txAmplitudeDataCurrent.size()/statsCurrent.sampleRateOut;
+            tLengthTx = txAmplitudeCurrent.size()/statsCurrent.sampleRateOut;
             {
-                auto & ampl = txAmplitudeDataCurrent;
+                auto & ampl = txAmplitudeCurrent;
                 int nBins = 512;
                 int nspb = (int) ampl.size()/nBins;
                 for (int i = 0; i < nBins; ++i) {
@@ -1043,8 +1045,8 @@ void renderMain() {
         ImGui::Separator();
 
         ImGui::Text("%s", "");
-        ImGui::Text("Sample rate (capture):  %g, %d B/sample", statsCurrent.sampleRateInp, statsCurrent.sampleSizeBytesInp);
-        ImGui::Text("Sample rate (playback): %g, %d B/sample", statsCurrent.sampleRateOut, statsCurrent.sampleSizeBytesOut);
+        ImGui::Text("Sample rate (capture):  %g, %d B/sample", statsCurrent.sampleRateInp, statsCurrent.sampleSizeInp);
+        ImGui::Text("Sample rate (playback): %g, %d B/sample", statsCurrent.sampleRateOut, statsCurrent.sampleSizeOut);
 
         const float kLabelWidth = ImGui::CalcTextSize("Inp. SR Offset:  ").x;
 
@@ -1501,8 +1503,8 @@ void renderMain() {
         }
         ImGui::EndChild();
 
-        if (statsCurrent.isReceiving) {
-            if (statsCurrent.isAnalyzing) {
+        if (statsCurrent.receiving) {
+            if (statsCurrent.analyzing) {
                 ImGui::TextColored({ 0.0f, 1.0f, 0.0f, 1.0f }, "Analyzing ...");
                 ImGui::SameLine();
                 ImGui::ProgressBar(1.0f - float(statsCurrent.framesLeftToAnalyze)/statsCurrent.framesToAnalyze,
@@ -1525,7 +1527,7 @@ void renderMain() {
             amax = 0.0f;
             frac = (ImGui::GetTime() - tStartTx)/tLengthTx;
 
-            if (txAmplitudeDataCurrent.size() && frac <= 1.0f) {
+            if (txAmplitudeCurrent.size() && frac <= 1.0f) {
                 struct Funcs {
                     static float Sample(void * data, int i) {
                         auto res = std::fabs(((int16_t *)(data))[i]) ;
@@ -1534,7 +1536,7 @@ void renderMain() {
                     }
 
                     static float SampleFrac(void * data, int i) {
-                        if (i > frac*txAmplitudeDataCurrent.size()) {
+                        if (i > frac*txAmplitudeCurrent.size()) {
                             return 0.0f;
                         }
                         return std::fabs(((int16_t *)(data))[i]);
@@ -1550,8 +1552,8 @@ void renderMain() {
                 ImGui::PushStyleColor(ImGuiCol_PlotHistogram, ImGui::GetStyleColorVec4(ImGuiCol_TextDisabled));
                 ImGui::PlotHistogram("##plotSpectrumCurrent",
                                      Funcs::Sample,
-                                     txAmplitudeDataCurrent.data(),
-                                     (int) txAmplitudeDataCurrent.size(), 0,
+                                     txAmplitudeCurrent.data(),
+                                     (int) txAmplitudeCurrent.size(), 0,
                                      (std::string("")).c_str(),
                                      0.0f, FLT_MAX, wSize);
                 ImGui::PopStyleColor(2);
@@ -1562,8 +1564,8 @@ void renderMain() {
                 ImGui::PushStyleColor(ImGuiCol_PlotHistogram, { 0.0f, 1.0f, 0.0f, 1.0f });
                 ImGui::PlotHistogram("##plotSpectrumCurrent",
                                      Funcs::SampleFrac,
-                                     txAmplitudeDataCurrent.data(),
-                                     (int) txAmplitudeDataCurrent.size(), 0,
+                                     txAmplitudeCurrent.data(),
+                                     (int) txAmplitudeCurrent.size(), 0,
                                      (std::string("")).c_str(),
                                      0.0f, amax, wSize);
                 ImGui::PopStyleColor(2);
@@ -1835,14 +1837,14 @@ void renderMain() {
                                 if (fileInfoExtended.readyToShare) {
                                     ImGui::TextColored({ 0.0f, 1.0f, 0.0f, 1.0f }, "Ready to share!");
                                 }
-                            } else if (g_fileClient.isConnected() && (fileInfoExtended.isReceiving || fileInfoExtended.nReceivedChunks > 0)) {
-                                if (fileInfoExtended.isReceiving) {
+                            } else if (g_fileClient.isConnected() && (fileInfoExtended.receiving || fileInfoExtended.nReceivedChunks > 0)) {
+                                if (fileInfoExtended.receiving) {
                                     if (ImGui::Button(ICON_FA_PAUSE "  Pause")) {
-                                        fileInfoExtended.isReceiving = false;
+                                        fileInfoExtended.receiving = false;
                                     }
                                 } else {
                                     if (ImGui::Button(ICON_FA_PLAY "  Resume")) {
-                                        fileInfoExtended.isReceiving = true;
+                                        fileInfoExtended.receiving = true;
                                     }
                                 }
 
@@ -1850,7 +1852,7 @@ void renderMain() {
                                 ImGui::ProgressBar(float(fileInfoExtended.nReceivedChunks)/fileInfo.second.nChunks);
                             } else if (g_fileClient.isConnected()) {
                                 if (ImGui::Button(ICON_FA_DOWNLOAD "  Receive")) {
-                                    fileInfoExtended.isReceiving = true;
+                                    fileInfoExtended.receiving = true;
                                     fileInfoExtended.isChunkReceived.resize(fileInfo.second.nChunks);
                                     fileInfoExtended.isChunkRequested.resize(fileInfo.second.nChunks);
                                 }
@@ -1858,7 +1860,7 @@ void renderMain() {
                                 ImGui::Text("%s", "");
                             }
 
-                            if ((fileInfoExtended.isReceiving == false || isReceived) && fileInfoExtended.requestToShare == false) {
+                            if ((fileInfoExtended.receiving == false || isReceived) && fileInfoExtended.requestToShare == false) {
                                 ImGui::SameLine();
                                 if (ImGui::Button(ICON_FA_TRASH "  Clear")) {
                                     toErase = fileInfo.first;
@@ -2034,7 +2036,7 @@ void renderMain() {
                         }
                         auto wSize = ImGui::GetContentRegionAvail();
                         ImGui::PushStyleColor(ImGuiCol_FrameBg, { 0.3f, 0.3f, 0.3f, 0.3f });
-                        if (statsCurrent.isReceiving) {
+                        if (statsCurrent.receiving) {
                             ImGui::PushStyleColor(ImGuiCol_PlotHistogram, { 1.0f, 0.0f, 0.0f, 1.0f });
                         } else {
                             ImGui::PushStyleColor(ImGuiCol_PlotHistogram, { 0.0f, 1.0f, 0.0f, 1.0f });

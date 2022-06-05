@@ -8,27 +8,27 @@ cdef extern from "ggwave.h" nogil:
         GGWAVE_SAMPLE_FORMAT_I16,
         GGWAVE_SAMPLE_FORMAT_F32
 
-    ctypedef enum ggwave_TxProtocolId:
-        GGWAVE_TX_PROTOCOL_AUDIBLE_NORMAL,
-        GGWAVE_TX_PROTOCOL_AUDIBLE_FAST,
-        GGWAVE_TX_PROTOCOL_AUDIBLE_FASTEST,
-        GGWAVE_TX_PROTOCOL_ULTRASOUND_NORMAL,
-        GGWAVE_TX_PROTOCOL_ULTRASOUND_FAST,
-        GGWAVE_TX_PROTOCOL_ULTRASOUND_FASTEST,
-        GGWAVE_TX_PROTOCOL_DT_NORMAL,
-        GGWAVE_TX_PROTOCOL_DT_FAST,
-        GGWAVE_TX_PROTOCOL_DT_FASTEST,
+    ctypedef enum ggwave_ProtocolId:
+        GGWAVE_PROTOCOL_AUDIBLE_NORMAL,
+        GGWAVE_PROTOCOL_AUDIBLE_FAST,
+        GGWAVE_PROTOCOL_AUDIBLE_FASTEST,
+        GGWAVE_PROTOCOL_ULTRASOUND_NORMAL,
+        GGWAVE_PROTOCOL_ULTRASOUND_FAST,
+        GGWAVE_PROTOCOL_ULTRASOUND_FASTEST,
+        GGWAVE_PROTOCOL_DT_NORMAL,
+        GGWAVE_PROTOCOL_DT_FAST,
+        GGWAVE_PROTOCOL_DT_FASTEST,
 
-        GGWAVE_TX_PROTOCOL_CUSTOM_0,
-        GGWAVE_TX_PROTOCOL_CUSTOM_1,
-        GGWAVE_TX_PROTOCOL_CUSTOM_2,
-        GGWAVE_TX_PROTOCOL_CUSTOM_3,
-        GGWAVE_TX_PROTOCOL_CUSTOM_4,
-        GGWAVE_TX_PROTOCOL_CUSTOM_5,
-        GGWAVE_TX_PROTOCOL_CUSTOM_6,
-        GGWAVE_TX_PROTOCOL_CUSTOM_7,
-        GGWAVE_TX_PROTOCOL_CUSTOM_8,
-        GGWAVE_TX_PROTOCOL_CUSTOM_9
+        GGWAVE_PROTOCOL_CUSTOM_0,
+        GGWAVE_PROTOCOL_CUSTOM_1,
+        GGWAVE_PROTOCOL_CUSTOM_2,
+        GGWAVE_PROTOCOL_CUSTOM_3,
+        GGWAVE_PROTOCOL_CUSTOM_4,
+        GGWAVE_PROTOCOL_CUSTOM_5,
+        GGWAVE_PROTOCOL_CUSTOM_6,
+        GGWAVE_PROTOCOL_CUSTOM_7,
+        GGWAVE_PROTOCOL_CUSTOM_8,
+        GGWAVE_PROTOCOL_CUSTOM_9
 
     ctypedef enum ggwave_OperatingMode:
         GGWAVE_OPERATING_MODE_RX,
@@ -58,22 +58,25 @@ cdef extern from "ggwave.h" nogil:
 
     int ggwave_encode(
             ggwave_Instance instance,
-            const char * dataBuffer,
-            int dataSize,
-            ggwave_TxProtocolId txProtocolId,
+            const void * payloadBuffer,
+            int payloadSize,
+            ggwave_ProtocolId protocolId,
             int volume,
-            char * outputBuffer,
+            void * waveformBuffer,
             int query);
 
     int ggwave_decode(
             ggwave_Instance instance,
-            const char * dataBuffer,
-            int dataSize,
-            char * outputBuffer);
+            const void * waveformBuffer,
+            int waveformSize,
+            void * payloadBuffer);
 
     void ggwave_setLogFile(void * fptr);
 
-    void ggwave_toggleRxProtocol(
-            ggwave_Instance instance,
-            ggwave_TxProtocolId rxProtocolId,
+    void ggwave_rxToggleProtocol(
+            ggwave_ProtocolId protocolId,
+            int state);
+
+    void ggwave_txToggleProtocol(
+            ggwave_ProtocolId protocolId,
             int state);

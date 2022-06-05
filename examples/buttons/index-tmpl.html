@@ -40,17 +40,17 @@
 
         <script type="text/javascript" src="ggwave.js"></script>
         <script type='text/javascript'>
-            window.AudioContext = window.AudioContext || window.webkitAudioContext;
+            window.AudioContext        = window.AudioContext || window.webkitAudioContext;
             window.OfflineAudioContext = window.OfflineAudioContext || window.webkitOfflineAudioContext;
 
-            var context = null;
+            var context  = null;
             var recorder = null;
 
             // the ggwave module instance
-            var ggwave = null;
+            var ggwave           = null;
             var ggwave_FluentPet = null;
-            var parameters = null;
-            var instance = null;
+            var parameters       = null;
+            var instance         = null;
 
             const kPayloadLength = 3;
 
@@ -65,10 +65,10 @@
                 ggwave_FluentPet = obj;
             });
 
-            var txData = document.getElementById("txData");
-            var rxData = document.getElementById("rxData");
+            var txData       = document.getElementById("txData");
+            var rxData       = document.getElementById("rxData");
             var captureStart = document.getElementById("captureStart");
-            var captureStop = document.getElementById("captureStop");
+            var captureStop  = document.getElementById("captureStop");
 
             // helper function
             function convertTypedArray(src, type) {
@@ -113,9 +113,9 @@
                 // generate audio waveform
                 var waveform = null;
                 if (document.getElementById("checkbox-fp").checked) {
-                    waveform = ggwave_FluentPet.encode(instance, payload, ggwave_FluentPet.TxProtocolId.GGWAVE_TX_PROTOCOL_DT_FAST, 25)
+                    waveform = ggwave_FluentPet.encode(instance, payload, ggwave_FluentPet.TxProtocolId.GGWAVE_PROTOCOL_DT_FAST, 25)
                 } else {
-                    waveform = ggwave.encode(instance, payload, ggwave.TxProtocolId.GGWAVE_TX_PROTOCOL_DT_FAST, 25)
+                    waveform = ggwave.encode(instance, payload, ggwave.TxProtocolId.GGWAVE_PROTOCOL_DT_FAST, 25)
                 }
 
                 // play audio

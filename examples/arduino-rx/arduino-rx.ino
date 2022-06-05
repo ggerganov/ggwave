@@ -48,29 +48,20 @@ void loop() {
     Serial.println("trying to create ggwave instance");
 
     auto p = GGWave::getDefaultParameters();
-    p.sampleRateInp = frequency;
-    p.sampleRateOut = frequency;
-    p.sampleRate = frequency;
-    p.sampleFormatInp = GGWAVE_SAMPLE_FORMAT_I16;
+    p.payloadLength   = 16;
+    p.sampleRateInp   = frequency;
+    p.sampleRateOut   = frequency;
+    p.sampleRate      = frequency;
     p.samplesPerFrame = 128;
-    p.payloadLength = 16;
-    p.operatingMode = (ggwave_OperatingMode) (GGWAVE_OPERATING_MODE_RX | GGWAVE_OPERATING_MODE_TX | GGWAVE_OPERATING_MODE_USE_DSS | GGWAVE_OPERATING_MODE_TX_ONLY_TONES);
+    p.sampleFormatInp = GGWAVE_SAMPLE_FORMAT_I16;
+    p.sampleFormatOut = GGWAVE_SAMPLE_FORMAT_I16;
+    p.operatingMode   = (ggwave_OperatingMode) (GGWAVE_OPERATING_MODE_RX | GGWAVE_OPERATING_MODE_TX | GGWAVE_OPERATING_MODE_USE_DSS | GGWAVE_OPERATING_MODE_TX_ONLY_TONES);
 
-    {
-        auto & protocols = GGWave::getTxProtocols();
-        for (auto & p : protocols) {
-            p.enabled = false;
-        }
-        protocols[GGWAVE_TX_PROTOCOL_MT_FASTEST].enabled = true;
-        protocols[GGWAVE_TX_PROTOCOL_DT_FASTEST].enabled = true;
-    }
+    GGWave::Protocols::tx().only({GGWAVE_PROTOCOL_MT_FASTEST, GGWAVE_PROTOCOL_DT_FASTEST});
+    GGWave::Protocols::rx().only({GGWAVE_PROTOCOL_MT_FASTEST, GGWAVE_PROTOCOL_DT_FASTEST});
 
     GGWave ggwave(p);
     ggwave.setLogFile(nullptr);
-    ggwave.setRxProtocols({
-            ggwave.getTxProtocol(GGWAVE_TX_PROTOCOL_MT_FASTEST),
-            ggwave.getTxProtocol(GGWAVE_TX_PROTOCOL_DT_FASTEST),
-            });
 
     Serial.println("Instance initialized");
 
@@ -103,14 +94,14 @@ void loop() {
                 Serial.println(tEnd - tStart);
             }
 
-            nr = ggwave.takeRxData(result);
+            nr = ggwave.rxTakeData(result);
             if (nr > 0) {
                 Serial.println(tEnd - tStart);
                 Serial.println(nr);
                 Serial.println((char *)result.data());
 
                 if (strcmp((char *)result.data(), "test") == 0) {
-                    ggwave.init("hello", ggwave.getTxProtocol(GGWAVE_TX_PROTOCOL_MT_FASTEST));
+                    ggwave.init("hello", GGWave::TxProtocolId(GGWAVE_PROTOCOL_MT_FASTEST));
                     ggwave.encode();
 
                     const auto & tones = ggwave.txTones();

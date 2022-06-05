@@ -8,7 +8,7 @@ factory().then(function(ggwave) {
     var payload = 'hello js';
 
     // generate audio waveform for string "hello js"
-    var waveform = ggwave.encode(instance, payload, ggwave.TxProtocolId.GGWAVE_TX_PROTOCOL_AUDIBLE_FAST, 10);
+    var waveform = ggwave.encode(instance, payload, ggwave.TxProtocolId.GGWAVE_PROTOCOL_AUDIBLE_FAST, 10);
 
     // decode the audio waveform back to text
     var res = ggwave.decode(instance, waveform);

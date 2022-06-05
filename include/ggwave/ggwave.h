@@ -33,36 +33,50 @@ extern "C" {
         GGWAVE_SAMPLE_FORMAT_F32,
     } ggwave_SampleFormat;
 
-    // TxProtocol ids
+    // Protocol ids
     typedef enum {
-        GGWAVE_TX_PROTOCOL_AUDIBLE_NORMAL,
-        GGWAVE_TX_PROTOCOL_AUDIBLE_FAST,
-        GGWAVE_TX_PROTOCOL_AUDIBLE_FASTEST,
-        GGWAVE_TX_PROTOCOL_ULTRASOUND_NORMAL,
-        GGWAVE_TX_PROTOCOL_ULTRASOUND_FAST,
-        GGWAVE_TX_PROTOCOL_ULTRASOUND_FASTEST,
-        GGWAVE_TX_PROTOCOL_DT_NORMAL,
-        GGWAVE_TX_PROTOCOL_DT_FAST,
-        GGWAVE_TX_PROTOCOL_DT_FASTEST,
-        GGWAVE_TX_PROTOCOL_MT_NORMAL,
-        GGWAVE_TX_PROTOCOL_MT_FAST,
-        GGWAVE_TX_PROTOCOL_MT_FASTEST,
+        GGWAVE_PROTOCOL_AUDIBLE_NORMAL,
+        GGWAVE_PROTOCOL_AUDIBLE_FAST,
+        GGWAVE_PROTOCOL_AUDIBLE_FASTEST,
+        GGWAVE_PROTOCOL_ULTRASOUND_NORMAL,
+        GGWAVE_PROTOCOL_ULTRASOUND_FAST,
+        GGWAVE_PROTOCOL_ULTRASOUND_FASTEST,
+        GGWAVE_PROTOCOL_DT_NORMAL,
+        GGWAVE_PROTOCOL_DT_FAST,
+        GGWAVE_PROTOCOL_DT_FASTEST,
+        GGWAVE_PROTOCOL_MT_NORMAL,
+        GGWAVE_PROTOCOL_MT_FAST,
+        GGWAVE_PROTOCOL_MT_FASTEST,
 
-        GGWAVE_TX_PROTOCOL_CUSTOM_0,
-        GGWAVE_TX_PROTOCOL_CUSTOM_1,
-        GGWAVE_TX_PROTOCOL_CUSTOM_2,
-        GGWAVE_TX_PROTOCOL_CUSTOM_3,
-        GGWAVE_TX_PROTOCOL_CUSTOM_4,
-        GGWAVE_TX_PROTOCOL_CUSTOM_5,
-        GGWAVE_TX_PROTOCOL_CUSTOM_6,
-        GGWAVE_TX_PROTOCOL_CUSTOM_7,
-        GGWAVE_TX_PROTOCOL_CUSTOM_8,
-        GGWAVE_TX_PROTOCOL_CUSTOM_9,
+        GGWAVE_PROTOCOL_CUSTOM_0,
+        GGWAVE_PROTOCOL_CUSTOM_1,
+        GGWAVE_PROTOCOL_CUSTOM_2,
+        GGWAVE_PROTOCOL_CUSTOM_3,
+        GGWAVE_PROTOCOL_CUSTOM_4,
+        GGWAVE_PROTOCOL_CUSTOM_5,
+        GGWAVE_PROTOCOL_CUSTOM_6,
+        GGWAVE_PROTOCOL_CUSTOM_7,
+        GGWAVE_PROTOCOL_CUSTOM_8,
+        GGWAVE_PROTOCOL_CUSTOM_9,
 
-        GGWAVE_TX_PROTOCOL_COUNT,
-    } ggwave_TxProtocolId;
+        GGWAVE_PROTOCOL_COUNT,
+    } ggwave_ProtocolId;
 
     // Operating modes of ggwave
+    //
+    //   GGWAVE_OPERATING_MODE_RX:
+    //     The instance will be able to receive audio data
+    //
+    //   GGWAVE_OPERATING_MODE_TX:
+    //     The instance will be able generate audio waveforms for transmission
+    //
+    //   GGWAVE_OPERATING_MODE_TX_ONLY_TONES:
+    //     The encoding process generates only a list of tones instead of full audio
+    //     waveform. This is useful for low-memory devices and embedded systems.
+    //
+    //   GGWAVE_OPERATING_MODE_USE_DSS:
+    //     Enable the built-in Direct Sequence Spread (DSS) algorithm
+    //
     typedef enum {
         GGWAVE_OPERATING_MODE_RX            = 1 << 1,
         GGWAVE_OPERATING_MODE_TX            = 1 << 2,
@@ -149,13 +163,13 @@ extern "C" {
     // Encode data into audio waveform
     //
     //   instance       - the GGWave instance to use
-    //   dataBuffer     - the data to encode
-    //   dataSize       - number of bytes in the input dataBuffer
-    //   txProtocolId   - the protocol to use for encoding
+    //   payloadBuffer  - the data to encode
+    //   payloadSize    - number of bytes in the input payloadBuffer
+    //   protocolId     - the protocol to use for encoding
     //   volume         - the volume of the generated waveform [0, 100]
     //                    usually 25 is OK and you should not go over 50
-    //   outputBuffer   - the generated audio waveform. must be big enough to fit the generated data
-    //   query          - if == 0, encode data in to outputBuffer, returns number of bytes
+    //   waveformBuffer - the generated audio waveform. must be big enough to fit the generated data
+    //   query          - if == 0, encode data in to waveformBuffer, returns number of bytes
     //                    if != 0, do not perform encoding.
     //                    if == 1, return waveform size in bytes
     //                    if != 1, return waveform size in samples
@@ -168,7 +182,7 @@ extern "C" {
     //
     //     payload -> waveform
     //
-    //   When calling it, make sure that the outputBuffer is big enough to store the
+    //   When calling it, make sure that the waveformBuffer is big enough to store the
     //   generated waveform. This means that its size must be at least:
     //
     //     nSamples*sizeOfSample_bytes
@@ -180,45 +194,38 @@ extern "C" {
     //   If query != 0, then this function does not perform the actual encoding and just
     //   outputs the expected size of the waveform that would be generated if you call it
     //   with query == 0. This mechanism can be used to ask ggwave how much memory to
-    //   allocate for the outputBuffer. For example:
+    //   allocate for the waveformBuffer. For example:
     //
     //     // this is the data to encode
     //     const char * payload = "test";
     //
     //     // query the number of bytes in the waveform
-    //     int n = ggwave_encode(instance, payload, 4, GGWAVE_TX_PROTOCOL_AUDIBLE_FAST, 25, NULL, 1);
+    //     int n = ggwave_encode(instance, payload, 4, GGWAVE_PROTOCOL_AUDIBLE_FAST, 25, NULL, 1);
     //
     //     // allocate the output buffer
     //     char waveform[n];
     //
     //     // generate the waveform
-    //     ggwave_encode(instance, payload, 4, GGWAVE_TX_PROTOCOL_AUDIBLE_FAST, 25, waveform, 0);
+    //     ggwave_encode(instance, payload, 4, GGWAVE_PROTOCOL_AUDIBLE_FAST, 25, waveform, 0);
     //
-    //   The dataBuffer can be any binary data that you would like to transmit (i.e. the payload).
+    //   The payloadBuffer can be any binary data that you would like to transmit (i.e. the payload).
     //   Usually, this is some text, but it can be any sequence of bytes.
-    //
-    //   todo:
-    //      - change the type of dataBuffer to const void *
-    //      - change the type of outputBuffer to void *
-    //      - rename dataBuffer to payloadBuffer
-    //      - rename dataSize to payloadSize
-    //      - rename outputBuffer to waveformBuffer
     //
     GGWAVE_API int ggwave_encode(
             ggwave_Instance instance,
-            const char * dataBuffer,
-            int dataSize,
-            ggwave_TxProtocolId txProtocolId,
+            const void * payloadBuffer,
+            int payloadSize,
+            ggwave_ProtocolId protocolId,
             int volume,
-            char * outputBuffer,
+            void * waveformBuffer,
             int query);
 
     // Decode an audio waveform into data
     //
     //   instance       - the GGWave instance to use
-    //   dataBuffer     - the audio waveform
-    //   dataSize       - number of bytes in the input dataBuffer
-    //   outputBuffer   - stores the decoded data on success
+    //   waveformBuffer - the audio waveform
+    //   waveformSize   - number of bytes in the input waveformBuffer
+    //   payloadBuffer  - stores the decoded data on success
     //                    the maximum size of the output is GGWave::kMaxDataSize
     //
     //   returns the number of decoded bytes
@@ -235,7 +242,7 @@ extern "C" {
     //   If the return value is greater than 0, then there are that number of bytes decoded.
     //
     //   IMPORTANT:
-    //   Notice that the decoded data written to the outputBuffer is NOT null terminated.
+    //   Notice that the decoded data written to the payloadBuffer is NOT null terminated.
     //
     //   Example:
     //
@@ -250,50 +257,60 @@ extern "C" {
     //         }
     //     }
     //
-    //   todo:
-    //      - change the type of dataBuffer to const void *
-    //      - change the type of outputBuffer to void *
-    //      - rename dataBuffer to waveformBuffer
-    //      - rename dataSize to waveformSize
-    //      - rename outputBuffer to payloadBuffer
-    //
     GGWAVE_API int ggwave_decode(
             ggwave_Instance instance,
-            const char * dataBuffer,
-            int dataSize,
-            char * outputBuffer);
+            const void * waveformBuffer,
+            int waveformSize,
+            void * payloadBuffer);
 
     // Memory-safe overload of ggwave_decode
     //
-    //   outputSize     - optionally specify the size of the output buffer
+    //   payloadSize - optionally specify the size of the output buffer
     //
-    //   If the return value is -2 then the provided outputBuffer was not big enough to
+    //   If the return value is -2 then the provided payloadBuffer was not big enough to
     //   store the decoded data.
     //
     //   See ggwave_decode for more information
     //
     GGWAVE_API int ggwave_ndecode(
             ggwave_Instance instance,
-            const char * dataBuffer,
-            int dataSize,
-            char * outputBuffer,
-            int outputSize);
+            const void * waveformBuffer,
+            int waveformSize,
+            void * payloadBuffer,
+            int payloadSize);
 
     // Toggle Rx protocols on and off
     //
-    //   instance       - the GGWave instance to use
-    //   rxProtocolId   - Id of the Rx protocol to modify
-    //   state          - 0 - disable, 1 - enable
+    //   protocolId - Id of the Rx protocol to modify
+    //   state      - 0 - disable, 1 - enable
     //
-    //   If an Rx protocol is enabled, the GGWave instance will attempt to decode received
-    //   data using this protocol. By default, all protocols are enabled.
+    //   If an Rx protocol is enabled, newly constructued GGWave instances will attempt to decode
+    //   received data using this protocol. By default, all protocols are enabled.
     //   Use this function to restrict the number of Rx protocols used in the decoding
     //   process. This helps to reduce the number of false positives and improves the transmission
     //   accuracy, especially when the Tx/Rx protocol is known in advance.
     //
-    GGWAVE_API void ggwave_toggleRxProtocol(
-            ggwave_Instance instance,
-            ggwave_TxProtocolId rxProtocolId,
+    //   Note that this function does not affect the decoding process of instances that have
+    //   already been created.
+    //
+    GGWAVE_API void ggwave_rxToggleProtocol(
+            ggwave_ProtocolId protocolId,
+            int state);
+
+    // Toggle Tx protocols on and off
+    //
+    //   protocolId - Id of the Tx protocol to modify
+    //   state      - 0 - disable, 1 - enable
+    //
+    //   If an Tx protocol is enabled, newly constructued GGWave instances will be able to transmit
+    //   data using this protocol. By default, all protocols are enabled.
+    //   Use this function to restrict the number of Tx protocols used for transmission.
+    //   This can reduce the required memory by the GGWave instance.
+    //
+    //   Note that this function does not affect instances that have already been created.
+    //
+    GGWAVE_API void ggwave_txToggleProtocol(
+            ggwave_ProtocolId protocolId,
             int state);
 
 #ifdef __cplusplus
@@ -326,11 +343,12 @@ public:
 
     using Parameters    = ggwave_Parameters;
     using SampleFormat  = ggwave_SampleFormat;
-    using TxProtocolId  = ggwave_TxProtocolId;
-    using RxProtocolId  = ggwave_TxProtocolId;
+    using ProtocolId    = ggwave_ProtocolId;
+    using TxProtocolId  = ggwave_ProtocolId;
+    using RxProtocolId  = ggwave_ProtocolId;
     using OperatingMode = ggwave_OperatingMode;
 
-    struct TxProtocol {
+    struct Protocol {
         const char * name;  // string identifier of the protocol
 
         int freqStart;      // FFT bin index of the lowest frequency
@@ -343,37 +361,56 @@ public:
         int nDataBitsPerTx() const { return 8*bytesPerTx; }
     };
 
-    using RxProtocol = TxProtocol;
+    using TxProtocol = Protocol;
+    using RxProtocol = Protocol;
 
-    using TxProtocols = std::vector<TxProtocol>;
-    using RxProtocols = std::vector<RxProtocol>;
+    struct Protocols;
 
-    static TxProtocols & getTxProtocols() {
-        static TxProtocols kTxProtocols(GGWAVE_TX_PROTOCOL_COUNT);
+    using TxProtocols = Protocols;
+    using RxProtocols = Protocols;
 
-        static bool kInitialized = false;
-        if (kInitialized == false) {
-            for (auto & txProtocol : kTxProtocols) {
-                txProtocol.enabled = false;
+    struct Protocols : public std::vector<Protocol> {
+        using std::vector<Protocol>::vector;
+
+        void enableAll();
+        void disableAll();
+
+        void toggle(ProtocolId id, bool state);
+        void only(ProtocolId id);
+        void only(std::initializer_list<ProtocolId> ids);
+
+        static Protocols & kDefault() {
+            static Protocols kProtocols(GGWAVE_PROTOCOL_COUNT);
+
+            static bool kInitialized = false;
+            if (kInitialized == false) {
+                for (auto & protocol : kProtocols) {
+                    protocol.name = nullptr;
+                    protocol.enabled = false;
+                }
+
+                kProtocols[GGWAVE_PROTOCOL_AUDIBLE_NORMAL]     = { "Normal",       40,  9, 3, 1, true, };
+                kProtocols[GGWAVE_PROTOCOL_AUDIBLE_FAST]       = { "Fast",         40,  6, 3, 1, true, };
+                kProtocols[GGWAVE_PROTOCOL_AUDIBLE_FASTEST]    = { "Fastest",      40,  3, 3, 1, true, };
+                kProtocols[GGWAVE_PROTOCOL_ULTRASOUND_NORMAL]  = { "[U] Normal",   320, 9, 3, 1, true, };
+                kProtocols[GGWAVE_PROTOCOL_ULTRASOUND_FAST]    = { "[U] Fast",     320, 6, 3, 1, true, };
+                kProtocols[GGWAVE_PROTOCOL_ULTRASOUND_FASTEST] = { "[U] Fastest",  320, 3, 3, 1, true, };
+                kProtocols[GGWAVE_PROTOCOL_DT_NORMAL]          = { "[DT] Normal",  24,  9, 1, 1, true, };
+                kProtocols[GGWAVE_PROTOCOL_DT_FAST]            = { "[DT] Fast",    24,  6, 1, 1, true, };
+                kProtocols[GGWAVE_PROTOCOL_DT_FASTEST]         = { "[DT] Fastest", 24,  3, 1, 1, true, };
+                kProtocols[GGWAVE_PROTOCOL_MT_NORMAL]          = { "[MT] Normal",  24,  9, 1, 2, true, };
+                kProtocols[GGWAVE_PROTOCOL_MT_FAST]            = { "[MT] Fast",    24,  6, 1, 2, true, };
+                kProtocols[GGWAVE_PROTOCOL_MT_FASTEST]         = { "[MT] Fastest", 24,  3, 1, 2, true, };
+
+                kInitialized = true;
             }
 
-            kTxProtocols[GGWAVE_TX_PROTOCOL_AUDIBLE_NORMAL]     = { "Normal",       40,  9, 3, 1, true, };
-            kTxProtocols[GGWAVE_TX_PROTOCOL_AUDIBLE_FAST]       = { "Fast",         40,  6, 3, 1, true, };
-            kTxProtocols[GGWAVE_TX_PROTOCOL_AUDIBLE_FASTEST]    = { "Fastest",      40,  3, 3, 1, true, };
-            kTxProtocols[GGWAVE_TX_PROTOCOL_ULTRASOUND_NORMAL]  = { "[U] Normal",   320, 9, 3, 1, true, };
-            kTxProtocols[GGWAVE_TX_PROTOCOL_ULTRASOUND_FAST]    = { "[U] Fast",     320, 6, 3, 1, true, };
-            kTxProtocols[GGWAVE_TX_PROTOCOL_ULTRASOUND_FASTEST] = { "[U] Fastest",  320, 3, 3, 1, true, };
-            kTxProtocols[GGWAVE_TX_PROTOCOL_DT_NORMAL]          = { "[DT] Normal",  24,  9, 1, 1, true, };
-            kTxProtocols[GGWAVE_TX_PROTOCOL_DT_FAST]            = { "[DT] Fast",    24,  6, 1, 1, true, };
-            kTxProtocols[GGWAVE_TX_PROTOCOL_DT_FASTEST]         = { "[DT] Fastest", 24,  3, 1, 1, true, };
-            kTxProtocols[GGWAVE_TX_PROTOCOL_MT_NORMAL]          = { "[MT] Normal",  24,  9, 1, 2, true, };
-            kTxProtocols[GGWAVE_TX_PROTOCOL_MT_FAST]            = { "[MT] Fast",    24,  6, 1, 2, true, };
-            kTxProtocols[GGWAVE_TX_PROTOCOL_MT_FASTEST]         = { "[MT] Fastest", 24,  3, 1, 2, true, };
-            kInitialized = true;
+            return kProtocols;
         }
 
-        return kTxProtocols;
-    }
+        static TxProtocols & tx();
+        static RxProtocols & rx();
+    };
 
     struct ToneData {
         float freq_hz;
@@ -381,14 +418,46 @@ public:
     };
 
     using TonesPerFrame = std::vector<ToneData>;
-    using Tones = std::vector<TonesPerFrame>;
+    using Tones         = std::vector<TonesPerFrame>;
 
-    using AmplitudeData    = std::vector<float>;
-    using AmplitudeDataI16 = std::vector<int16_t>;
-    using SpectrumData     = std::vector<float>;
-    using RecordedData     = std::vector<float>;
-    using TxRxData         = std::vector<uint8_t>;
+    using Amplitude    = std::vector<float>;
+    using AmplitudeI16 = std::vector<int16_t>;
+    using Spectrum     = std::vector<float>;
+    using RecordedData = std::vector<float>;
+    using TxRxData     = std::vector<uint8_t>;
 
+    // constructor
+    //
+    //  All memory buffers used by the GGWave instance are allocated upon construction.
+    //  No memory allocations occur after that.
+    //
+    //  The sizes of the buffers are determined by the parameters and the contents of:
+    //
+    //    - GGWave::Protocols::rx()
+    //    - GGWave::Protocols::tx()
+    //
+    //  For optimal performance and minimum memory usage, make sure to enable only the
+    //  Rx and Tx protocols that you need. For example, using a single protocol for Tx
+    //  is achieved like this:
+    //
+    //    Parameters parameters;
+    //    parameters.operatingMode = GGWAVE_OPERATING_MODE_TX;
+    //    GGWave::Protocols::tx().only(GGWave::ProtocolId::GGWAVE_PROTOCOL_AUDIBLE_NORMAL);
+    //    GGWave instance(parameters);
+    //    instance.init(...);
+    //    instance.encode();
+    //
+    //  The created instance will only be able to transmit data using the "Normal"
+    //  protocol. Rx will be disabled.
+    //
+    //  To create a corresponding Rx-only instance, use the following:
+    //
+    //    Parameters parameters;
+    //    parameters.operatingMode = GGWAVE_OPERATING_MODE_RX;
+    //    GGWave::Protocols::rx().only(GGWave::ProtocolId::GGWAVE_PROTOCOL_AUDIBLE_NORMAL);
+    //    GGWave instance(parameters);
+    //    instance.decode(...);
+    //
     GGWave(const Parameters & parameters);
     ~GGWave();
 
@@ -410,10 +479,8 @@ public:
     //
     //  returns false upon invalid parameters or failure to initialize
     //
-    bool init(const char * text, const int volume = kDefaultVolume);
-    bool init(const char * text, const TxProtocol & txProtocol, const int volume = kDefaultVolume);
-    bool init(int dataSize, const char * dataBuffer, const int volume = kDefaultVolume);
-    bool init(int dataSize, const char * dataBuffer, const TxProtocol & txProtocol, const int volume = kDefaultVolume);
+    bool init(const char * text, TxProtocolId protocolId, const int volume = kDefaultVolume);
+    bool init(int dataSize, const char * dataBuffer, TxProtocolId protocolId, const int volume = kDefaultVolume);
 
     // expected waveform size of the encoded Tx data in bytes
     //
@@ -431,9 +498,9 @@ public:
 
     // encode Tx data into an audio waveform
     //
-    //   The generated waveform is returned by calling the cbWaveformOut callback.
+    //   After calling this method, the generated waveform is available through the txData() method
     //
-    //   returns false if the encoding fails
+    //   returns the number of bytes in the generated waveform
     //
     uint32_t encode();
 
@@ -441,73 +508,106 @@ public:
 
     // decode an audio waveform
     //
-    //   This methods calls cbWaveformInp multiple times (at least once) until it returns 0.
-    //   Use the Rx methods to check if any data was decoded successfully.
+    //   data   - pointer to the waveform data
+    //   nBytes - number of bytes in the waveform
+    //
+    //   After calling this method, use the Rx methods to check if any data was decoded successfully.
+    //
+    //   returns false if the provided waveform is somehow invalid
     //
     bool decode(const void * data, uint32_t nBytes);
 
+    //
     // instance state
-    bool hasTxData() const;
+    //
+
     bool isDSSEnabled() const;
 
-    int getSamplesPerFrame()    const;
-    int getSampleSizeBytesInp() const;
-    int getSampleSizeBytesOut() const;
+    int samplesPerFrame() const;
+    int sampleSizeInp()   const;
+    int sampleSizeOut()   const;
 
-    float getSampleRateInp() const;
-    float getSampleRateOut() const;
-    SampleFormat getSampleFormatInp() const;
-    SampleFormat getSampleFormatOut() const;
+    float sampleRateInp() const;
+    float sampleRateOut() const;
+    SampleFormat sampleFormatInp() const;
+    SampleFormat sampleFormatOut() const;
 
+    //
     // Tx
-    static TxProtocolId getDefaultTxProtocolId()     { return GGWAVE_TX_PROTOCOL_AUDIBLE_FAST; }
-    static const TxProtocol & getDefaultTxProtocol() { return getTxProtocols()[getDefaultTxProtocolId()]; }
-    static const TxProtocol & getTxProtocol(int id)  { return getTxProtocols()[id]; }
-    static const TxProtocol & getTxProtocol(TxProtocolId id) { return getTxProtocols()[id]; }
+    //
 
     // get a list of the tones generated for the last waveform
     //
-    //   Call this method after calling encode() to get a list of the tones participating in the generated waveform
+    //   Call this method after calling encode() to get a list of the tones
+    //   participating in the generated waveform
     //
     const Tones & txTones() const;
 
-    bool takeTxAmplitudeI16(AmplitudeDataI16 & dst);
+    // true if there is data pending to be transmitted
+    bool txHasData() const;
 
+    // consume the amplitude data from the last generated waveform
+    bool txTakeAmplitudeI16(AmplitudeI16 & dst);
+
+    // the instance will allow Tx only with these protocols
+    // they are determined upon construction, using GGWave::Protocols::tx()
+    const TxProtocols & txProtocols() const;
+
+    //
     // Rx
-    bool isReceiving() const;
-    bool isAnalyzing() const;
+    //
 
-    int getSamplesNeeded()       const;
-    int getFramesToRecord()      const;
-    int getFramesLeftToRecord()  const;
-    int getFramesToAnalyze()     const;
-    int getFramesLeftToAnalyze() const;
+    bool rxReceiving() const;
+    bool rxAnalyzing() const;
 
-    bool stopReceiving();
-    void setRxProtocols(const RxProtocols & rxProtocols);
-    const RxProtocols & getRxProtocols() const;
+    int rxSamplesNeeded()       const;
+    int rxFramesToRecord()      const;
+    int rxFramesLeftToRecord()  const;
+    int rxFramesToAnalyze()     const;
+    int rxFramesLeftToAnalyze() const;
 
-    int lastRxDataLength() const;
+    bool rxStopReceiving();
 
-    const TxRxData & getRxData()           const;
-    const RxProtocol & getRxProtocol()     const;
-    const RxProtocolId & getRxProtocolId() const;
+    // the instance will attempt to decode only these protocols
+    // they are determined upon construction, using GGWave::Protocols::rx()
+    //
+    // note: do not enable protocols that were not enabled upon construction of the GGWave
+    // instance, or the decoding will likely crash
+    RxProtocols & rxProtocols();
 
-    int takeRxData(TxRxData & dst);
-    bool takeRxSpectrum(SpectrumData & dst);
-    bool takeRxAmplitude(AmplitudeData & dst);
+    // information about last received data
+    int                  rxDataLength() const;
+    const TxRxData &     rxData()       const;
+    const RxProtocol &   rxProtocol()   const;
+    const RxProtocolId & rxProtocolId() const;
+    const Spectrum &     rxSpectrum()   const;
+    const Amplitude &    rxAmplitude()  const;
+
+    // consume the received data
+    //
+    // returns the data length in bytes
+    int rxTakeData(TxRxData & dst);
+
+    // consume the received spectrum / amplitude data
+    //
+    // returns true if there was new data available
+    bool rxTakeSpectrum(Spectrum & dst);
+    bool rxTakeAmplitude(Amplitude & dst);
+
+    //
+    // Utils
+    //
 
     // compute FFT of real values
     //
     //   src - input real-valued data, size is N
     //   dst - output complex-valued data, size is 2*N
     //
-    //   N must be <= kMaxSamplesPerFrame
+    //   N must be == samplesPerFrame()
     //
     bool computeFFTR(const float * src, float * dst, int N);
 
-    // resample audio waveforms from one sample rate to another using
-    // sinc interpolation
+    // resample audio waveforms from one sample rate to another using sinc interpolation
     class Resampler {
     public:
         // this controls the number of neighboring samples
@@ -557,21 +657,19 @@ private:
     void decode_fixed();
     void decode_variable();
 
-    int maxFramesPerTx() const;
-    int minBytesPerTx() const;
-    int maxBytesPerTx() const;
+    int maxFramesPerTx(const Protocols & protocols, bool excludeMT) const;
+    int minBytesPerTx(const Protocols & protocols) const;
+    int maxBytesPerTx(const Protocols & protocols) const;
 
-    double bitFreq(const TxProtocol & p, int bit) const {
-        return m_hzPerSample*p.freqStart + m_freqDelta_hz*bit;
-    }
+    double bitFreq(const Protocol & p, int bit) const;
 
     const float m_sampleRateInp;
     const float m_sampleRateOut;
     const float m_sampleRate;
     const int m_samplesPerFrame;
     const float m_isamplesPerFrame;
-    const int m_sampleSizeBytesInp;
-    const int m_sampleSizeBytesOut;
+    const int m_sampleSizeInp;
+    const int m_sampleSizeOut;
     const SampleFormat m_sampleFormatInp;
     const SampleFormat m_sampleFormatOut;
 

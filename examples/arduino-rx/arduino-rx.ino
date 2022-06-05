@@ -66,8 +66,9 @@ void loop() {
     }
 
     GGWave ggwave(p);
+    ggwave.setLogFile(nullptr);
     ggwave.setRxProtocols({
-            //ggwave.getTxProtocol(GGWAVE_TX_PROTOCOL_MT_FASTEST),
+            ggwave.getTxProtocol(GGWAVE_TX_PROTOCOL_MT_FASTEST),
             ggwave.getTxProtocol(GGWAVE_TX_PROTOCOL_DT_FASTEST),
             });
 

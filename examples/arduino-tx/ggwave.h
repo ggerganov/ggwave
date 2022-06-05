@@ -867,12 +867,9 @@ const uint8_t kDataLength_bytes = 16;
 const uint8_t kECCLength_bytes = getECCBytesForLength(kDataLength_bytes);
 
 typedef enum {
-    TX_ARDUINO_512_NORMAL,
-    TX_ARDUINO_512_FAST,
-    TX_ARDUINO_512_FASTEST,
-    TX_ARDUINO_1024_NORMAL,
-    TX_ARDUINO_1024_FAST,
-    TX_ARDUINO_1024_FASTEST,
+    GGWAVE_PROTOCOL_MT_NORMAL,
+    GGWAVE_PROTOCOL_MT_FAST,
+    GGWAVE_PROTOCOL_MT_FASTEST,
 } TxProtocolId;
 
 struct Parameters {
@@ -913,22 +910,19 @@ void send(uint8_t pin, const uint8_t * data, const Parameters & parameters) {
     digitalWrite(pin, LOW);
 }
 
-void send(uint8_t pin, const uint8_t * data, TxProtocolId protocolId = TX_ARDUINO_512_FASTEST) {
-    Parameters parameters = { 512, 16, 32 };
+void send(uint8_t pin, const uint8_t * data, TxProtocolId protocolId = GGWAVE_PROTOCOL_MT_FASTEST) {
+    Parameters parameters = { 1024, 24, 64 };
 
     switch (protocolId) {
-        case TX_ARDUINO_512_NORMAL:   parameters = {  512, 16,  96 }; break;
-        case TX_ARDUINO_512_FAST:     parameters = {  512, 16,  64 }; break;
-        case TX_ARDUINO_512_FASTEST:  parameters = {  512, 16,  32 }; break;
-        case TX_ARDUINO_1024_NORMAL:  parameters = { 1024, 16, 192 }; break;
-        case TX_ARDUINO_1024_FAST:    parameters = { 1024, 16, 128 }; break;
-        case TX_ARDUINO_1024_FASTEST: parameters = { 1024, 16,  64 }; break;
+        case GGWAVE_PROTOCOL_MT_NORMAL:  parameters = { 1024, 24, 192 }; break;
+        case GGWAVE_PROTOCOL_MT_FAST:    parameters = { 1024, 24, 128 }; break;
+        case GGWAVE_PROTOCOL_MT_FASTEST: parameters = { 1024, 24,  64 }; break;
     };
 
     send(pin, data, parameters);
 }
 
-void send_text(uint8_t pin, const char * text, TxProtocolId protocolId = TX_ARDUINO_512_FASTEST) {
+void send_text(uint8_t pin, const char * text, TxProtocolId protocolId = GGWAVE_PROTOCOL_MT_FASTEST) {
     char tx[kDataLength_bytes];
     memset(tx, 0, sizeof(tx));
     strncpy(tx, text, sizeof(tx));

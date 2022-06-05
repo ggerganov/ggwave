@@ -2,6 +2,11 @@
 
 #include <PDM.h>
 
+const int kPinLed0    = 13;
+const int kPinSpeaker = 10;
+const int kPinButton0 = 2;
+const int kPinButton1 = 4;
+
 using TSample = int16_t;
 static const size_t kSampleSize_bytes = sizeof(TSample);
 
@@ -21,9 +26,46 @@ volatile int qsize = 0;
 // Buffer to read samples into, each sample is 16-bits
 TSample sampleBuffer[qmax];
 
+// helper function to output the generated GGWave waveform via a buzzer
+void send_text(GGWave & ggwave, uint8_t pin, const char * text, GGWave::TxProtocolId protocolId) {
+    ggwave.init(text, protocolId);
+    ggwave.encode();
+
+    const auto & tones = ggwave.txTones();
+    float freq_hz = -1.0f;
+    float duration_ms = -1.0f;
+    for (int i = 0; i < (int) tones.size(); ++i) {
+        if (tones[i].size() == 0) continue;
+        const auto & curTone = tones[i].front();
+
+        if (curTone.freq_hz != freq_hz) {
+            if (duration_ms > 0) {
+                tone(pin, freq_hz);
+                delay(duration_ms);
+            }
+            freq_hz = curTone.freq_hz;
+            duration_ms = 0.0f;
+        }
+        duration_ms += curTone.duration_ms;
+    }
+
+    if (duration_ms > 0) {
+        tone(pin, freq_hz);
+        delay(duration_ms);
+    }
+
+    noTone(pin);
+    digitalWrite(pin, LOW);
+}
+
 void setup() {
     Serial.begin(57600);
     while (!Serial);
+
+    pinMode(kPinLed0,    OUTPUT);
+    pinMode(kPinSpeaker, OUTPUT);
+    pinMode(kPinButton0, INPUT);
+    pinMode(kPinButton1, INPUT);
 
     // Configure the data receive callback
     PDM.onReceive(onPDMdata);
@@ -48,6 +90,7 @@ void loop() {
     Serial.println("trying to create ggwave instance");
 
     auto p = GGWave::getDefaultParameters();
+
     p.payloadLength   = 16;
     p.sampleRateInp   = frequency;
     p.sampleRateOut   = frequency;
@@ -73,15 +116,6 @@ void loop() {
         while (qsize >= p.samplesPerFrame) {
             auto tStart = millis();
 
-            //Serial.print(qhead);
-            //Serial.print(" ");
-            //Serial.print(qtail);
-            //Serial.print(" ");
-            //Serial.print(qsize);
-            //Serial.print(" ");
-            //Serial.print(ggwave.getSamplesNeeded());
-            //Serial.println("");
-
             ggwave.decode(sampleBuffer + qhead, p.samplesPerFrame*kSampleSize_bytes);
             qsize -= p.samplesPerFrame;
             qhead += p.samplesPerFrame;
@@ -91,35 +125,40 @@ void loop() {
 
             auto tEnd = millis();
             if (++niter % 10 == 0) {
+                // print the time it took the last decode() call to complete
+                // should be smaller than p.samplesPerFrame/frequency seconds
+                // for example: p.samplesPerFrame = 128, frequency = 6000 => not more than 20 ms
                 Serial.println(tEnd - tStart);
+                if (tEnd - tStart > 1000*(float(p.samplesPerFrame)/frequency)) {
+                    Serial.println("Warning: decode() took too long to execute!");
+                }
             }
 
             nr = ggwave.rxTakeData(result);
             if (nr > 0) {
                 Serial.println(tEnd - tStart);
-                Serial.println(nr);
-                Serial.println((char *)result.data());
+                Serial.print("Received data with length ");
+                Serial.print(nr); // should be equal to p.payloadLength
+                Serial.println(" bytes:");
+
+                Serial.println((char *) result.data());
 
                 if (strcmp((char *)result.data(), "test") == 0) {
-                    ggwave.init("hello", GGWave::TxProtocolId(GGWAVE_PROTOCOL_MT_FASTEST));
-                    ggwave.encode();
+                    // pause microphone capture while transmitting
+                    PDM.end();
+                    delay(500);
 
-                    const auto & tones = ggwave.txTones();
-                    for (int i = 0; i < (int) tones.size(); ++i) {
-                        Serial.print(" - frame ");
-                        Serial.print(i);
-                        Serial.print(", ");
-                        Serial.print(tones[i].size());
-                        Serial.print(": ");
-                        for (int j = 0; j < (int) tones[i].size(); ++j) {
-                            Serial.print((int)(tones[i][j].freq_hz));
-                            Serial.print(" ");
-                        }
-                        Serial.println();
+                    send_text(ggwave, kPinSpeaker, "hello", GGWAVE_PROTOCOL_MT_FASTEST);
+
+                    // resume microphone capture
+                    if (!PDM.begin(channels, frequency)) {
+                        Serial.println("Failed to start PDM!");
+                        while (1);
                     }
                 }
             }
         }
+
         if (err > 0) {
             Serial.println("ERRROR");
             Serial.println(err);

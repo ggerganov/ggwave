@@ -263,8 +263,8 @@ struct GGWave::Rx {
     int samplesNeeded       = 0;
 
     std::vector<float> fftOut; // complex
-    std::vector<int>   m_fftWorkI;
-    std::vector<float> m_fftWorkF;
+    std::vector<int>   fftWorkI;
+    std::vector<float> fftWorkF;
 
     bool hasNewSpectrum  = false;
     bool hasNewAmplitude = false;
@@ -406,9 +406,9 @@ GGWave::GGWave(const Parameters & parameters) :
         m_rx->samplesNeeded = m_samplesPerFrame;
 
         m_rx->fftOut.resize(2*m_samplesPerFrame);
-        m_rx->m_fftWorkI.resize(3 + sqrt(m_samplesPerFrame/2));
-        m_rx->m_fftWorkF.resize(m_samplesPerFrame/2);
-        m_rx->m_fftWorkI[0] = 0;
+        m_rx->fftWorkI.resize(3 + sqrt(m_samplesPerFrame/2));
+        m_rx->fftWorkF.resize(m_samplesPerFrame/2);
+        m_rx->fftWorkI[0] = 0;
 
         m_rx->sampleSpectrum.resize(m_samplesPerFrame);
         m_rx->sampleAmplitude.resize(m_needResampling ? m_samplesPerFrame + 128 : m_samplesPerFrame); // small extra space because sometimes resampling needs a few more samples
@@ -1181,7 +1181,7 @@ bool GGWave::computeFFTR(const float * src, float * dst, int N) {
         return false;
     }
 
-    FFT(src, dst, N, m_rx->m_fftWorkI.data(), m_rx->m_fftWorkF.data());
+    FFT(src, dst, N, m_rx->fftWorkI.data(), m_rx->fftWorkF.data());
 
     return true;
 }
@@ -1363,7 +1363,7 @@ void GGWave::decode_variable() {
         }
 
         // calculate spectrum
-        FFT(m_rx->sampleAmplitudeAverage.data(), m_rx->fftOut.data(), m_samplesPerFrame, m_rx->m_fftWorkI.data(), m_rx->m_fftWorkF.data());
+        FFT(m_rx->sampleAmplitudeAverage.data(), m_rx->fftOut.data(), m_samplesPerFrame, m_rx->fftWorkI.data(), m_rx->fftWorkF.data());
 
         for (int i = 0; i < m_samplesPerFrame; ++i) {
             m_rx->sampleSpectrum[i] = (m_rx->fftOut[2*i + 0]*m_rx->fftOut[2*i + 0] + m_rx->fftOut[2*i + 1]*m_rx->fftOut[2*i + 1]);
@@ -1434,7 +1434,7 @@ void GGWave::decode_variable() {
                         }
                     }
 
-                    FFT(m_rx->fftOut.data(), m_samplesPerFrame, m_rx->m_fftWorkI.data(), m_rx->m_fftWorkF.data());
+                    FFT(m_rx->fftOut.data(), m_samplesPerFrame, m_rx->fftWorkI.data(), m_rx->fftWorkF.data());
 
                     for (int i = 0; i < m_samplesPerFrame; ++i) {
                         m_rx->sampleSpectrum[i] = (m_rx->fftOut[2*i + 0]*m_rx->fftOut[2*i + 0] + m_rx->fftOut[2*i + 1]*m_rx->fftOut[2*i + 1]);
@@ -1648,7 +1648,7 @@ void GGWave::decode_fixed() {
     m_rx->hasNewSpectrum = true;
 
     // calculate spectrum
-    FFT(m_rx->sampleAmplitude.data(), m_rx->fftOut.data(), m_samplesPerFrame, m_rx->m_fftWorkI.data(), m_rx->m_fftWorkF.data());
+    FFT(m_rx->sampleAmplitude.data(), m_rx->fftOut.data(), m_samplesPerFrame, m_rx->fftWorkI.data(), m_rx->fftWorkF.data());
 
     float amax = 0.0f;
     for (int i = 0; i < m_samplesPerFrame; ++i) {

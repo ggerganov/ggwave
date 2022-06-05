@@ -1663,8 +1663,8 @@ void GGWave::decode_fixed() {
     // original, floating-point version
     //m_rx->spectrumHistoryFixed[m_rx->historyIdFixed] = m_rx->sampleSpectrum;
 
-    // in theory, using uint8_t should work alsmost the same and save 4 times the memory, but for some resone
-    // the result are not as good as with the floating-point version
+    // in theory, using uint8_t should work almost the same and save 4 times the memory, but for some reason
+    // the results are not as good as with the floating-point version
     // float -> uint8_t
     //amax = 255.0f/(amax == 0.0f ? 1.0f : amax);
     //for (int i = 0; i < m_samplesPerFrame; ++i) {
@@ -1724,11 +1724,8 @@ void GGWave::decode_fixed() {
                 }
 
                 for (int j = 0; j < rxProtocol.bytesPerTx; ++j) {
-                    int f0bin = -1;
-                    int f1bin = -1;
-
-                    double f0max = -1.0;
-                    double f1max = -1.0;
+                    int f0bin = 0;
+                    uint16_t f0max = m_rx->spectrumHistoryFixed[historyId][binStart + 2*j*binDelta];
 
                     for (int b = 0; b < 16; ++b) {
                         {
@@ -1739,8 +1736,12 @@ void GGWave::decode_fixed() {
                                 f0bin = b;
                             }
                         }
+                    }
 
-                        {
+                    int f1bin = 0;
+                    if (rxProtocol.extra == 1) {
+                        uint16_t f1max = m_rx->spectrumHistoryFixed[historyId][binStart + 2*j*binDelta + binOffset];
+                        for (int b = 0; b < 16; ++b) {
                             const auto & v = m_rx->spectrumHistoryFixed[historyId][binStart + 2*j*binDelta + binOffset + b];
 
                             if (f1max <= v) {
@@ -1748,6 +1749,8 @@ void GGWave::decode_fixed() {
                                 f1bin = b;
                             }
                         }
+                    } else {
+                        f1bin = f0bin;
                     }
 
                     if ((k + 0)%rxProtocol.extra == 0) m_rx->detectedTones[(2*j + 0)*16 + f0bin]++;

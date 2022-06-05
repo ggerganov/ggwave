@@ -12,13 +12,14 @@
 int main(int argc, char** argv) {
     fprintf(stderr, "Usage: %s [-vN] [-sN] [-pN] [-lN]\n", argv[0]);
     fprintf(stderr, "    -vN - output volume, N in (0, 100], (default: 50)\n");
-    fprintf(stderr, "    -sN - output sample rate, N in [%d, %d], (default: %d)\n", (int) GGWave::kSampleRateMin, (int) GGWave::kSampleRateMax, (int) GGWave::kDefaultSampleRate);
+    fprintf(stderr, "    -SN - output sample rate, N in [%d, %d], (default: %d)\n", (int) GGWave::kSampleRateMin, (int) GGWave::kSampleRateMax, (int) GGWave::kDefaultSampleRate);
     fprintf(stderr, "    -pN - select the transmission protocol id (default: 1)\n");
     fprintf(stderr, "    -lN - fixed payload length of size N, N in [1, %d]\n", GGWave::kMaxLengthFixed);
+    fprintf(stderr, "    -s  - use Direct Sequence Spread (DSS)\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "    Available protocols:\n");
 
-    const auto & protocols = GGWave::getTxProtocols();
+    const auto & protocols = GGWave::Protocols::kDefault();
     for (int i = 0; i < (int) protocols.size(); ++i) {
         const auto & protocol = protocols[i];
         fprintf(stderr, "      %d - %s\n", i, protocol.name);
@@ -29,16 +30,17 @@ int main(int argc, char** argv) {
         return -1;
     }
 
-    auto argm = parseCmdArguments(argc, argv);
+    const auto argm = parseCmdArguments(argc, argv);
 
-    if (argm.find("h") != argm.end()) {
+    if (argm.count("h") > 0) {
         return 0;
     }
 
-    int volume = argm["v"].empty() ? 50 : std::stoi(argm["v"]);
-    float sampleRateOut = argm["s"].empty() ? GGWave::kDefaultSampleRate : std::stof(argm["s"]);
-    int protocolId = argm["p"].empty() ? 1 : std::stoi(argm["p"]);
-    int payloadLength = argm["l"].empty() ? -1 : std::stoi(argm["l"]);
+    const int volume          = argm.count("v") == 0 ? 50 : std::stoi(argm.at("v"));
+    const float sampleRateOut = argm.count("S") == 0 ? GGWave::kDefaultSampleRate : std::stof(argm.at("S"));
+    const int protocolId      = argm.count("p") == 0 ? 1 : std::stoi(argm.at("p"));
+    const int payloadLength   = argm.count("l") == 0 ? -1 : std::stoi(argm.at("l"));
+    const bool useDSS         = argm.count("s") > 0;
 
     if (volume <= 0 || volume > 100) {
         fprintf(stderr, "Invalid volume\n");
@@ -50,8 +52,13 @@ int main(int argc, char** argv) {
         return -1;
     }
 
-    if (protocolId < 0 || protocolId >= (int) GGWave::getTxProtocols().size()) {
+    if (protocolId < 0 || protocolId >= (int) protocols.size()) {
         fprintf(stderr, "Invalid transmission protocol id\n");
+        return -1;
+    }
+
+    if (protocols[protocolId].enabled == false) {
+        fprintf(stderr, "Protocol %d is not enabled\n", protocolId);
         return -1;
     }
 
@@ -72,6 +79,9 @@ int main(int argc, char** argv) {
 
     fprintf(stderr, "Generating waveform for message '%s' ...\n", message.c_str());
 
+    ggwave_OperatingMode mode = GGWAVE_OPERATING_MODE_RX_AND_TX;
+    if (useDSS) mode = ggwave_OperatingMode(mode | GGWAVE_OPERATING_MODE_USE_DSS);
+
     GGWave ggWave({
         payloadLength,
         GGWave::kDefaultSampleRate,
@@ -81,9 +91,9 @@ int main(int argc, char** argv) {
         GGWave::kDefaultSoundMarkerThreshold,
         GGWAVE_SAMPLE_FORMAT_F32,
         GGWAVE_SAMPLE_FORMAT_I16,
-        GGWAVE_OPERATING_MODE_RX_AND_TX,
+        mode,
     });
-    ggWave.init(message.size(), message.data(), ggWave.getTxProtocol(protocolId), volume);
+    ggWave.init(message.size(), message.data(), GGWave::TxProtocolId(protocolId), volume);
 
     const auto nBytes = ggWave.encode();
     if (nBytes == 0) {

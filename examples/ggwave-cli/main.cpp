@@ -22,13 +22,13 @@ int main(int argc, char** argv) {
     printf("    -v  - print generated tones on resend\n");
     printf("\n");
 
-    const auto argm = parseCmdArguments(argc, argv);
-    const int captureId = argm.count("c") == 0 ? 0 : std::stoi(argm.at("c"));
-    const int playbackId = argm.count("p") == 0 ? 0 : std::stoi(argm.at("p"));
-    const int txProtocolId = argm.count("t") == 0 ? 1 : std::stoi(argm.at("t"));
+    const auto argm         = parseCmdArguments(argc, argv);
+    const int captureId     = argm.count("c") == 0 ? 0 : std::stoi(argm.at("c"));
+    const int playbackId    = argm.count("p") == 0 ? 0 : std::stoi(argm.at("p"));
+    const int txProtocolId  = argm.count("t") == 0 ? 1 : std::stoi(argm.at("t"));
     const int payloadLength = argm.count("l") == 0 ? -1 : std::stoi(argm.at("l"));
-    const bool useDSS = argm.count("s") > 0;
-    const bool printTones = argm.count("v") > 0;
+    const bool useDSS       = argm.count("s") > 0;
+    const bool printTones   = argm.count("v") > 0;
 
     if (GGWave_init(playbackId, captureId, payloadLength, 0.0f, useDSS) == false) {
         fprintf(stderr, "Failed to initialize GGWave\n");
@@ -38,7 +38,7 @@ int main(int argc, char** argv) {
     auto ggWave = GGWave_instance();
 
     printf("Available Tx protocols:\n");
-    const auto & protocols = GGWave::getTxProtocols();
+    const auto & protocols = GGWave::Protocols::kDefault();
     for (int i = 0; i < (int) protocols.size(); ++i) {
         const auto & protocol = protocols[i];
         if (protocol.enabled == false) {
@@ -82,7 +82,7 @@ int main(int argc, char** argv) {
             }
             {
                 std::lock_guard<std::mutex> lock(mutex);
-                ggWave->init(input.size(), input.data(), ggWave->getTxProtocol(txProtocolId), 10);
+                ggWave->init(input.size(), input.data(), GGWave::TxProtocolId(txProtocolId), 10);
             }
             inputOld = input;
         }

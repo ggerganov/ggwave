@@ -13,27 +13,27 @@ EMSCRIPTEN_BINDINGS(ggwave) {
         .value("GGWAVE_SAMPLE_FORMAT_F32",       GGWAVE_SAMPLE_FORMAT_F32)
         ;
 
-    emscripten::enum_<ggwave_TxProtocolId>("TxProtocolId")
-        .value("GGWAVE_TX_PROTOCOL_AUDIBLE_NORMAL",     GGWAVE_TX_PROTOCOL_AUDIBLE_NORMAL)
-        .value("GGWAVE_TX_PROTOCOL_AUDIBLE_FAST",       GGWAVE_TX_PROTOCOL_AUDIBLE_FAST)
-        .value("GGWAVE_TX_PROTOCOL_AUDIBLE_FASTEST",    GGWAVE_TX_PROTOCOL_AUDIBLE_FASTEST)
-        .value("GGWAVE_TX_PROTOCOL_ULTRASOUND_NORMAL",  GGWAVE_TX_PROTOCOL_ULTRASOUND_NORMAL)
-        .value("GGWAVE_TX_PROTOCOL_ULTRASOUND_FAST",    GGWAVE_TX_PROTOCOL_ULTRASOUND_FAST)
-        .value("GGWAVE_TX_PROTOCOL_ULTRASOUND_FASTEST", GGWAVE_TX_PROTOCOL_ULTRASOUND_FASTEST)
-        .value("GGWAVE_TX_PROTOCOL_DT_NORMAL",          GGWAVE_TX_PROTOCOL_DT_NORMAL)
-        .value("GGWAVE_TX_PROTOCOL_DT_FAST",            GGWAVE_TX_PROTOCOL_DT_FAST)
-        .value("GGWAVE_TX_PROTOCOL_DT_FASTEST",         GGWAVE_TX_PROTOCOL_DT_FASTEST)
+    emscripten::enum_<ggwave_ProtocolId>("ProtocolId")
+        .value("GGWAVE_PROTOCOL_AUDIBLE_NORMAL",     GGWAVE_PROTOCOL_AUDIBLE_NORMAL)
+        .value("GGWAVE_PROTOCOL_AUDIBLE_FAST",       GGWAVE_PROTOCOL_AUDIBLE_FAST)
+        .value("GGWAVE_PROTOCOL_AUDIBLE_FASTEST",    GGWAVE_PROTOCOL_AUDIBLE_FASTEST)
+        .value("GGWAVE_PROTOCOL_ULTRASOUND_NORMAL",  GGWAVE_PROTOCOL_ULTRASOUND_NORMAL)
+        .value("GGWAVE_PROTOCOL_ULTRASOUND_FAST",    GGWAVE_PROTOCOL_ULTRASOUND_FAST)
+        .value("GGWAVE_PROTOCOL_ULTRASOUND_FASTEST", GGWAVE_PROTOCOL_ULTRASOUND_FASTEST)
+        .value("GGWAVE_PROTOCOL_DT_NORMAL",          GGWAVE_PROTOCOL_DT_NORMAL)
+        .value("GGWAVE_PROTOCOL_DT_FAST",            GGWAVE_PROTOCOL_DT_FAST)
+        .value("GGWAVE_PROTOCOL_DT_FASTEST",         GGWAVE_PROTOCOL_DT_FASTEST)
 
-        .value("GGWAVE_TX_PROTOCOL_CUSTOM_0", GGWAVE_TX_PROTOCOL_CUSTOM_0)
-        .value("GGWAVE_TX_PROTOCOL_CUSTOM_1", GGWAVE_TX_PROTOCOL_CUSTOM_1)
-        .value("GGWAVE_TX_PROTOCOL_CUSTOM_2", GGWAVE_TX_PROTOCOL_CUSTOM_2)
-        .value("GGWAVE_TX_PROTOCOL_CUSTOM_3", GGWAVE_TX_PROTOCOL_CUSTOM_3)
-        .value("GGWAVE_TX_PROTOCOL_CUSTOM_4", GGWAVE_TX_PROTOCOL_CUSTOM_4)
-        .value("GGWAVE_TX_PROTOCOL_CUSTOM_5", GGWAVE_TX_PROTOCOL_CUSTOM_5)
-        .value("GGWAVE_TX_PROTOCOL_CUSTOM_6", GGWAVE_TX_PROTOCOL_CUSTOM_6)
-        .value("GGWAVE_TX_PROTOCOL_CUSTOM_7", GGWAVE_TX_PROTOCOL_CUSTOM_7)
-        .value("GGWAVE_TX_PROTOCOL_CUSTOM_8", GGWAVE_TX_PROTOCOL_CUSTOM_8)
-        .value("GGWAVE_TX_PROTOCOL_CUSTOM_9", GGWAVE_TX_PROTOCOL_CUSTOM_9)
+        .value("GGWAVE_PROTOCOL_CUSTOM_0", GGWAVE_PROTOCOL_CUSTOM_0)
+        .value("GGWAVE_PROTOCOL_CUSTOM_1", GGWAVE_PROTOCOL_CUSTOM_1)
+        .value("GGWAVE_PROTOCOL_CUSTOM_2", GGWAVE_PROTOCOL_CUSTOM_2)
+        .value("GGWAVE_PROTOCOL_CUSTOM_3", GGWAVE_PROTOCOL_CUSTOM_3)
+        .value("GGWAVE_PROTOCOL_CUSTOM_4", GGWAVE_PROTOCOL_CUSTOM_4)
+        .value("GGWAVE_PROTOCOL_CUSTOM_5", GGWAVE_PROTOCOL_CUSTOM_5)
+        .value("GGWAVE_PROTOCOL_CUSTOM_6", GGWAVE_PROTOCOL_CUSTOM_6)
+        .value("GGWAVE_PROTOCOL_CUSTOM_7", GGWAVE_PROTOCOL_CUSTOM_7)
+        .value("GGWAVE_PROTOCOL_CUSTOM_8", GGWAVE_PROTOCOL_CUSTOM_8)
+        .value("GGWAVE_PROTOCOL_CUSTOM_9", GGWAVE_PROTOCOL_CUSTOM_9)
         ;
 
     emscripten::enum_<ggwave_OperatingMode>("OperatingMode")
@@ -64,12 +64,12 @@ EMSCRIPTEN_BINDINGS(ggwave) {
     emscripten::function("encode", emscripten::optional_override(
                     [](ggwave_Instance instance,
                        const std::string & data,
-                       ggwave_TxProtocolId txProtocolId,
+                       ggwave_ProtocolId protocolId,
                        int volume) {
-                        auto n = ggwave_encode(instance, data.data(), data.size(), txProtocolId, volume, nullptr, 1);
+                        auto n = ggwave_encode(instance, data.data(), data.size(), protocolId, volume, nullptr, 1);
                         std::vector<char> result(n);
                         result.resize(n);
-                        ggwave_encode(instance, data.data(), data.size(), txProtocolId, volume, result.data(), 0);
+                        ggwave_encode(instance, data.data(), data.size(), protocolId, volume, result.data(), 0);
 
                         return emscripten::val(emscripten::typed_memory_view(result.size(), result.data()));
                     }));
@@ -97,10 +97,15 @@ EMSCRIPTEN_BINDINGS(ggwave) {
                         ggwave_setLogFile(stderr);
                     }));
 
-    emscripten::function("toggleRxProtocol", emscripten::optional_override(
-                    [](ggwave_Instance instance,
-                       ggwave_TxProtocolId rxProtocolId,
+    emscripten::function("rxToggleProtocol", emscripten::optional_override(
+                    [](ggwave_ProtocolId protocolId,
                        int state) {
-                        ggwave_toggleRxProtocol(instance, rxProtocolId, state);
+                        ggwave_rxToggleProtocol(protocolId, state);
+                    }));
+
+    emscripten::function("txToggleProtocol", emscripten::optional_override(
+                    [](ggwave_ProtocolId protocolId,
+                       int state) {
+                        ggwave_txToggleProtocol(protocolId, state);
                     }));
 }

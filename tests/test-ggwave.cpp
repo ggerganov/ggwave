@@ -10,7 +10,8 @@
 #include <cstdint>
 #include <map>
 
-float frand() { return float(rand()%RAND_MAX)/RAND_MAX; }
+constexpr float iRandMax = 1.0f/float(RAND_MAX);
+float frand() { return float(rand()%RAND_MAX)*iRandMax; }
 
 #define CHECK(cond) \
     if (!(cond)) { \
@@ -181,22 +182,22 @@ int main(int argc, char ** argv) {
 
         std::string payload = "hello";
 
-        CHECK(instance.init(payload.c_str()));
+        CHECK(instance.init(payload.c_str(), GGWAVE_PROTOCOL_AUDIBLE_FAST));
 
         // data
-        CHECK_F(instance.init(-1, "asd"));
-        CHECK_T(instance.init(0, nullptr));
-        CHECK_T(instance.init(0, "asd"));
-        CHECK_T(instance.init(1, "asd"));
-        CHECK_T(instance.init(2, "asd"));
-        CHECK_T(instance.init(3, "asd"));
+        CHECK_F(instance.init(-1, "asd",   GGWAVE_PROTOCOL_AUDIBLE_FAST));
+        CHECK_T(instance.init(0,  nullptr, GGWAVE_PROTOCOL_AUDIBLE_FAST));
+        CHECK_T(instance.init(0,  "asd",   GGWAVE_PROTOCOL_AUDIBLE_FAST));
+        CHECK_T(instance.init(1,  "asd",   GGWAVE_PROTOCOL_AUDIBLE_FAST));
+        CHECK_T(instance.init(2,  "asd",   GGWAVE_PROTOCOL_AUDIBLE_FAST));
+        CHECK_T(instance.init(3,  "asd",   GGWAVE_PROTOCOL_AUDIBLE_FAST));
 
         // volume
-        CHECK_F(instance.init(payload.size(), payload.c_str(), -1));
-        CHECK_T(instance.init(payload.size(), payload.c_str(), 0));
-        CHECK_T(instance.init(payload.size(), payload.c_str(), 50));
-        CHECK_T(instance.init(payload.size(), payload.c_str(), 100));
-        CHECK_F(instance.init(payload.size(), payload.c_str(), 101));
+        CHECK_F(instance.init(payload.size(), payload.c_str(), GGWAVE_PROTOCOL_AUDIBLE_FAST, -1));
+        CHECK_T(instance.init(payload.size(), payload.c_str(), GGWAVE_PROTOCOL_AUDIBLE_FAST, 0));
+        CHECK_T(instance.init(payload.size(), payload.c_str(), GGWAVE_PROTOCOL_AUDIBLE_FAST, 50));
+        CHECK_T(instance.init(payload.size(), payload.c_str(), GGWAVE_PROTOCOL_AUDIBLE_FAST, 100));
+        CHECK_F(instance.init(payload.size(), payload.c_str(), GGWAVE_PROTOCOL_AUDIBLE_FAST, 101));
     }
 
     // playback / capture at different sample rates
@@ -213,7 +214,7 @@ int main(int argc, char ** argv) {
             parameters.sampleRateOut = srInp;
             GGWave instanceOut(parameters);
 
-            instanceOut.init(payload.c_str(), instanceOut.getTxProtocol(GGWAVE_TX_PROTOCOL_DT_FASTEST), 25);
+            instanceOut.init(payload.c_str(), GGWAVE_PROTOCOL_DT_FASTEST, 25);
             const auto expectedSize = instanceOut.encodeSize_bytes();
             const auto nBytes = instanceOut.encode();
             printf("Expected = %d, actual = %d\n", expectedSize, nBytes);
@@ -227,12 +228,12 @@ int main(int argc, char ** argv) {
         {
             parameters.sampleRateInp = srInp;
             GGWave instanceInp(parameters);
+            instanceInp.rxProtocols().only(GGWAVE_PROTOCOL_DT_FASTEST);
 
-            instanceInp.setRxProtocols({instanceInp.getTxProtocol(GGWAVE_TX_PROTOCOL_DT_FASTEST)});
             instanceInp.decode(buffer.data(), buffer.size());
 
             GGWave::TxRxData result;
-            CHECK(instanceInp.takeRxData(result) == (int) payload.size());
+            CHECK(instanceInp.rxTakeData(result) == (int) payload.size());
             for (int i = 0; i < (int) payload.size(); ++i) {
                 CHECK(payload[i] == result[i]);
             }
@@ -248,13 +249,14 @@ int main(int argc, char ** argv) {
                 if (formatOut != GGWAVE_SAMPLE_FORMAT_I16) continue;
                 if (formatInp != GGWAVE_SAMPLE_FORMAT_F32) continue;
             }
-            for (const auto & txProtocol : GGWave::getTxProtocols()) {
-                if (txProtocol.enabled == false) continue;
-                printf("Testing: protocol = %s, in = %d, out = %d\n", txProtocol.name, formatInp, formatOut);
+            for (int protocolId = 0; protocolId < GGWAVE_PROTOCOL_COUNT; ++protocolId) {
+                const auto & protocol = GGWave::Protocols::kDefault()[protocolId];
+                if (protocol.enabled == false) continue;
+                printf("Testing: protocol = %s, in = %d, out = %d\n", protocol.name, formatInp, formatOut);
 
                 for (int length = 1; length <= (int) payload.size(); ++length) {
                     // mono-tone protocols with variable length are not supported
-                    if (txProtocol.extra == 2) {
+                    if (protocol.extra == 2) {
                         break;
                     }
 
@@ -264,9 +266,9 @@ int main(int argc, char ** argv) {
                         parameters.sampleFormatInp = formatInp;
                         parameters.sampleFormatOut = formatOut;
                         GGWave instance(parameters);
+                        instance.rxProtocols().only(GGWave::ProtocolId(protocolId));
 
-                        instance.setRxProtocols({txProtocol});
-                        instance.init(length, payload.data(), txProtocol, 25);
+                        instance.init(length, payload.data(), GGWave::ProtocolId(protocolId), 25);
                         const auto expectedSize = instance.encodeSize_bytes();
                         const auto nBytes = instance.encode();
                         printf("Expected = %d, actual = %d\n", expectedSize, nBytes);
@@ -276,7 +278,7 @@ int main(int argc, char ** argv) {
                         instance.decode(buffer.data(), buffer.size());
 
                         GGWave::TxRxData result;
-                        CHECK(instance.takeRxData(result) == length);
+                        CHECK(instance.rxTakeData(result) == length);
                         for (int i = 0; i < length; ++i) {
                             CHECK(payload[i] == result[i]);
                         }
@@ -291,9 +293,9 @@ int main(int argc, char ** argv) {
                         parameters.sampleFormatInp = formatInp;
                         parameters.sampleFormatOut = formatOut;
                         GGWave instance(parameters);
+                        instance.rxProtocols().only(GGWave::ProtocolId(protocolId));
 
-                        instance.setRxProtocols({txProtocol});
-                        instance.init(length, payload.data(), txProtocol, 10);
+                        instance.init(length, payload.data(), GGWave::ProtocolId(protocolId), 10);
                         const auto expectedSize = instance.encodeSize_bytes();
                         const auto nBytes = instance.encode();
                         printf("Expected = %d, actual = %d\n", expectedSize, nBytes);
@@ -303,7 +305,7 @@ int main(int argc, char ** argv) {
                         instance.decode(buffer.data(), buffer.size());
 
                         GGWave::TxRxData result;
-                        CHECK(instance.takeRxData(result) == length);
+                        CHECK(instance.rxTakeData(result) == length);
                         for (int i = 0; i < length; ++i) {
                             CHECK(payload[i] == result[i]);
                         }

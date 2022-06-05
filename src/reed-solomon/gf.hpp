@@ -12,6 +12,12 @@
 #include <string.h>
 #include <assert.h>
 
+#if !defined(ARDUINO) && !defined(PROGMEM)
+#define PROGMEM
+#else
+#include <avr/pgmspace.h>
+#endif
+
 namespace RS {
 
 namespace gf {
@@ -19,7 +25,7 @@ namespace gf {
 
 /* GF tables pre-calculated for 0x11d primitive polynomial */
 
-const uint8_t exp[512] = {
+const uint8_t exp[512] PROGMEM = {
     0x1, 0x2, 0x4, 0x8, 0x10, 0x20, 0x40, 0x80, 0x1d, 0x3a, 0x74, 0xe8, 0xcd, 0x87, 0x13, 0x26, 0x4c,
     0x98, 0x2d, 0x5a, 0xb4, 0x75, 0xea, 0xc9, 0x8f, 0x3, 0x6, 0xc, 0x18, 0x30, 0x60, 0xc0, 0x9d,
     0x27, 0x4e, 0x9c, 0x25, 0x4a, 0x94, 0x35, 0x6a, 0xd4, 0xb5, 0x77, 0xee, 0xc1, 0x9f, 0x23, 0x46,
@@ -54,7 +60,7 @@ const uint8_t exp[512] = {
     0xb0, 0x7d, 0xfa, 0xe9, 0xcf, 0x83, 0x1b, 0x36, 0x6c, 0xd8, 0xad, 0x47, 0x8e, 0x1, 0x2
 };
 
-const uint8_t log[256] = {
+const uint8_t log[256] PROGMEM = {
     0x0, 0x0, 0x1, 0x19, 0x2, 0x32, 0x1a, 0xc6, 0x3, 0xdf, 0x33, 0xee, 0x1b, 0x68, 0xc7, 0x4b, 0x4,
     0x64, 0xe0, 0xe, 0x34, 0x8d, 0xef, 0x81, 0x1c, 0xc1, 0x69, 0xf8, 0xc8, 0x8, 0x4c, 0x71, 0x5,
     0x8a, 0x65, 0x2f, 0xe1, 0x24, 0xf, 0x21, 0x35, 0x93, 0x8e, 0xda, 0xf0, 0x12, 0x82, 0x45, 0x1d,
@@ -103,7 +109,11 @@ inline uint8_t sub(uint8_t x, uint8_t y) {
 inline uint8_t mul(uint16_t x, uint16_t y){
     if (x == 0 || y == 0)
         return 0;
+#ifdef ARDUINO
+    return pgm_read_byte(exp + pgm_read_byte(log + x) + pgm_read_byte(log + y));
+#else
     return exp[log[x] + log[y]];
+#endif
 }
 
 /* @brief Division in Galua Fields
@@ -113,7 +123,11 @@ inline uint8_t mul(uint16_t x, uint16_t y){
 inline uint8_t div(uint8_t x, uint8_t y){
     assert(y != 0);
     if(x == 0) return 0;
+#ifdef ARDUINO
+    return pgm_read_byte(exp + (pgm_read_byte(log + x) + 255 - pgm_read_byte(log + y)) % 255);
+#else
     return exp[(log[x] + 255 - log[y]) % 255];
+#endif
 }
 
 /* @brief X in power Y w
@@ -125,14 +139,22 @@ inline uint8_t pow(uint8_t x, intmax_t power){
     i *= power;
     i %= 255;
     if(i < 0) i = i + 255;
+#ifdef ARDUINO
+    return pgm_read_byte(exp + i);
+#else
     return exp[i];
+#endif
 }
 
 /* @brief Inversion in Galua Fields
  * @param x - number
  * @return inversion of x */
 inline uint8_t inverse(uint8_t x){
+#ifdef ARDUINO
+    return pgm_read_byte(exp + 255 - pgm_read_byte(log + x)); /* == div(1, x); */
+#else
     return exp[255 - log[x]]; /* == div(1, x); */
+#endif
 }
 
 /* ##########################

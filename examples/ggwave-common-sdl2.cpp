@@ -34,41 +34,39 @@ std::shared_ptr<GGWave> g_ggWave = nullptr;
 extern "C" {
     EMSCRIPTEN_KEEPALIVE
         int sendData(int textLength, const char * text, int protocolId, int volume) {
-            g_ggWave->init(textLength, text, g_ggWave->getTxProtocol(protocolId), volume);
+            g_ggWave->init(textLength, text, GGWave::TxProtocolId(protocolId), volume);
             return 0;
         }
 
     EMSCRIPTEN_KEEPALIVE
         int getText(char * text) {
-            std::copy(g_ggWave->getRxData().begin(), g_ggWave->getRxData().end(), text);
+            std::copy(g_ggWave->rxData().begin(), g_ggWave->rxData().end(), text);
             return 0;
         }
 
     EMSCRIPTEN_KEEPALIVE
-        float getSampleRate()           { return g_ggWave->getSampleRateInp(); }
+        float sampleRate()        { return g_ggWave->sampleRateInp(); }
 
     EMSCRIPTEN_KEEPALIVE
-        int getFramesToRecord()         { return g_ggWave->getFramesToRecord(); }
+        int framesToRecord()      { return g_ggWave->rxFramesToRecord(); }
 
     EMSCRIPTEN_KEEPALIVE
-        int getFramesLeftToRecord()     { return g_ggWave->getFramesLeftToRecord(); }
+        int framesLeftToRecord()  { return g_ggWave->rxFramesLeftToRecord(); }
 
     EMSCRIPTEN_KEEPALIVE
-        int getFramesToAnalyze()        { return g_ggWave->getFramesToAnalyze(); }
+        int framesToAnalyze()     { return g_ggWave->rxFramesToAnalyze(); }
 
     EMSCRIPTEN_KEEPALIVE
-        int getFramesLeftToAnalyze()    { return g_ggWave->getFramesLeftToAnalyze(); }
+        int framesLeftToAnalyze() { return g_ggWave->rxFramesLeftToAnalyze(); }
 
     EMSCRIPTEN_KEEPALIVE
-        int hasDeviceOutput()           { return g_devIdOut; }
+        int hasDeviceOutput()     { return g_devIdOut; }
 
     EMSCRIPTEN_KEEPALIVE
-        int hasDeviceCapture()          { return g_devIdInp; }
+        int hasDeviceCapture()    { return g_devIdInp; }
 
     EMSCRIPTEN_KEEPALIVE
-        int doInit()                    {
-            return GGWave_init(-1, -1);
-        }
+        int doInit()              { return GGWave_init(-1, -1); }
 }
 
 void GGWave_setDefaultCaptureDeviceName(std::string name) {
@@ -244,16 +242,16 @@ bool GGWave_mainLoop() {
         return false;
     }
 
-    if (g_ggWave->hasTxData() == false) {
+    if (g_ggWave->txHasData() == false) {
         SDL_PauseAudioDevice(g_devIdOut, SDL_FALSE);
 
         static auto tLastNoData = std::chrono::high_resolution_clock::now();
         auto tNow = std::chrono::high_resolution_clock::now();
 
-        if ((int) SDL_GetQueuedAudioSize(g_devIdOut) < g_ggWave->getSamplesPerFrame()*g_ggWave->getSampleSizeBytesOut()) {
+        if ((int) SDL_GetQueuedAudioSize(g_devIdOut) < g_ggWave->samplesPerFrame()*g_ggWave->sampleSizeOut()) {
             SDL_PauseAudioDevice(g_devIdInp, SDL_FALSE);
             const int nHave = (int) SDL_GetQueuedAudioSize(g_devIdInp);
-            const int nNeed = g_ggWave->getSamplesPerFrame()*g_ggWave->getSampleSizeBytesInp();
+            const int nNeed = g_ggWave->samplesPerFrame()*g_ggWave->sampleSizeInp();
             if (::getTime_ms(tLastNoData, tNow) > 500.0f && nHave >= nNeed) {
                 static std::vector<uint8_t> dataInp(nNeed);
                 SDL_DequeueAudio(g_devIdInp, dataInp.data(), nNeed);

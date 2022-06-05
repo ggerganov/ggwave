@@ -48,11 +48,13 @@ int main(int argc, char** argv) {
     printf("    -p  - print tones, no playback\n");
     printf("    -A  - print Arduino code\n");
     printf("    -b  - use 'beep' command\n");
+    printf("    -s  - use Direct Sequence Spread (DSS)\n");
     printf("    -tN - transmission protocol\n");
     printf("    -lN - fixed payload length of size N, N in [1, %d]\n", GGWave::kMaxLengthFixed);
     printf("\n");
 
-    const GGWave::TxProtocols protocols = {
+    auto & protocols = GGWave::Protocols::tx();
+    protocols = {
         { "[R2T2] Normal",      64,  9, 1, 2, true, },
         { "[R2T2] Fast",        64,  6, 1, 2, true, },
         { "[R2T2] Fastest",     64,  3, 1, 2, true, },
@@ -61,12 +63,16 @@ int main(int argc, char** argv) {
         { "[R2T2] Low Fastest", 16,  3, 1, 2, true, },
     };
 
-    const auto argm = parseCmdArguments(argc, argv);
-    const bool printTones = argm.count("p") > 0;
+    const auto argm         = parseCmdArguments(argc, argv);
+    const bool printTones   = argm.count("p") > 0;
     const bool printArduino = argm.count("A") > 0;
-    const bool useBeep = argm.count("b") > 0;
-    const int txProtocolId = argm.count("t") == 0 ? GGWAVE_TX_PROTOCOL_CUSTOM_0 : std::stoi(argm.at("t"));
+    const bool useBeep      = argm.count("b") > 0;
+    const bool useDSS       = argm.count("s") > 0;
+    const int txProtocolId  = argm.count("t") == 0 ? 0 : std::stoi(argm.at("t"));
     const int payloadLength = argm.count("l") == 0 ? 16 : std::stoi(argm.at("l"));
+
+    ggwave_OperatingMode mode = ggwave_OperatingMode(GGWAVE_OPERATING_MODE_TX | GGWAVE_OPERATING_MODE_TX_ONLY_TONES);
+    if (useDSS) mode = ggwave_OperatingMode(mode | GGWAVE_OPERATING_MODE_USE_DSS);
 
     GGWave ggWave({
         payloadLength,
@@ -77,7 +83,7 @@ int main(int argc, char** argv) {
         GGWave::kDefaultSoundMarkerThreshold,
         GGWAVE_SAMPLE_FORMAT_F32,
         GGWAVE_SAMPLE_FORMAT_F32,
-        (ggwave_OperatingMode) (GGWAVE_OPERATING_MODE_TX | GGWAVE_OPERATING_MODE_TX_ONLY_TONES),
+        mode,
     });
 
     printf("Available Tx protocols:\n");
@@ -123,7 +129,7 @@ int main(int argc, char** argv) {
         return -3;
     }
 
-    ggWave.init(message.size(), message.data(), protocols.at(GGWave::TxProtocolId(txProtocolId)), 10);
+    ggWave.init(message.size(), message.data(), GGWave::TxProtocolId(txProtocolId), 10);
     ggWave.encode();
 
     int nFrames = 0;

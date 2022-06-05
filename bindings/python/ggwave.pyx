@@ -19,7 +19,7 @@ def init(parameters = None):
 def free(instance):
     return cggwave.ggwave_free(instance)
 
-def encode(payload, txProtocolId = 1, volume = 10, instance = None):
+def encode(payload, protocolId = 1, volume = 10, instance = None):
     """ Encode payload into an audio waveform.
         @param {string} payload, the data to be encoded
         @return Generated audio waveform bytes representing 16-bit signed integer samples.
@@ -33,12 +33,12 @@ def encode(payload, txProtocolId = 1, volume = 10, instance = None):
         own = True
         instance = init(getDefaultParameters())
 
-    n = cggwave.ggwave_encode(instance, cdata, len(data_bytes), txProtocolId, volume, NULL, 1)
+    n = cggwave.ggwave_encode(instance, cdata, len(data_bytes), protocolId, volume, NULL, 1)
 
     cdef bytes output_bytes = bytes(n)
     cdef char* coutput = output_bytes
 
-    n = cggwave.ggwave_encode(instance, cdata, len(data_bytes), txProtocolId, volume, coutput, 0)
+    n = cggwave.ggwave_encode(instance, cdata, len(data_bytes), protocolId, volume, coutput, 0)
 
     if (own):
         free(instance)
@@ -70,5 +70,8 @@ def disableLog():
 def enableLog():
     cggwave.ggwave_setLogFile(stderr);
 
-def toggleRxProtocol(instance, rxProtocolId, state):
-    cggwave.ggwave_toggleRxProtocol(instance, rxProtocolId, state);
+def rxToggleProtocol(protocolId, state):
+    cggwave.ggwave_rxToggleProtocol(protocolId, state);
+
+def txToggleProtocol(protocolId, state):
+    cggwave.ggwave_txToggleProtocol(protocolId, state);

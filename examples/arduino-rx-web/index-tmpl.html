@@ -101,6 +101,7 @@
                     parameters.samplesPerFrame = 512;
                     parameters.sampleRateInp = context.sampleRate;
                     parameters.sampleRateOut = context.sampleRate;
+                    parameters.operatingMode = GGWAVE_OPERATING_MODE_RX_AND_TX | GGWAVE_OPERATING_MODE_USE_DSS;
                     instance = ggwave.init(parameters);
                 }
             }
@@ -122,7 +123,7 @@
                 }
 
                 // generate audio waveform
-                var waveform = ggwave.encode(instance, payload, ggwave.TxProtocolId.GGWAVE_TX_PROTOCOL_MT_FASTEST, 25)
+                var waveform = ggwave.encode(instance, payload, ggwave.TxProtocolId.GGWAVE_PROTOCOL_MT_FASTEST, 25)
 
                 // play audio
                 var buf = convertTypedArray(waveform, Float32Array);

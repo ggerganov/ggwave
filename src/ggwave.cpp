@@ -3,17 +3,21 @@
 #include "fft.h"
 #include "reed-solomon/rs.hpp"
 
-#include <cstdio>
 #include <cmath>
 #include <ctime>
+#include <cstdio>
 //#include <random>
 
 #ifndef M_PI
 #define M_PI 3.14159265358979323846
 #endif
 
+#ifdef ARDUINO
+#define ggprintf(...)
+#else
 #define ggprintf(...) \
     g_fptr && fprintf(g_fptr, __VA_ARGS__)
+#endif
 
 //
 // C interface

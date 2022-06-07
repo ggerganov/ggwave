@@ -12,6 +12,7 @@
 #include <assert.h>
 #include <string.h>
 #include <stdint.h>
+#include <stdlib.h>
 
 namespace RS {
 
@@ -39,7 +40,7 @@ public:
             heap_memory = heap_memory_p;
             owns_heap_memory = false;
         } else {
-            heap_memory = new uint8_t[getWorkSize_bytes(msg_length, ecc_length)];
+            heap_memory = (uint8_t *) malloc(getWorkSize_bytes(msg_length, ecc_length));
             owns_heap_memory = true;
         }
         generator_cache = heap_memory;

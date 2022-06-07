@@ -330,8 +330,6 @@ extern "C" {
 // C++ interface
 //
 
-#include <assert.h>
-
 template <typename T>
 struct ggvector {
 private:
@@ -341,42 +339,28 @@ private:
 public:
     using value_type = T;
 
-    ggvector() : m_data(nullptr), m_size(0) {}
-    ggvector(T * data, int size) : m_data(data), m_size(size) {}
+    ggvector();
+    ggvector(T * data, int size);
+    ggvector(const ggvector<T> & other) = default;
 
-    T & operator[](int i) {
-        return m_data[i];
-    }
+    // delete operator=
+    ggvector & operator=(const ggvector &) = delete;
+    ggvector & operator=(ggvector &&) = delete;
 
-    const T & operator[](int i) const {
-        return m_data[i];
-    }
+    T & operator[](int i);
+    const T & operator[](int i) const;
 
-    void copy(const ggvector & other) {
-        if (this != &other) {
-            if (m_size != other.m_size) {
-                // should never happen
-                assert(false);
-            }
-            memcpy(m_data, other.m_data, m_size * sizeof(T));
-        }
-    }
+    void assign(const ggvector & other);
+    void copy(const ggvector & other);
 
-    int size() const {
-        return m_size;
-    }
+    int size() const;
+    T * data() const;
 
-    T * data() const {
-        return m_data;
-    }
+    T * begin() const;
+    T * end() const;
 
-    T * begin() const {
-        return m_data;
-    }
-
-    T * end() const {
-        return m_data + m_size;
-    }
+    void zero();
+    void zero(int n);
 };
 
 template <typename T>
@@ -389,24 +373,21 @@ private:
 public:
     using value_type = T;
 
-    ggmatrix(T * data, int size0, int size1) : m_data(data), m_size0(size0), m_size1(size1) {}
+    ggmatrix();
+    ggmatrix(T * data, int size0, int size1);
 
-    ggvector<T> operator[](int i) {
-        return ggvector<T>(m_data + i * m_size1, m_size1);
-    }
+    ggvector<T> operator[](int i);
 
-    T & operator()(int i, int j) {
-        return m_data[i * m_size1 + j];
-    }
+    T & operator()(int i, int j);
 
-    int size0() const {
-        return m_size0;
-    }
+    int size() const;
+
+    void zero();
 };
 
 #include <stdint.h>
 #include <stdio.h>
-#include <vector>
+#include <initializer_list>
 
 class GGWave {
 public:
@@ -548,11 +529,12 @@ public:
     //
     using Tones = ggvector<Tone>;
 
-    using Amplitude    = std::vector<float>;
-    using AmplitudeI16 = std::vector<int16_t>;
-    using Spectrum     = std::vector<float>;
-    using RecordedData = std::vector<float>;
-    using TxRxData     = std::vector<uint8_t>;
+    using Amplitude    = ggvector<float>;
+    using AmplitudeArr = ggmatrix<float>;
+    using AmplitudeI16 = ggvector<int16_t>;
+    using Spectrum     = ggvector<float>;
+    using RecordedData = ggvector<float>;
+    using TxRxData     = ggvector<uint8_t>;
 
     // constructor
     //
@@ -752,6 +734,8 @@ public:
 
         Resampler();
 
+        bool alloc(void * p, int & n);
+
         void reset();
 
         int nSamplesTotal() const { return m_state.nSamplesTotal; }
@@ -773,10 +757,10 @@ public:
         // this defines how finely the sinc function is sampled for storage in the table
         static const int kSamplesPerZeroCrossing = 32;
 
-        std::vector<float> m_sincTable;
-        std::vector<float> m_delayBuffer;
-        std::vector<float> m_edgeSamples;
-        std::vector<float> m_samplesInp;
+        ggvector<float> m_sincTable;
+        ggvector<float> m_delayBuffer;
+        ggvector<float> m_edgeSamples;
+        ggvector<float> m_samplesInp;
 
         struct State {
             int nSamplesTotal = 0;
@@ -851,9 +835,9 @@ private:
         int framesToRecord      = 0;
         int samplesNeeded       = 0;
 
-        std::vector<float> fftOut; // complex
-        std::vector<int>   fftWorkI;
-        std::vector<float> fftWorkF;
+        ggvector<float> fftOut; // complex
+        ggvector<int>   fftWorkI;
+        ggvector<float> fftWorkF;
 
         bool hasNewRxData    = false;
         bool hasNewSpectrum  = false;
@@ -874,16 +858,16 @@ private:
         // variable-length decoding
         int historyId = 0;
 
-        Amplitude              amplitudeAverage;
-        std::vector<Amplitude> amplitudeHistory;
-        RecordedData           amplitudeRecorded;
+        Amplitude    amplitudeAverage;
+        AmplitudeArr amplitudeHistory;
+        RecordedData amplitudeRecorded;
 
         // fixed-length decoding
         int historyIdFixed = 0;
 
-        std::vector<std::vector<uint16_t>> spectrumHistoryFixed;
-        std::vector<uint8_t> detectedBins;
-        std::vector<uint8_t> detectedTones;
+        ggmatrix<uint16_t> spectrumHistoryFixed;
+        ggvector<uint8_t> detectedBins;
+        ggvector<uint8_t> detectedTones;
     } m_rx;
 
     struct Tx {
@@ -894,11 +878,11 @@ private:
         int dataLength = 0;
         int lastAmplitudeSize = 0;
 
-        std::vector<bool> dataBits;
-        std::vector<double> phaseOffsets;
+        ggvector<bool> dataBits;
+        ggvector<double> phaseOffsets;
 
-        std::vector<Amplitude> bit1Amplitude;
-        std::vector<Amplitude> bit0Amplitude;
+        AmplitudeArr bit1Amplitude;
+        AmplitudeArr bit0Amplitude;
 
         TxRxData    data;
         TxProtocol  protocol;
@@ -913,10 +897,10 @@ private:
         Tones tones;
     } m_tx;
 
+    mutable Resampler m_resampler;
+
     void * m_heap;
     int m_heapSize;
-
-    Resampler * m_resampler;
 };
 
 #endif

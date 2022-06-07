@@ -181,7 +181,7 @@ struct State {
         if (this->flags.newTxAmplitude) {
             dst.update = true;
             dst.flags.newTxAmplitude = true;
-            dst.txAmplitude = std::move(this->txAmplitude);
+            dst.txAmplitude.assign(this->txAmplitude);
         }
 
         if (this->flags.newStats) {
@@ -202,7 +202,7 @@ struct State {
 
     Message message;
 
-    GGWave::Spectrum     rxSpectrum;
+    std::vector<float>   rxSpectrum;
     GGWave::Amplitude    rxAmplitude;
     GGWave::AmplitudeI16 txAmplitude;
 
@@ -703,7 +703,7 @@ void updateCore() {
             static const int NMax = GGWave::kMaxSamplesPerFrame;
             static float tmp[2*NMax];
 
-            int N = ggWave->samplesPerFrame();
+            const int N = ggWave->samplesPerFrame();
             ggWave->computeFFTR(g_buffer.stateCore.rxAmplitude.data(), tmp, N);
 
             g_buffer.stateCore.rxSpectrum.resize(N);
@@ -884,8 +884,8 @@ void renderMain() {
     static double tLengthTx = 0.0f;
 
     static GGWaveStats statsCurrent;
-    static GGWave::Spectrum spectrumCurrent;
-    static GGWave::AmplitudeI16 txAmplitudeCurrent;
+    static std::vector<float> spectrumCurrent;
+    static std::vector<int16_t> txAmplitudeCurrent;
     static std::vector<Message> messageHistory;
     static std::string inputLast = "";
 
@@ -914,7 +914,8 @@ void renderMain() {
             hasAudioCaptureData = !spectrumCurrent.empty();
         }
         if (stateCurrent.flags.newTxAmplitude) {
-            txAmplitudeCurrent = std::move(stateCurrent.txAmplitude);
+            txAmplitudeCurrent.resize(stateCurrent.txAmplitude.size());
+            std::copy(stateCurrent.txAmplitude.begin(), stateCurrent.txAmplitude.end(), txAmplitudeCurrent.begin());
 
             tStartTx = ImGui::GetTime() + (16.0f*1024.0f)/statsCurrent.sampleRateOut;
             tLengthTx = txAmplitudeCurrent.size()/statsCurrent.sampleRateOut;

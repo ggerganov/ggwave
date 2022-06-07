@@ -27,6 +27,8 @@ extern "C" {
     // C interface
     //
 
+#define GGWAVE_MAX_INSTANCES 4
+
     // Data format of the audio samples
     typedef enum {
         GGWAVE_SAMPLE_FORMAT_UNDEFINED,
@@ -328,6 +330,8 @@ extern "C" {
 // C++ interface
 //
 
+#include <assert.h>
+
 template <typename T>
 struct ggvector {
 private:
@@ -337,6 +341,7 @@ private:
 public:
     using value_type = T;
 
+    ggvector() : m_data(nullptr), m_size(0) {}
     ggvector(T * data, int size) : m_data(data), m_size(size) {}
 
     T & operator[](int i) {
@@ -345,6 +350,16 @@ public:
 
     const T & operator[](int i) const {
         return m_data[i];
+    }
+
+    void copy(const ggvector & other) {
+        if (this != &other) {
+            if (m_size != other.m_size) {
+                // should never happen
+                assert(false);
+            }
+            memcpy(m_data, other.m_data, m_size * sizeof(T));
+        }
     }
 
     int size() const {
@@ -361,6 +376,31 @@ public:
 
     T * end() const {
         return m_data + m_size;
+    }
+};
+
+template <typename T>
+struct ggmatrix {
+private:
+    T * m_data;
+    int m_size0;
+    int m_size1;
+
+public:
+    using value_type = T;
+
+    ggmatrix(T * data, int size0, int size1) : m_data(data), m_size0(size0), m_size1(size1) {}
+
+    ggvector<T> operator[](int i) {
+        return ggvector<T>(m_data + i * m_size1, m_size1);
+    }
+
+    T & operator()(int i, int j) {
+        return m_data[i * m_size1 + j];
+    }
+
+    int size0() const {
+        return m_size0;
     }
 };
 
@@ -402,7 +442,11 @@ public:
 
         bool enabled;
 
+        int nTones() const { return (2*bytesPerTx)/extra; }
         int nDataBitsPerTx() const { return 8*bytesPerTx; }
+        int txDuration_ms(int samplesPerFrame, float sampleRate) const {
+            return extra*framesPerTx*((1000.0f*samplesPerFrame)/sampleRate);
+        }
     };
 
     using TxProtocol = Protocol;
@@ -490,14 +534,19 @@ public:
         static RxProtocols & rx();
     };
 
-    // TODO: need more efficient way to store this
-    struct ToneData {
-        float freq_hz;
-        float duration_ms;
-    };
+    using Tone = int8_t;
 
-    using TonesPerFrame = std::vector<ToneData>;
-    using Tones         = std::vector<TonesPerFrame>;
+    // generated tones
+    //
+    //  Each Tone is the bin index of the tone frequency.
+    //  For protocol p:
+    //    - freq_hz = (p.freqStart + Tone) * hzPerSample
+    //    - duration_ms = p.txDuration_ms(samplesPerFrame, sampleRate)
+    //
+    //  If the protocol is mono-tone, each element of the vector corresponds to a single tone.
+    //  Otherwise, the tones within a single Tx are separated by value of -1
+    //
+    using Tones = ggvector<Tone>;
 
     using Amplitude    = std::vector<float>;
     using AmplitudeI16 = std::vector<int16_t>;
@@ -540,6 +589,9 @@ public:
     //
     GGWave(const Parameters & parameters);
     ~GGWave();
+
+    bool prepare(const Parameters & parameters);
+    bool alloc(void * p, int & n);
 
     // set file stream for the internal ggwave logging
     //
@@ -607,6 +659,7 @@ public:
     int sampleSizeInp()   const;
     int sampleSizeOut()   const;
 
+    float hzPerSample() const;
     float sampleRateInp() const;
     float sampleRateOut() const;
     SampleFormat sampleFormatInp() const;
@@ -623,7 +676,7 @@ public:
     //   Call this method after calling encode() to get a list of the tones
     //   participating in the generated waveform
     //
-    const Tones & txTones() const;
+    const Tones txTones() const;
 
     // true if there is data pending to be transmitted
     bool txHasData() const;
@@ -742,6 +795,7 @@ private:
     int maxFramesPerTx(const Protocols & protocols, bool excludeMT) const;
     int minBytesPerTx(const Protocols & protocols) const;
     int maxBytesPerTx(const Protocols & protocols) const;
+    int maxTonesPerTx(const Protocols & protocols) const;
 
     double bitFreq(const Protocol & p, int bit) const;
 
@@ -855,6 +909,7 @@ private:
         TxRxData     outputTmp;
         AmplitudeI16 outputI16;
 
+        int nTones = 0;
         Tones tones;
     } m_tx;
 

@@ -68,13 +68,15 @@ int main(int argc, char** argv) {
 
                 if (printTones) {
                     printf("Printing generated waveform tones (Hz):\n");
+                    const auto & protocol = protocols[txProtocolId];
                     const auto tones = ggWave->txTones();
                     for (int i = 0; i < (int) tones.size(); ++i) {
-                        printf(" - frame %3d: ", i);
-                        for (int j = 0; j < (int) tones[i].size(); ++j) {
-                            printf("%8.2f ", tones[i][j].freq_hz);
+                        if (tones[i] < 0) {
+                            printf(" - end tx\n");
+                            continue;
                         }
-                        printf("\n");
+                        const auto freq_hz = (protocol.freqStart + tones[i])*ggWave->hzPerSample();
+                        printf(" - tone %3d: %f\n", i, freq_hz);
                     }
                 }
             } else {

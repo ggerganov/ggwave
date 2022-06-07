@@ -132,26 +132,12 @@ int main(int argc, char** argv) {
     ggWave.init(message.size(), message.data(), GGWave::TxProtocolId(txProtocolId), 10);
     ggWave.encode();
 
-    int nFrames = 0;
-    double lastF = -1.0f;
-
-    auto tones = ggWave.txTones();
-    for (auto & tonesCur : tones) {
-        if (tonesCur.size() == 0) continue;
-        const auto & tone = tonesCur.front();
-        if (tone.freq_hz != lastF) {
-            if (nFrames > 0) {
-                processTone(fd, lastF, nFrames*tone.duration_ms, useBeep, printTones, printArduino);
-            }
-            nFrames = 0;
-            lastF = tone.freq_hz;
-        }
-        ++nFrames;
-    }
-
-    if (nFrames > 0) {
-        const auto & tone = tones.front().front();
-        processTone(fd, lastF, nFrames*tone.duration_ms, useBeep, printTones, printArduino);
+    const auto & protocol = protocols[txProtocolId];
+    const auto tones = ggWave.txTones();
+    const auto duration_ms = protocol.txDuration_ms(ggWave.samplesPerFrame(), ggWave.sampleRateOut());
+    for (auto & tone : tones) {
+        const auto freq_hz = (protocol.freqStart + tone)*ggWave.hzPerSample();
+        processTone(fd, freq_hz, duration_ms, useBeep, printTones, printArduino);
     }
 
     return 0;

@@ -89,7 +89,9 @@ int main(int argc, char** argv) {
     printf("Available Tx protocols:\n");
     for (int i = 0; i < (int) protocols.size(); ++i) {
         const auto & protocol = protocols[i];
-        printf("    -t%-2d : %-16s\n", i, protocol.name);
+        if (protocol.enabled && protocol.name) {
+            printf("    -t%-2d : %-16s\n", i, protocol.name);
+        }
     }
     printf("\n");
 

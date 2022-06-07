@@ -1122,9 +1122,9 @@ void renderMain() {
             ImGui::Text("Tx Protocol: ");
             ImGui::SetCursorScreenPos({ posSave.x + kLabelWidth, posSave.y });
         }
-        if (ImGui::BeginCombo("##txProtocol", settings.txProtocols.at(GGWave::TxProtocolId(settings.protocolId)).name)) {
+        if (ImGui::BeginCombo("##txProtocol", settings.txProtocols[settings.protocolId].name)) {
             for (int i = 0; i < (int) settings.txProtocols.size(); ++i) {
-                const auto & txProtocol = settings.txProtocols.at(GGWave::TxProtocolId(i));
+                const auto & txProtocol = settings.txProtocols[i];
                 if (txProtocol.name == nullptr) continue;
                 const bool isSelected = (settings.protocolId == i);
                 if (ImGui::Selectable(txProtocol.name, isSelected)) {
@@ -1144,7 +1144,7 @@ void renderMain() {
             ImGui::SetCursorScreenPos({ posSave.x + kLabelWidth, posSave.y });
         }
         {
-            const auto & protocol = settings.txProtocols.at(GGWave::TxProtocolId(settings.protocolId));
+            const auto & protocol = settings.txProtocols[settings.protocolId];
             ImGui::Text("%4.2f B/s", (float(0.715f*protocol.bytesPerTx)/(protocol.framesPerTx*statsCurrent.samplesPerFrame))*statsCurrent.sampleRate);
         }
 
@@ -1155,7 +1155,7 @@ void renderMain() {
         }
         {
             const float df = statsCurrent.sampleRate/statsCurrent.samplesPerFrame;
-            const auto & protocol = settings.txProtocols.at(GGWave::TxProtocolId(settings.protocolId));
+            const auto & protocol = settings.txProtocols[settings.protocolId];
             ImGui::Text("%6.2f Hz - %6.2f Hz", df*protocol.freqStart, df*(protocol.freqStart + 2*16*protocol.bytesPerTx));
         }
 
@@ -1262,7 +1262,8 @@ void renderMain() {
         }
         {
             ImGui::PushID("RxProtocols");
-            for (auto & rxProtocol : settings.rxProtocols) {
+            for (int i = 0; i < settings.rxProtocols.size(); ++i) {
+                auto & rxProtocol = settings.rxProtocols[i];
                 if (rxProtocol.name == nullptr) continue;
                 auto posSave = ImGui::GetCursorScreenPos();
                 ImGui::Text("%s", "");
@@ -1349,7 +1350,7 @@ void renderMain() {
             ImGui::SameLine();
             ImGui::TextDisabled("|");
             ImGui::SameLine();
-            ImGui::TextColored({ 0.0f, 0.6f, 0.4f, interp }, "%s", settings.txProtocols.at(GGWave::TxProtocolId(message.protocolId)).name);
+            ImGui::TextColored({ 0.0f, 0.6f, 0.4f, interp }, "%s", settings.txProtocols[message.protocolId].name);
             ImGui::SameLine();
             if (message.dss) {
                 ImGui::TextColored({ 0.4f, 0.6f, 0.4f, interp }, "DSS");
@@ -1597,7 +1598,7 @@ void renderMain() {
                 pos0.x += style.ItemInnerSpacing.x;
                 pos0.y += 0.5*style.ItemInnerSpacing.y;
                 static char tmp[128];
-                snprintf(tmp, 128, "Send message using '%s'", settings.txProtocols.at(GGWave::TxProtocolId(settings.protocolId)).name);
+                snprintf(tmp, 128, "Send message using '%s'", settings.txProtocols[settings.protocolId].name);
                 drawList->AddText(pos0, ImGui::ColorConvertFloat4ToU32({0.0f, 0.6f, 0.4f, 1.0f}), tmp);
             }
         }
@@ -2114,7 +2115,7 @@ void renderMain() {
                                 break;
                             }
 
-                            const auto & protocol = settings.txProtocols.at(GGWave::TxProtocolId(msg.protocolId));
+                            const auto & protocol = settings.txProtocols[msg.protocolId];
                             const int msgLength_bytes = settings.isFixedLength ? 1.4f*settings.payloadLength : 1.4f*msg.data.size() + GGWave::kDefaultEncodedDataOffset;
                             const int msgLength_frames = settings.isFixedLength ?
                                 ((msgLength_bytes + protocol.bytesPerTx - 1)/protocol.bytesPerTx)*protocol.framesPerTx :

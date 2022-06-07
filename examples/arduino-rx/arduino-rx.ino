@@ -12,6 +12,7 @@ static const char channels = 1;
 
 // default PCM output frequency
 static const int frequency = 6000;
+static const int samplesPerFrame = 128;
 
 static const int qpow = 9;
 static const int qmax = 1 << qpow;
@@ -22,6 +23,10 @@ volatile int qsize = 0;
 
 // Buffer to read samples into, each sample is 16-bits
 TSample sampleBuffer[qmax];
+
+volatile int err = 0;
+
+GGWave * g_ggwave = nullptr;
 
 // helper function to output the generated GGWave waveform via a buzzer
 void send_text(GGWave & ggwave, uint8_t pin, const char * text, GGWave::TxProtocolId protocolId) {
@@ -73,15 +78,11 @@ void setup() {
     // - a 16 kHz sample rate for the Arduino Nano 33 BLE Sense
     // - a 32 kHz or 64 kHz sample rate for the Arduino Portenta Vision Shields
     if (!PDM.begin(channels, frequency)) {
-        Serial.println("Failed to start PDM!");
+        Serial.println(F("Failed to start PDM!"));
         while (1);
     }
-}
 
-volatile int err = 0;
-
-void loop() {
-    Serial.println("trying to create ggwave instance");
+    Serial.println(F("Trying to create ggwave instance"));
 
     auto p = GGWave::getDefaultParameters();
 
@@ -89,7 +90,7 @@ void loop() {
     p.sampleRateInp   = frequency;
     p.sampleRateOut   = frequency;
     p.sampleRate      = frequency;
-    p.samplesPerFrame = 128;
+    p.samplesPerFrame = samplesPerFrame;
     p.sampleFormatInp = GGWAVE_SAMPLE_FORMAT_I16;
     p.sampleFormatOut = GGWAVE_SAMPLE_FORMAT_I16;
     p.operatingMode   = (ggwave_OperatingMode) (GGWAVE_OPERATING_MODE_RX | GGWAVE_OPERATING_MODE_TX | GGWAVE_OPERATING_MODE_USE_DSS | GGWAVE_OPERATING_MODE_TX_ONLY_TONES);
@@ -97,22 +98,28 @@ void loop() {
     GGWave::Protocols::tx().only({GGWAVE_PROTOCOL_MT_FASTEST, GGWAVE_PROTOCOL_DT_FASTEST});
     GGWave::Protocols::rx().only({GGWAVE_PROTOCOL_MT_FASTEST, GGWAVE_PROTOCOL_DT_FASTEST});
 
-    GGWave ggwave(p);
+    static GGWave ggwave(p);
     ggwave.setLogFile(nullptr);
 
-    Serial.println("Instance initialized");
+    g_ggwave = &ggwave;
+
+    Serial.println(F("Instance initialized"));
+}
+
+void loop() {
+    auto & ggwave = *g_ggwave;
 
     int nr = 0;
     int niter = 0;
 
     GGWave::TxRxData result;
     while (true) {
-        while (qsize >= p.samplesPerFrame) {
+        while (qsize >= samplesPerFrame) {
             auto tStart = millis();
 
-            ggwave.decode(sampleBuffer + qhead, p.samplesPerFrame*kSampleSize_bytes);
-            qsize -= p.samplesPerFrame;
-            qhead += p.samplesPerFrame;
+            ggwave.decode(sampleBuffer + qhead, samplesPerFrame*kSampleSize_bytes);
+            qsize -= samplesPerFrame;
+            qhead += samplesPerFrame;
             if (qhead >= qmax) {
                 qhead = 0;
             }
@@ -120,10 +127,10 @@ void loop() {
             auto tEnd = millis();
             if (++niter % 10 == 0) {
                 // print the time it took the last decode() call to complete
-                // should be smaller than p.samplesPerFrame/frequency seconds
-                // for example: p.samplesPerFrame = 128, frequency = 6000 => not more than 20 ms
+                // should be smaller than samplesPerFrame/frequency seconds
+                // for example: samplesPerFrame = 128, frequency = 6000 => not more than 20 ms
                 Serial.println(tEnd - tStart);
-                if (tEnd - tStart > 1000*(float(p.samplesPerFrame)/frequency)) {
+                if (tEnd - tStart > 1000*(float(samplesPerFrame)/frequency)) {
                     Serial.println("Warning: decode() took too long to execute!");
                 }
             }

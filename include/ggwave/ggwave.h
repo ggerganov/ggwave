@@ -15,6 +15,10 @@
 #    define GGWAVE_API
 #endif
 
+#if defined(ARDUINO)
+#define GGWAVE_CONFIG_FEW_PROTOCOLS
+#endif
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -35,12 +39,14 @@ extern "C" {
 
     // Protocol ids
     typedef enum {
+#ifndef GGWAVE_CONFIG_FEW_PROTOCOLS
         GGWAVE_PROTOCOL_AUDIBLE_NORMAL,
         GGWAVE_PROTOCOL_AUDIBLE_FAST,
         GGWAVE_PROTOCOL_AUDIBLE_FASTEST,
         GGWAVE_PROTOCOL_ULTRASOUND_NORMAL,
         GGWAVE_PROTOCOL_ULTRASOUND_FAST,
         GGWAVE_PROTOCOL_ULTRASOUND_FASTEST,
+#endif
         GGWAVE_PROTOCOL_DT_NORMAL,
         GGWAVE_PROTOCOL_DT_FAST,
         GGWAVE_PROTOCOL_DT_FASTEST,
@@ -48,6 +54,7 @@ extern "C" {
         GGWAVE_PROTOCOL_MT_FAST,
         GGWAVE_PROTOCOL_MT_FASTEST,
 
+#ifndef GGWAVE_CONFIG_FEW_PROTOCOLS
         GGWAVE_PROTOCOL_CUSTOM_0,
         GGWAVE_PROTOCOL_CUSTOM_1,
         GGWAVE_PROTOCOL_CUSTOM_2,
@@ -59,6 +66,7 @@ extern "C" {
         GGWAVE_PROTOCOL_CUSTOM_8,
         GGWAVE_PROTOCOL_CUSTOM_9,
 
+#endif
         GGWAVE_PROTOCOL_COUNT,
     } ggwave_ProtocolId;
 
@@ -320,8 +328,44 @@ extern "C" {
 // C++ interface
 //
 
-#include <cstdint>
-#include <iosfwd>
+template <typename T>
+struct ggvector {
+private:
+    T * m_data;
+    int m_size;
+
+public:
+    using value_type = T;
+
+    ggvector(T * data, int size) : m_data(data), m_size(size) {}
+
+    T & operator[](int i) {
+        return m_data[i];
+    }
+
+    const T & operator[](int i) const {
+        return m_data[i];
+    }
+
+    int size() const {
+        return m_size;
+    }
+
+    T * data() const {
+        return m_data;
+    }
+
+    T * begin() const {
+        return m_data;
+    }
+
+    T * end() const {
+        return m_data + m_size;
+    }
+};
+
+#include <stdint.h>
+#include <stdio.h>
 #include <vector>
 
 class GGWave {
@@ -351,10 +395,10 @@ public:
     struct Protocol {
         const char * name;  // string identifier of the protocol
 
-        int freqStart;      // FFT bin index of the lowest frequency
-        int framesPerTx;    // number of frames to transmit a single chunk of data
-        int bytesPerTx;     // number of bytes in a chunk of data
-        int extra;          // 2 if this is a mono-tone protocol, 1 otherwise
+        int16_t freqStart;   // FFT bin index of the lowest frequency
+        int8_t  framesPerTx; // number of frames to transmit a single chunk of data
+        int8_t  bytesPerTx;  // number of bytes in a chunk of data
+        int8_t  extra;       // 2 if this is a mono-tone protocol, 1 otherwise
 
         bool enabled;
 
@@ -369,8 +413,40 @@ public:
     using TxProtocols = Protocols;
     using RxProtocols = Protocols;
 
-    struct Protocols : public std::vector<Protocol> {
-        using std::vector<Protocol>::vector;
+    struct Protocols {
+        Protocol data[GGWAVE_PROTOCOL_COUNT];
+
+        int size() const {
+            return GGWAVE_PROTOCOL_COUNT;
+        }
+
+        bool empty() const {
+            return size() == 0;
+        }
+
+        Protocol & operator[](ProtocolId id) {
+            return data[id];
+        }
+
+        Protocol & operator[](int id) {
+            return data[id];
+        }
+
+        const Protocol & operator[](ProtocolId id) const {
+            return data[id];
+        }
+
+        const Protocol & operator[](int id) const {
+            return data[id];
+        }
+
+        Protocols & operator=(const std::initializer_list<Protocol> & list) {
+            int i = 0;
+            for (auto & p : list) {
+                data[i++] = p;
+            }
+            return *this;
+        }
 
         void enableAll();
         void disableAll();
@@ -380,38 +456,41 @@ public:
         void only(std::initializer_list<ProtocolId> ids);
 
         static Protocols & kDefault() {
-            static Protocols kProtocols(GGWAVE_PROTOCOL_COUNT);
+            static Protocols protocols;
 
-            static bool kInitialized = false;
-            if (kInitialized == false) {
-                for (auto & protocol : kProtocols) {
-                    protocol.name = nullptr;
-                    protocol.enabled = false;
+            static bool initialized = false;
+            if (initialized == false) {
+                for (int i = 0; i < GGWAVE_PROTOCOL_COUNT; ++i) {
+                    protocols.data[i].name = nullptr;
+                    protocols.data[i].enabled = false;
                 }
 
-                kProtocols[GGWAVE_PROTOCOL_AUDIBLE_NORMAL]     = { "Normal",       40,  9, 3, 1, true, };
-                kProtocols[GGWAVE_PROTOCOL_AUDIBLE_FAST]       = { "Fast",         40,  6, 3, 1, true, };
-                kProtocols[GGWAVE_PROTOCOL_AUDIBLE_FASTEST]    = { "Fastest",      40,  3, 3, 1, true, };
-                kProtocols[GGWAVE_PROTOCOL_ULTRASOUND_NORMAL]  = { "[U] Normal",   320, 9, 3, 1, true, };
-                kProtocols[GGWAVE_PROTOCOL_ULTRASOUND_FAST]    = { "[U] Fast",     320, 6, 3, 1, true, };
-                kProtocols[GGWAVE_PROTOCOL_ULTRASOUND_FASTEST] = { "[U] Fastest",  320, 3, 3, 1, true, };
-                kProtocols[GGWAVE_PROTOCOL_DT_NORMAL]          = { "[DT] Normal",  24,  9, 1, 1, true, };
-                kProtocols[GGWAVE_PROTOCOL_DT_FAST]            = { "[DT] Fast",    24,  6, 1, 1, true, };
-                kProtocols[GGWAVE_PROTOCOL_DT_FASTEST]         = { "[DT] Fastest", 24,  3, 1, 1, true, };
-                kProtocols[GGWAVE_PROTOCOL_MT_NORMAL]          = { "[MT] Normal",  24,  9, 1, 2, true, };
-                kProtocols[GGWAVE_PROTOCOL_MT_FAST]            = { "[MT] Fast",    24,  6, 1, 2, true, };
-                kProtocols[GGWAVE_PROTOCOL_MT_FASTEST]         = { "[MT] Fastest", 24,  3, 1, 2, true, };
+#ifndef GGWAVE_CONFIG_FEW_PROTOCOLS
+                protocols.data[GGWAVE_PROTOCOL_AUDIBLE_NORMAL]     = { "Normal",       40,  9, 3, 1, true, };
+                protocols.data[GGWAVE_PROTOCOL_AUDIBLE_FAST]       = { "Fast",         40,  6, 3, 1, true, };
+                protocols.data[GGWAVE_PROTOCOL_AUDIBLE_FASTEST]    = { "Fastest",      40,  3, 3, 1, true, };
+                protocols.data[GGWAVE_PROTOCOL_ULTRASOUND_NORMAL]  = { "[U] Normal",   320, 9, 3, 1, true, };
+                protocols.data[GGWAVE_PROTOCOL_ULTRASOUND_FAST]    = { "[U] Fast",     320, 6, 3, 1, true, };
+                protocols.data[GGWAVE_PROTOCOL_ULTRASOUND_FASTEST] = { "[U] Fastest",  320, 3, 3, 1, true, };
+#endif
+                protocols.data[GGWAVE_PROTOCOL_DT_NORMAL]          = { "[DT] Normal",  24,  9, 1, 1, true, };
+                protocols.data[GGWAVE_PROTOCOL_DT_FAST]            = { "[DT] Fast",    24,  6, 1, 1, true, };
+                protocols.data[GGWAVE_PROTOCOL_DT_FASTEST]         = { "[DT] Fastest", 24,  3, 1, 1, true, };
+                protocols.data[GGWAVE_PROTOCOL_MT_NORMAL]          = { "[MT] Normal",  24,  9, 1, 2, true, };
+                protocols.data[GGWAVE_PROTOCOL_MT_FAST]            = { "[MT] Fast",    24,  6, 1, 2, true, };
+                protocols.data[GGWAVE_PROTOCOL_MT_FASTEST]         = { "[MT] Fastest", 24,  3, 1, 2, true, };
 
-                kInitialized = true;
+                initialized = true;
             }
 
-            return kProtocols;
+            return protocols;
         }
 
         static TxProtocols & tx();
         static RxProtocols & rx();
     };
 
+    // TODO: need more efficient way to store this
     struct ToneData {
         float freq_hz;
         float duration_ms;
@@ -532,6 +611,8 @@ public:
     float sampleRateOut() const;
     SampleFormat sampleFormatInp() const;
     SampleFormat sampleFormatOut() const;
+
+    int heapSize() const;
 
     //
     // Tx
@@ -699,14 +780,86 @@ private:
     TxRxData m_dataEncoded;
     TxRxData m_workRSLength; // Reed-Solomon work buffers
     TxRxData m_workRSData;
-    TxRxData m_dssMagic;
 
     // Impl
-    struct Rx;
-    Rx * m_rx;
 
-    struct Tx;
-    Tx * m_tx;
+    struct Rx {
+        bool receiving = false;
+        bool analyzing = false;
+
+        int nMarkersSuccess     = 0;
+        int markerFreqStart     = 0;
+        int recvDuration_frames = 0;
+
+        int framesLeftToAnalyze = 0;
+        int framesLeftToRecord  = 0;
+        int framesToAnalyze     = 0;
+        int framesToRecord      = 0;
+        int samplesNeeded       = 0;
+
+        std::vector<float> fftOut; // complex
+        std::vector<int>   fftWorkI;
+        std::vector<float> fftWorkF;
+
+        bool hasNewRxData    = false;
+        bool hasNewSpectrum  = false;
+        bool hasNewAmplitude = false;
+
+        Spectrum  spectrum;
+        Amplitude amplitude;
+        Amplitude amplitudeResampled;
+        TxRxData  amplitudeTmp;
+
+        int dataLength = 0;
+
+        TxRxData     data;
+        RxProtocol   protocol;
+        RxProtocolId protocolId;
+        RxProtocols  protocols;
+
+        // variable-length decoding
+        int historyId = 0;
+
+        Amplitude              amplitudeAverage;
+        std::vector<Amplitude> amplitudeHistory;
+        RecordedData           amplitudeRecorded;
+
+        // fixed-length decoding
+        int historyIdFixed = 0;
+
+        std::vector<std::vector<uint16_t>> spectrumHistoryFixed;
+        std::vector<uint8_t> detectedBins;
+        std::vector<uint8_t> detectedTones;
+    } m_rx;
+
+    struct Tx {
+        bool hasData = false;
+
+        float sendVolume = 0.1f;
+
+        int dataLength = 0;
+        int lastAmplitudeSize = 0;
+
+        std::vector<bool> dataBits;
+        std::vector<double> phaseOffsets;
+
+        std::vector<Amplitude> bit1Amplitude;
+        std::vector<Amplitude> bit0Amplitude;
+
+        TxRxData    data;
+        TxProtocol  protocol;
+        TxProtocols protocols;
+
+        Amplitude    output;
+        Amplitude    outputResampled;
+        TxRxData     outputTmp;
+        AmplitudeI16 outputI16;
+
+        Tones tones;
+    } m_tx;
+
+    void * m_heap;
+    int m_heapSize;
 
     Resampler * m_resampler;
 };

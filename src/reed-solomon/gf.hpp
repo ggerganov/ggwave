@@ -12,12 +12,6 @@
 #include <string.h>
 #include <assert.h>
 
-#if !defined(ARDUINO) && !defined(PROGMEM)
-#define PROGMEM
-#else
-#include <avr/pgmspace.h>
-#endif
-
 namespace RS {
 
 namespace gf {

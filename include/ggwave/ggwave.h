@@ -339,25 +339,26 @@ private:
 public:
     using value_type = T;
 
-    ggvector();
-    ggvector(T * data, int size);
+    ggvector() : m_data(nullptr), m_size(0) {}
+    ggvector(T * data, int size) : m_data(data), m_size(size) {}
+
     ggvector(const ggvector<T> & other) = default;
 
     // delete operator=
     ggvector & operator=(const ggvector &) = delete;
     ggvector & operator=(ggvector &&) = delete;
 
-    T & operator[](int i);
-    const T & operator[](int i) const;
+    T & operator[](int i) { return m_data[i]; }
+    const T & operator[](int i) const { return m_data[i]; }
+
+    int size() const { return m_size; }
+    T * data() const { return m_data; }
+
+    T * begin() const { return m_data; }
+    T * end() const { return m_data + m_size; }
 
     void assign(const ggvector & other);
     void copy(const ggvector & other);
-
-    int size() const;
-    T * data() const;
-
-    T * begin() const;
-    T * end() const;
 
     void zero();
     void zero(int n);
@@ -373,14 +374,14 @@ private:
 public:
     using value_type = T;
 
-    ggmatrix();
-    ggmatrix(T * data, int size0, int size1);
+    ggmatrix() : m_data(nullptr), m_size0(0), m_size1(0) {}
+    ggmatrix(T * data, int size0, int size1) : m_data(data), m_size0(size0), m_size1(size1) {}
 
-    ggvector<T> operator[](int i);
+    ggvector<T> operator[](int i) {
+        return ggvector<T>(m_data + i*m_size1, m_size1);
+    }
 
-    T & operator()(int i, int j);
-
-    int size() const;
+    int size() const { return m_size0; }
 
     void zero();
 };

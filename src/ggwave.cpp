@@ -9,9 +9,8 @@
 #include "fft.h"
 #include "reed-solomon/rs.hpp"
 
-#include <cmath>
-#include <ctime>
-#include <cstdio>
+#include <math.h>
+#include <stdio.h>
 //#include <random>
 
 #ifndef M_PI
@@ -286,22 +285,6 @@ int bytesForSampleFormat(GGWave::SampleFormat sampleFormat) {
 //
 
 template<typename T>
-ggvector<T>::ggvector() : m_data(nullptr), m_size(0) {}
-
-template<typename T>
-ggvector<T>::ggvector(T * data, int size) : m_data(data), m_size(size) {}
-
-template<typename T>
-T & ggvector<T>::operator[](int i) {
-    return m_data[i];
-}
-
-template<typename T>
-const T & ggvector<T>::operator[](int i) const {
-    return m_data[i];
-}
-
-template<typename T>
 void ggvector<T>::assign(const ggvector & other) {
     m_data = other.m_data;
     m_size = other.m_size;
@@ -317,26 +300,6 @@ void ggvector<T>::copy(const ggvector & other) {
 }
 
 template<typename T>
-int ggvector<T>::size() const {
-    return m_size;
-}
-
-template<typename T>
-T * ggvector<T>::data() const {
-    return m_data;
-}
-
-template<typename T>
-T * ggvector<T>::begin() const {
-    return m_data;
-}
-
-template<typename T>
-T * ggvector<T>::end() const {
-    return m_data + m_size;
-}
-
-template<typename T>
 void ggvector<T>::zero() {
     memset(m_data, 0, m_size*sizeof(T));
 }
@@ -346,36 +309,11 @@ void ggvector<T>::zero(int n) {
     memset(m_data, 0, n*sizeof(T));
 }
 
-template struct ggvector<uint8_t>;
-template struct ggvector<int8_t>;
-template struct ggvector<float>;
 template struct ggvector<int16_t>;
 
 //
 // ggmatrix
 //
-
-
-template <typename T>
-ggmatrix<T>::ggmatrix() : m_data(nullptr), m_size0(0), m_size1(0) {}
-
-template <typename T>
-ggmatrix<T>::ggmatrix(T * data, int size0, int size1) : m_data(data), m_size0(size0), m_size1(size1) {}
-
-template <typename T>
-ggvector<T> ggmatrix<T>::operator[](int i) {
-    return ggvector<T>(m_data + i*m_size1, m_size1);
-}
-
-template <typename T>
-T & ggmatrix<T>::operator()(int i, int j) {
-    return m_data[i*m_size1 + j];
-}
-
-template <typename T>
-int ggmatrix<T>::size() const {
-    return m_size0;
-}
 
 template <typename T>
 void ggmatrix<T>::zero() {
@@ -436,30 +374,66 @@ GGWave::RxProtocols & GGWave::Protocols::rx() {
     return protocols;
 }
 
+// this probably does not matter, but adding it anyway
+#ifdef ARDUINO
+const int kAlignment = 1;
+#else
+const int kAlignment = 8;
+#endif
+
+//template <typename T>
+//void ggalloc(std::vector<T> & v, int n, void * buf, int & bufSize) {
+//    if (buf == nullptr) {
+//        bufSize += n*sizeof(T);
+//        bufSize = ((bufSize + kAlignment - 1)/kAlignment)*kAlignment;
+//        return;
+//    }
+//
+//    v.resize(n);
+//    bufSize += n*sizeof(T);
+//    bufSize = ((bufSize + kAlignment - 1)/kAlignment)*kAlignment;
+//}
+//
+//template <typename T>
+//void ggalloc(std::vector<std::vector<T>> & v, int n, int m, void * buf, int & bufSize) {
+//    if (buf == nullptr) {
+//        bufSize += n*m*sizeof(T);
+//        bufSize = ((bufSize + kAlignment - 1)/kAlignment)*kAlignment;
+//        return;
+//    }
+//
+//    v.resize(n);
+//    for (int i = 0; i < n; i++) {
+//        v[i].resize(m);
+//    }
+//    bufSize += n*m*sizeof(T);
+//    bufSize = ((bufSize + kAlignment - 1)/kAlignment)*kAlignment;
+//}
+
 template <typename T>
 void ggalloc(ggvector<T> & v, int n, void * buf, int & bufSize) {
     if (buf == nullptr) {
         bufSize += n*sizeof(T);
-        bufSize = ((bufSize + 7)/8)*8;
+        bufSize = ((bufSize + kAlignment - 1)/kAlignment)*kAlignment;
         return;
     }
 
     v.assign(ggvector<T>((T *)((char *) buf + bufSize), n));
     bufSize += n*sizeof(T);
-    bufSize = ((bufSize + 7)/8)*8;
+    bufSize = ((bufSize + kAlignment - 1)/kAlignment)*kAlignment;
 }
 
 template <typename T>
 void ggalloc(ggmatrix<T> & v, int n, int m, void * buf, int & bufSize) {
     if (buf == nullptr) {
         bufSize += n*m*sizeof(T);
-        bufSize = ((bufSize + 7)/8)*8;
+        bufSize = ((bufSize + kAlignment - 1) / kAlignment)*kAlignment;
         return;
     }
 
     v = ggmatrix<T>((T *)((char *) buf + bufSize), n, m);
     bufSize += n*m*sizeof(T);
-    bufSize = ((bufSize + 7)/8)*8;
+    bufSize = ((bufSize + kAlignment - 1)/kAlignment)*kAlignment;
 }
 
 //
@@ -538,7 +512,10 @@ bool GGWave::prepare(const Parameters & parameters) {
     }
 
     const auto heapSize0 = m_heapSize;
-    m_heap = malloc(m_heapSize);
+
+    // not sure if allocating alligned memory makes any difference
+    //m_heap = malloc(m_heapSize);
+    m_heap = aligned_alloc(kAlignment, m_heapSize);
 
     m_heapSize = 0;
     if (this->alloc(m_heap, m_heapSize) == false) {
@@ -1720,8 +1697,7 @@ void GGWave::decode_variable() {
         }
 
         if (isReceiving) {
-            std::time_t timestamp = std::time(nullptr);
-            ggprintf("%sReceiving sound data ...\n", std::asctime(std::localtime(&timestamp)));
+            ggprintf("Receiving sound data ...\n");
 
             m_rx.receiving = true;
             m_rx.data.zero();
@@ -1775,9 +1751,8 @@ void GGWave::decode_variable() {
         }
 
         if (isEnded && m_rx.framesToRecord > 1) {
-            std::time_t timestamp = std::time(nullptr);
             m_rx.recvDuration_frames -= m_rx.framesLeftToRecord - 1;
-            ggprintf("%sReceived end marker. Frames left = %d, recorded = %d\n", std::asctime(std::localtime(&timestamp)), m_rx.framesLeftToRecord, m_rx.recvDuration_frames);
+            ggprintf("Received end marker. Frames left = %d, recorded = %d\n", m_rx.framesLeftToRecord, m_rx.recvDuration_frames);
             m_rx.nMarkersSuccess = 0;
             m_rx.framesLeftToRecord = 1;
         }

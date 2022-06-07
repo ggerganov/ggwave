@@ -48,10 +48,10 @@ extern "C" {
         GGWAVE_PROTOCOL_ULTRASOUND_NORMAL,
         GGWAVE_PROTOCOL_ULTRASOUND_FAST,
         GGWAVE_PROTOCOL_ULTRASOUND_FASTEST,
-#endif
         GGWAVE_PROTOCOL_DT_NORMAL,
         GGWAVE_PROTOCOL_DT_FAST,
         GGWAVE_PROTOCOL_DT_FASTEST,
+#endif
         GGWAVE_PROTOCOL_MT_NORMAL,
         GGWAVE_PROTOCOL_MT_FAST,
         GGWAVE_PROTOCOL_MT_FASTEST,
@@ -427,7 +427,7 @@ public:
         int nTones() const { return (2*bytesPerTx)/extra; }
         int nDataBitsPerTx() const { return 8*bytesPerTx; }
         int txDuration_ms(int samplesPerFrame, float sampleRate) const {
-            return extra*framesPerTx*((1000.0f*samplesPerFrame)/sampleRate);
+            return framesPerTx*((1000.0f*samplesPerFrame)/sampleRate);
         }
     };
 
@@ -468,6 +468,7 @@ public:
 
         Protocols & operator=(const std::initializer_list<Protocol> & list) {
             int i = 0;
+            disableAll();
             for (auto & p : list) {
                 data[i++] = p;
             }
@@ -498,10 +499,10 @@ public:
                 protocols.data[GGWAVE_PROTOCOL_ULTRASOUND_NORMAL]  = { "[U] Normal",   320, 9, 3, 1, true, };
                 protocols.data[GGWAVE_PROTOCOL_ULTRASOUND_FAST]    = { "[U] Fast",     320, 6, 3, 1, true, };
                 protocols.data[GGWAVE_PROTOCOL_ULTRASOUND_FASTEST] = { "[U] Fastest",  320, 3, 3, 1, true, };
-#endif
                 protocols.data[GGWAVE_PROTOCOL_DT_NORMAL]          = { "[DT] Normal",  24,  9, 1, 1, true, };
                 protocols.data[GGWAVE_PROTOCOL_DT_FAST]            = { "[DT] Fast",    24,  6, 1, 1, true, };
                 protocols.data[GGWAVE_PROTOCOL_DT_FASTEST]         = { "[DT] Fastest", 24,  3, 1, 1, true, };
+#endif
                 protocols.data[GGWAVE_PROTOCOL_MT_NORMAL]          = { "[MT] Normal",  24,  9, 1, 2, true, };
                 protocols.data[GGWAVE_PROTOCOL_MT_FAST]            = { "[MT] Fast",    24,  6, 1, 2, true, };
                 protocols.data[GGWAVE_PROTOCOL_MT_FASTEST]         = { "[MT] Fastest", 24,  3, 1, 2, true, };

@@ -513,9 +513,9 @@ bool GGWave::prepare(const Parameters & parameters) {
 
     const auto heapSize0 = m_heapSize;
 
+    m_heap = malloc(m_heapSize);
     // not sure if allocating alligned memory makes any difference
-    //m_heap = malloc(m_heapSize);
-    m_heap = aligned_alloc(kAlignment, m_heapSize);
+    //m_heap = aligned_alloc(kAlignment, m_heapSize);
 
     m_heapSize = 0;
     if (this->alloc(m_heap, m_heapSize) == false) {
@@ -617,7 +617,11 @@ bool GGWave::alloc(void * p, int & n) {
         ::ggalloc(m_workRSData, RS::ReedSolomon::getWorkSize_bytes(maxLength, getECCBytesForLength(maxLength)), p, n);
     }
 
-    return m_resampler.alloc(p, n);
+    if (m_needResampling) {
+        m_resampler.alloc(p, n);
+    }
+
+    return true;
 }
 
 void GGWave::setLogFile(FILE * fptr) {
@@ -865,12 +869,12 @@ uint32_t GGWave::encode() {
 
             for (int i = 0; i < m_samplesPerFrame; i++) {
                 const double curi = i;
-                m_tx.bit1Amplitude[k][i] = std::sin((2.0*M_PI)*(curi*m_isamplesPerFrame)*(freq*curIHzPerSample) + phaseOffset);
+                m_tx.bit1Amplitude[k][i] = sin((2.0*M_PI)*(curi*m_isamplesPerFrame)*(freq*curIHzPerSample) + phaseOffset);
             }
 
             for (int i = 0; i < m_samplesPerFrame; i++) {
                 const double curi = i;
-                m_tx.bit0Amplitude[k][i] = std::sin((2.0*M_PI)*(curi*m_isamplesPerFrame)*((freq + m_hzPerSample*m_freqDelta_bin)*curIHzPerSample) + phaseOffset);
+                m_tx.bit0Amplitude[k][i] = sin((2.0*M_PI)*(curi*m_isamplesPerFrame)*((freq + m_hzPerSample*m_freqDelta_bin)*curIHzPerSample) + phaseOffset);
             }
         }
     }

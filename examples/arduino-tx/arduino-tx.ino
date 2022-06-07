@@ -1,6 +1,3 @@
-// To build this example for Arduino UNO, make sure to install the ArduinoSTL library:
-#include <ArduinoSTL.h>
-
 // This example uses a custom ggwave imlpementation specifically for Arduino UNO.
 // Since the Arduino UNO has only 2KB of RAM, the ggwave library is not able to
 // to fit into the Arduino's memory (eventhough it is very close).

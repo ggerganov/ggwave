@@ -3,7 +3,11 @@ var factory = require('../bindings/javascript/ggwave.js')
 factory().then(function(ggwave) {
     // create ggwave instance with default parameters
     var parameters = ggwave.getDefaultParameters();
+
+    parameters.operatingMode |= ggwave.GGWAVE_OPERATING_MODE_USE_DSS;
+
     var instance = ggwave.init(parameters);
+    console.log('instance: ' + instance);
 
     var payload = 'hello js';
 

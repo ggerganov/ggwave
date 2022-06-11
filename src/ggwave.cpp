@@ -51,19 +51,19 @@ ggwave_Parameters ggwave_getDefaultParameters(void) {
 }
 
 extern "C"
-ggwave_Instance ggwave_init(const ggwave_Parameters parameters) {
+ggwave_Instance ggwave_init(ggwave_Parameters parameters) {
     for (ggwave_Instance id = 0; id < GGWAVE_MAX_INSTANCES; ++id) {
         if (g_instances[id] == nullptr) {
             g_instances[id] = new GGWave({
                 parameters.payloadLength,
-                    parameters.sampleRateInp,
-                    parameters.sampleRateOut,
-                    parameters.sampleRate,
-                    parameters.samplesPerFrame,
-                    parameters.soundMarkerThreshold,
-                    parameters.sampleFormatInp,
-                    parameters.sampleFormatOut,
-                    parameters.operatingMode});
+                parameters.sampleRateInp,
+                parameters.sampleRateOut,
+                parameters.sampleRate,
+                parameters.samplesPerFrame,
+                parameters.soundMarkerThreshold,
+                parameters.sampleFormatInp,
+                parameters.sampleFormatOut,
+                parameters.operatingMode});
 
             return id;
         }
@@ -1123,7 +1123,7 @@ bool GGWave::decode(const void * data, uint32_t nBytes) {
 
         uint32_t offset = m_samplesPerFrame - m_rx.samplesNeeded;
 
-        if (m_sampleRateInp != m_sampleRate) {
+        if (m_needResampling) {
             if (nSamplesRecorded <= 2*Resampler::kWidth) {
                 m_rx.samplesNeeded = m_samplesPerFrame;
                 break;

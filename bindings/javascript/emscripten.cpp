@@ -36,30 +36,27 @@ EMSCRIPTEN_BINDINGS(ggwave) {
         .value("GGWAVE_PROTOCOL_CUSTOM_9", GGWAVE_PROTOCOL_CUSTOM_9)
         ;
 
-    emscripten::enum_<ggwave_OperatingMode>("OperatingMode")
-        .value("GGWAVE_OPERATING_MODE_RX",            GGWAVE_OPERATING_MODE_RX)
-        .value("GGWAVE_OPERATING_MODE_TX",            GGWAVE_OPERATING_MODE_TX)
-        .value("GGWAVE_OPERATING_MODE_RX_AND_TX",     (ggwave_OperatingMode) (GGWAVE_OPERATING_MODE_RX | GGWAVE_OPERATING_MODE_TX))
-        .value("GGWAVE_OPERATING_MODE_TX_ONLY_TONES", GGWAVE_OPERATING_MODE_TX_ONLY_TONES)
-        .value("GGWAVE_OPERATING_MODE_TX_USE_DSS",    GGWAVE_OPERATING_MODE_USE_DSS)
+    emscripten::constant("GGWAVE_OPERATING_MODE_RX",            (int) GGWAVE_OPERATING_MODE_RX);
+    emscripten::constant("GGWAVE_OPERATING_MODE_TX",            (int) GGWAVE_OPERATING_MODE_TX);
+    emscripten::constant("GGWAVE_OPERATING_MODE_RX_AND_TX",     (int) GGWAVE_OPERATING_MODE_RX | GGWAVE_OPERATING_MODE_TX);
+    emscripten::constant("GGWAVE_OPERATING_MODE_TX_ONLY_TONES", (int) GGWAVE_OPERATING_MODE_TX_ONLY_TONES);
+    emscripten::constant("GGWAVE_OPERATING_MODE_USE_DSS",       (int) GGWAVE_OPERATING_MODE_USE_DSS);
+
+    emscripten::value_object<ggwave_Parameters>("Parameters")
+        .field("payloadLength",        & ggwave_Parameters::payloadLength)
+        .field("sampleRateInp",        & ggwave_Parameters::sampleRateInp)
+        .field("sampleRateOut",        & ggwave_Parameters::sampleRateOut)
+        .field("sampleRate",           & ggwave_Parameters::sampleRate)
+        .field("samplesPerFrame",      & ggwave_Parameters::samplesPerFrame)
+        .field("soundMarkerThreshold", & ggwave_Parameters::soundMarkerThreshold)
+        .field("sampleFormatInp",      & ggwave_Parameters::sampleFormatInp)
+        .field("sampleFormatOut",      & ggwave_Parameters::sampleFormatOut)
+        .field("operatingMode",        & ggwave_Parameters::operatingMode)
         ;
 
-    emscripten::class_<ggwave_Parameters>("Parameters")
-        .constructor<>()
-        .property("payloadLength",        & ggwave_Parameters::payloadLength)
-        .property("sampleRateInp",        & ggwave_Parameters::sampleRateInp)
-        .property("sampleRateOut",        & ggwave_Parameters::sampleRateOut)
-        .property("sampleRate",           & ggwave_Parameters::sampleRate)
-        .property("samplesPerFrame",      & ggwave_Parameters::samplesPerFrame)
-        .property("soundMarkerThreshold", & ggwave_Parameters::soundMarkerThreshold)
-        .property("sampleFormatInp",      & ggwave_Parameters::sampleFormatInp)
-        .property("sampleFormatOut",      & ggwave_Parameters::sampleFormatOut)
-        .property("operatingMode",        & ggwave_Parameters::operatingMode)
-        ;
-
-    emscripten::function("getDefaultParameters", &ggwave_getDefaultParameters);
-    emscripten::function("init", &ggwave_init);
-    emscripten::function("free", &ggwave_free);
+    emscripten::function("getDefaultParameters", & ggwave_getDefaultParameters);
+    emscripten::function("init", & ggwave_init);
+    emscripten::function("free", & ggwave_free);
 
     emscripten::function("encode", emscripten::optional_override(
                     [](ggwave_Instance instance,
@@ -67,17 +64,25 @@ EMSCRIPTEN_BINDINGS(ggwave) {
                        ggwave_ProtocolId protocolId,
                        int volume) {
                         auto n = ggwave_encode(instance, data.data(), data.size(), protocolId, volume, nullptr, 1);
-                        std::vector<char> result(n);
-                        result.resize(n);
-                        ggwave_encode(instance, data.data(), data.size(), protocolId, volume, result.data(), 0);
 
-                        return emscripten::val(emscripten::typed_memory_view(result.size(), result.data()));
+                        // TODO: how to return the waveform data?
+                        //       for now using this static vector and returning a pointer to it
+                        static std::vector<char> result(n);
+                        result.resize(n);
+
+                        int nActual = ggwave_encode(instance, data.data(), data.size(), protocolId, volume, result.data(), 0);
+
+                        printf("n = %d, nActual = %d\n", n, nActual);
+                        return emscripten::val(emscripten::typed_memory_view(nActual, result.data()));
                     }));
 
     emscripten::function("decode", emscripten::optional_override(
                     [](ggwave_Instance instance,
                        const std::string & data) {
-                        char output[256];
+                        // TODO: how to return the result?
+                        //       again using a static array and returning a pointer to it
+                        static char output[256];
+
                         auto n = ggwave_decode(instance, data.data(), data.size(), output);
 
                         if (n > 0) {

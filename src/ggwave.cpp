@@ -506,9 +506,7 @@ bool GGWave::prepare(const Parameters & parameters) {
 
     const auto heapSize0 = m_heapSize;
 
-    m_heap = malloc(m_heapSize);
-    // not sure if allocating alligned memory makes any difference
-    //m_heap = aligned_alloc(kAlignment, m_heapSize);
+    m_heap = calloc(m_heapSize, 1);
 
     m_heapSize = 0;
     if (this->alloc(m_heap, m_heapSize) == false) {

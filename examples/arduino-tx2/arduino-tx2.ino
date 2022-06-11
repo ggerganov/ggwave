@@ -11,6 +11,9 @@ const int sampleRate      = 6000;
 GGWave * g_ggwave = nullptr;
 
 void send_text(GGWave & ggwave, uint8_t pin, const char * text, GGWave::TxProtocolId protocolId) {
+    Serial.print(F("Sending text: "));
+    Serial.println(text);
+
     ggwave.init(text, protocolId);
     ggwave.encode();
 
@@ -64,6 +67,8 @@ bool isDown = false;
 #define P(str) (strcpy_P(txt, PSTR(str)), txt)
 
 void loop() {
+    Serial.println(F("Starting main loop"));
+
     auto & ggwave = *g_ggwave;
 
     delay(1000);

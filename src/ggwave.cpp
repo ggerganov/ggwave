@@ -2,8 +2,6 @@
 
 #if !defined(ARDUINO) && !defined(PROGMEM)
 #define PROGMEM
-#else
-#include <avr/pgmspace.h>
 #endif
 
 #include "fft.h"
@@ -317,7 +315,9 @@ template struct ggvector<int16_t>;
 
 template <typename T>
 void ggmatrix<T>::zero() {
-    memset(m_data, 0, m_size0*m_size1*sizeof(T));
+    if (m_size0 > 0 && m_size1 > 0) {
+        memset(m_data, 0, m_size0*m_size1*sizeof(T));
+    }
 }
 
 //
@@ -539,8 +539,18 @@ bool GGWave::prepare(const Parameters & parameters) {
 }
 
 bool GGWave::alloc(void * p, int & n) {
+    const int maxLength   = m_isFixedPayloadLength ? m_payloadLength : kMaxLengthVariable;
+    const int totalLength = maxLength + getECCBytesForLength(maxLength);
+    const int totalTxs    = (totalLength + minBytesPerTx(Protocols::rx()) - 1)/minBytesPerTx(Protocols::tx());
+
+    if (totalLength > kMaxDataSize) {
+        ggprintf("Error: total length %d (payload %d + ECC %d bytes) is too large ( > %d)\n",
+                 totalLength, maxLength, getECCBytesForLength(maxLength), kMaxDataSize);
+        return false;
+    }
+
     // common
-    ::ggalloc(m_dataEncoded, kMaxDataSize, p, n);
+    ::ggalloc(m_dataEncoded, totalLength + m_encodedDataOffset, p, n);
 
     if (m_isRxEnabled) {
         ::ggalloc(m_rx.fftOut,   2*m_samplesPerFrame, p, n);
@@ -554,16 +564,13 @@ bool GGWave::alloc(void * p, int & n) {
         ::ggalloc(m_rx.amplitudeResampled, m_needResampling ? 8*m_samplesPerFrame : m_samplesPerFrame, p, n);
         ::ggalloc(m_rx.amplitudeTmp,       m_needResampling ? 8*m_samplesPerFrame*m_sampleSizeInp : m_samplesPerFrame*m_sampleSizeInp, p, n);
 
-        ::ggalloc(m_rx.data, kMaxDataSize, p, n);
+        ::ggalloc(m_rx.data, maxLength + 1, p, n); // extra byte for null-termination
 
         if (m_isFixedPayloadLength) {
             if (m_payloadLength > kMaxLengthFixed) {
                 ggprintf("Invalid payload length: %d, max: %d\n", m_payloadLength, kMaxLengthFixed);
                 return false;
             }
-
-            const int totalLength = m_payloadLength + getECCBytesForLength(m_payloadLength);
-            const int totalTxs    = (totalLength + minBytesPerTx(Protocols::rx()) - 1)/minBytesPerTx(Protocols::rx());
 
             ::ggalloc(m_rx.spectrumHistoryFixed, totalTxs*maxFramesPerTx(Protocols::rx(), false), m_samplesPerFrame, p, n);
             ::ggalloc(m_rx.detectedBins,         2*totalLength, p, n);
@@ -579,9 +586,6 @@ bool GGWave::alloc(void * p, int & n) {
     if (m_isTxEnabled) {
         const int maxDataBits = 2*16*maxBytesPerTx(Protocols::tx());
 
-        ::ggalloc(m_tx.data,     kMaxDataSize, p, n);
-        ::ggalloc(m_tx.dataBits, maxDataBits, p, n);
-
         if (m_txOnlyTones == false) {
             ::ggalloc(m_tx.phaseOffsets,    maxDataBits, p, n);
             ::ggalloc(m_tx.bit0Amplitude,   maxDataBits, m_samplesPerFrame, p, n);
@@ -592,12 +596,11 @@ bool GGWave::alloc(void * p, int & n) {
             ::ggalloc(m_tx.outputI16,       kMaxRecordedFrames*m_samplesPerFrame, p, n);
         }
 
-        const int maxLength   = m_isFixedPayloadLength ? m_payloadLength : kMaxLengthVariable;
-        const int totalLength = maxLength + getECCBytesForLength(maxLength);
-        const int totalTxs    = (totalLength + minBytesPerTx(Protocols::rx()) - 1)/minBytesPerTx(Protocols::tx());
         const int maxTones    = m_isFixedPayloadLength ? maxTonesPerTx(Protocols::tx()) : m_nBitsInMarker;
 
-        ::ggalloc(m_tx.tones, maxTones*totalTxs + (maxTones > 1 ? totalTxs : 0), p, n);
+        ::ggalloc(m_tx.data,     maxLength + 1, p, n); // first byte stores the length
+        ::ggalloc(m_tx.dataBits, maxDataBits, p, n);
+        ::ggalloc(m_tx.tones,    maxTones*totalTxs + (maxTones > 1 ? totalTxs : 0), p, n);
     }
 
     // pre-allocate Reed-Solomon memory buffers

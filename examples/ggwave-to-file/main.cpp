@@ -79,8 +79,8 @@ int main(int argc, char** argv) {
 
     fprintf(stderr, "Generating waveform for message '%s' ...\n", message.c_str());
 
-    ggwave_OperatingMode mode = GGWAVE_OPERATING_MODE_RX_AND_TX;
-    if (useDSS) mode = ggwave_OperatingMode(mode | GGWAVE_OPERATING_MODE_USE_DSS);
+    GGWave::OperatingMode mode = GGWAVE_OPERATING_MODE_RX_AND_TX;
+    if (useDSS) mode |= GGWAVE_OPERATING_MODE_USE_DSS;
 
     GGWave ggWave({
         payloadLength,

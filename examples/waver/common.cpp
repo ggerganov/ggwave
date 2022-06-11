@@ -623,12 +623,12 @@ void updateCore() {
         if (inputCurrent.flags.needReinit) {
             static auto sampleRateInpOld = ggWave->sampleRateInp();
             static auto sampleRateOutOld = ggWave->sampleRateOut();
-            GGWave::SampleFormat sampleFormatInpOld = ggWave->sampleFormatInp();
-            GGWave::SampleFormat sampleFormatOutOld = ggWave->sampleFormatOut();
+            auto sampleFormatInpOld = ggWave->sampleFormatInp();
+            auto sampleFormatOutOld = ggWave->sampleFormatOut();
             auto rxProtocolsOld = ggWave->rxProtocols();
 
             GGWave::OperatingMode mode = GGWAVE_OPERATING_MODE_RX_AND_TX;
-            if (inputCurrent.directSequenceSpread) mode = GGWave::OperatingMode(mode | GGWAVE_OPERATING_MODE_USE_DSS);
+            if (inputCurrent.directSequenceSpread) mode |= GGWAVE_OPERATING_MODE_USE_DSS;
 
             GGWave::Parameters parameters {
                 inputCurrent.payloadLength,

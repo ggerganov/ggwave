@@ -406,7 +406,7 @@ public:
     static constexpr auto kMaxSamplesPerFrame          = 1024;
     static constexpr auto kMaxDataSize                 = 256;
     static constexpr auto kMaxLengthVariable           = 140;
-    static constexpr auto kMaxLengthFixed              = 16;
+    static constexpr auto kMaxLengthFixed              = 64;
     static constexpr auto kMaxSpectrumHistory          = 4;
     static constexpr auto kMaxRecordedFrames           = 2048;
 
@@ -817,6 +817,7 @@ private:
     int minBytesPerTx(const Protocols & protocols) const;
     int maxBytesPerTx(const Protocols & protocols) const;
     int maxTonesPerTx(const Protocols & protocols) const;
+    int minFreqStart(const Protocols & protocols) const;
 
     double bitFreq(const Protocol & p, int bit) const;
 
@@ -866,6 +867,7 @@ private:
         int nMarkersSuccess     = 0;
         int markerFreqStart     = 0;
         int recvDuration_frames = 0;
+        int minFreqStart        = 0;
 
         int framesLeftToAnalyze = 0;
         int framesLeftToRecord  = 0;
@@ -903,7 +905,7 @@ private:
         // fixed-length decoding
         int historyIdFixed = 0;
 
-        ggmatrix<uint16_t> spectrumHistoryFixed;
+        ggmatrix<uint8_t> spectrumHistoryFixed;
         ggvector<uint8_t> detectedBins;
         ggvector<uint8_t> detectedTones;
     } m_rx;

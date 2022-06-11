@@ -388,7 +388,6 @@ public:
 
 #include <stdint.h>
 #include <stdio.h>
-#include <initializer_list>
 
 class GGWave {
 public:
@@ -466,21 +465,11 @@ public:
             return data[id];
         }
 
-        Protocols & operator=(const std::initializer_list<Protocol> & list) {
-            int i = 0;
-            disableAll();
-            for (auto & p : list) {
-                data[i++] = p;
-            }
-            return *this;
-        }
-
         void enableAll();
         void disableAll();
 
         void toggle(ProtocolId id, bool state);
         void only(ProtocolId id);
-        void only(std::initializer_list<ProtocolId> ids);
 
         static Protocols & kDefault() {
             static Protocols protocols;

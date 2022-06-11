@@ -1,6 +1,3 @@
-// To build this example for Arduino UNO, make sure to install the ArduinoSTL library:
-//#include <ArduinoSTL.h>
-
 #include "ggwave/ggwave.h"
 
 const int kPinLed0    = 13;

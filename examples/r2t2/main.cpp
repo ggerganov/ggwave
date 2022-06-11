@@ -54,14 +54,14 @@ int main(int argc, char** argv) {
     printf("\n");
 
     auto & protocols = GGWave::Protocols::tx();
-    protocols = {
+    protocols = { {
         { "[R2T2] Normal",      64,  9, 1, 2, true, },
         { "[R2T2] Fast",        64,  6, 1, 2, true, },
         { "[R2T2] Fastest",     64,  3, 1, 2, true, },
         { "[R2T2] Low Normal",  16,  9, 1, 2, true, },
         { "[R2T2] Low Fast",    16,  6, 1, 2, true, },
         { "[R2T2] Low Fastest", 16,  3, 1, 2, true, },
-    };
+    } };
 
     const auto argm         = parseCmdArguments(argc, argv);
     const bool printTones   = argm.count("p") > 0;

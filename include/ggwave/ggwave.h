@@ -165,7 +165,7 @@ extern "C" {
     //   This function returns an id that can be used to identify this instance.
     //   Make sure to deallocate the instance at the end by calling ggwave_free()
     //
-    GGWAVE_API ggwave_Instance ggwave_init(const ggwave_Parameters parameters);
+    GGWAVE_API ggwave_Instance ggwave_init(ggwave_Parameters parameters);
 
     // Free a GGWave instance
     GGWAVE_API void ggwave_free(ggwave_Instance instance);

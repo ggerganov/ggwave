@@ -54,7 +54,7 @@ void setup() {
     p.samplesPerFrame = samplesPerFrame;
     p.sampleFormatInp = GGWAVE_SAMPLE_FORMAT_I16;
     p.sampleFormatOut = GGWAVE_SAMPLE_FORMAT_U8;
-    p.operatingMode   = (ggwave_OperatingMode) (GGWAVE_OPERATING_MODE_TX | GGWAVE_OPERATING_MODE_TX_ONLY_TONES | GGWAVE_OPERATING_MODE_USE_DSS);
+    p.operatingMode   = GGWAVE_OPERATING_MODE_TX | GGWAVE_OPERATING_MODE_TX_ONLY_TONES | GGWAVE_OPERATING_MODE_USE_DSS;
 
     GGWave::Protocols::tx().only(GGWAVE_PROTOCOL_MT_FASTEST);
     ggwave.prepare(p);

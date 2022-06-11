@@ -77,11 +77,11 @@ void setup() {
     GGWave::Protocols::tx().toggle(GGWAVE_PROTOCOL_MT_FASTEST, true);
 
     GGWave::Protocols::rx().disableAll();
-    //GGWave::Protocols::rx().toggle(GGWAVE_PROTOCOL_DT_NORMAL,  true);
-    //GGWave::Protocols::rx().toggle(GGWAVE_PROTOCOL_DT_FAST,    true);
-    //GGWave::Protocols::rx().toggle(GGWAVE_PROTOCOL_DT_FASTEST, true);
-    //GGWave::Protocols::rx().toggle(GGWAVE_PROTOCOL_MT_NORMAL,  true);
-    //GGWave::Protocols::rx().toggle(GGWAVE_PROTOCOL_MT_FAST,    true);
+    GGWave::Protocols::rx().toggle(GGWAVE_PROTOCOL_DT_NORMAL,  true);
+    GGWave::Protocols::rx().toggle(GGWAVE_PROTOCOL_DT_FAST,    true);
+    GGWave::Protocols::rx().toggle(GGWAVE_PROTOCOL_DT_FASTEST, true);
+    GGWave::Protocols::rx().toggle(GGWAVE_PROTOCOL_MT_NORMAL,  true);
+    GGWave::Protocols::rx().toggle(GGWAVE_PROTOCOL_MT_FAST,    true);
     GGWave::Protocols::rx().toggle(GGWAVE_PROTOCOL_MT_FASTEST, true);
 
     delay(1000);

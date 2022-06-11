@@ -13,7 +13,9 @@ GGWave * g_ggwave = nullptr;
 char txt[64];
 #define P(str) (strcpy_P(txt, PSTR(str)), txt)
 
+// helper function to output the generated GGWave waveform via a buzzer
 void send_text(GGWave & ggwave, uint8_t pin, const char * text, GGWave::TxProtocolId protocolId) {
+    Serial.print(F("Sending text: "));
     Serial.println(text);
 
     ggwave.init(text, protocolId);
@@ -40,7 +42,7 @@ void setup() {
     pinMode(kPinButton0, INPUT);
     pinMode(kPinButton1, INPUT);
 
-    Serial.println(P("Trying to create ggwave instance"));
+    Serial.println(F("Trying to create ggwave instance"));
 
     auto p = GGWave::getDefaultParameters();
     p.payloadLength   = 16;
@@ -59,7 +61,7 @@ void setup() {
 
     g_ggwave = &ggwave;
 
-    Serial.println(P("Instance initialized"));
+    Serial.println(F("Instance initialized"));
 }
 
 int pressed = 0;
@@ -109,7 +111,8 @@ void loop() {
     send_text(ggwave, kPinSpeaker, P("Press the button!"), GGWAVE_PROTOCOL_MT_FASTEST);
     digitalWrite(kPinLed0, LOW);
 
-    Serial.println(P("Starting main loop"));
+    Serial.println(F("Starting main loop"));
+
     while (true) {
         int but0 = digitalRead(kPinButton0);
         int but1 = digitalRead(kPinButton1);

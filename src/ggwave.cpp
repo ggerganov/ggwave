@@ -369,7 +369,7 @@ GGWave::RxProtocols & GGWave::Protocols::rx() {
 
 // this probably does not matter, but adding it anyway
 #ifdef ARDUINO
-const int kAlignment = 1;
+const int kAlignment = 4;
 #else
 const int kAlignment = 8;
 #endif

@@ -122,7 +122,7 @@ int ggwave_encode(
     }
 
     {
-        auto pSrc = (const char *) ggWave->txData();
+        auto pSrc = (const char *) ggWave->txWaveform();
         auto pDst = (      char *) waveformBuffer;
         memcpy(pDst, pSrc, nBytes);
     }
@@ -1023,33 +1023,9 @@ uint32_t GGWave::encode() {
 
     m_tx.lastAmplitudeSize = offset;
 
-    // the encoded waveform can be accessed via the txData() method
+    // the encoded waveform can be accessed via the txWaveform() method
     // we return the size of the waveform in bytes:
     return offset*m_sampleSizeOut;
-}
-
-const void * GGWave::txData() const {
-    if (m_isTxEnabled == false) {
-        ggprintf("Tx is disabled - cannot transmit data with this GGWave instance\n");
-        return nullptr;
-    }
-
-    switch (m_sampleFormatOut) {
-        case GGWAVE_SAMPLE_FORMAT_UNDEFINED: break;
-        case GGWAVE_SAMPLE_FORMAT_I16:
-            {
-                return m_tx.outputI16.data();
-            } break;
-        case GGWAVE_SAMPLE_FORMAT_U8:
-        case GGWAVE_SAMPLE_FORMAT_I8:
-        case GGWAVE_SAMPLE_FORMAT_U16:
-        case GGWAVE_SAMPLE_FORMAT_F32:
-            {
-                return m_tx.outputTmp.data();
-            } break;
-    }
-
-    return nullptr;
 }
 
 bool GGWave::decode(const void * data, uint32_t nBytes) {
@@ -1212,6 +1188,25 @@ int GGWave::heapSize() const { return m_heapSize; }
 //
 // Tx
 //
+
+const void * GGWave::txWaveform() const {
+    switch (m_sampleFormatOut) {
+        case GGWAVE_SAMPLE_FORMAT_UNDEFINED: break;
+        case GGWAVE_SAMPLE_FORMAT_I16:
+            {
+                return m_tx.outputI16.data();
+            } break;
+        case GGWAVE_SAMPLE_FORMAT_U8:
+        case GGWAVE_SAMPLE_FORMAT_I8:
+        case GGWAVE_SAMPLE_FORMAT_U16:
+        case GGWAVE_SAMPLE_FORMAT_F32:
+            {
+                return m_tx.outputTmp.data();
+            } break;
+    }
+
+    return nullptr;
+}
 
 const GGWave::Tones GGWave::txTones() const { return { m_tx.tones.data(), m_tx.nTones }; }
 

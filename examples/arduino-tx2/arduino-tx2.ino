@@ -8,7 +8,8 @@ const int kPinButton1 = 4;
 const int samplesPerFrame = 128;
 const int sampleRate      = 6000;
 
-GGWave * g_ggwave = nullptr;
+// global GGwave instance
+GGWave ggwave;
 
 char txt[64];
 #define P(str) (strcpy_P(txt, PSTR(str)), txt)
@@ -36,6 +37,7 @@ void send_text(GGWave & ggwave, uint8_t pin, const char * text, GGWave::TxProtoc
 
 void setup() {
     Serial.begin(57600);
+    while (!Serial);
 
     pinMode(kPinLed0,    OUTPUT);
     pinMode(kPinSpeaker, OUTPUT);
@@ -55,11 +57,9 @@ void setup() {
     p.operatingMode   = (ggwave_OperatingMode) (GGWAVE_OPERATING_MODE_TX | GGWAVE_OPERATING_MODE_TX_ONLY_TONES | GGWAVE_OPERATING_MODE_USE_DSS);
 
     GGWave::Protocols::tx().only(GGWAVE_PROTOCOL_MT_FASTEST);
-    static GGWave ggwave(p);
+    ggwave.prepare(p);
     ggwave.setLogFile(nullptr);
     Serial.println(ggwave.heapSize());
-
-    g_ggwave = &ggwave;
 
     Serial.println(F("Instance initialized"));
 }
@@ -68,8 +68,6 @@ int pressed = 0;
 bool isDown = false;
 
 void loop() {
-    auto & ggwave = *g_ggwave;
-
     delay(1000);
 
     digitalWrite(kPinLed0, HIGH);

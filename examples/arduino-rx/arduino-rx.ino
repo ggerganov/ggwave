@@ -5,28 +5,29 @@
 const int kPinSpeaker = 10;
 
 using TSample = int16_t;
-static const size_t kSampleSize_bytes = sizeof(TSample);
+const size_t kSampleSize_bytes = sizeof(TSample);
 
 // default number of output channels
-static const char channels = 1;
+const char channels = 1;
 
 // default PCM output frequency
-static const int frequency = 6000;
-static const int samplesPerFrame = 128;
+const int frequency = 6000;
+const int samplesPerFrame = 128;
 
-static const int qpow = 9;
-static const int qmax = 1 << qpow;
+const int qpow = 9;
+const int qmax = 1 << qpow;
 
 volatile int qhead = 0;
 volatile int qtail = 0;
 volatile int qsize = 0;
 
-// Buffer to read samples into, each sample is 16-bits
+// buffer to read samples into, each sample is 16-bits
 TSample sampleBuffer[qmax];
 
 volatile int err = 0;
 
-GGWave * g_ggwave = nullptr;
+// global GGwave instance
+GGWave ggwave;
 
 // helper function to output the generated GGWave waveform via a buzzer
 void send_text(GGWave & ggwave, uint8_t pin, const char * text, GGWave::TxProtocolId protocolId) {
@@ -57,6 +58,8 @@ void setup() {
 
     Serial.println(F("Trying to create ggwave instance"));
 
+    ggwave.setLogFile(nullptr);
+
     auto p = GGWave::getDefaultParameters();
 
     p.payloadLength   = 16;
@@ -84,16 +87,11 @@ void setup() {
     GGWave::Protocols::rx().toggle(GGWAVE_PROTOCOL_MT_FAST,    true);
     GGWave::Protocols::rx().toggle(GGWAVE_PROTOCOL_MT_FASTEST, true);
 
-    delay(1000);
 
-    static GGWave ggwave(p);
+    ggwave.prepare(p);
     Serial.println(ggwave.heapSize());
 
     delay(1000);
-
-    ggwave.setLogFile(nullptr);
-
-    g_ggwave = &ggwave;
 
     Serial.println(F("Instance initialized"));
 
@@ -115,8 +113,6 @@ void setup() {
 }
 
 void loop() {
-    auto & ggwave = *g_ggwave;
-
     int nr = 0;
     int niter = 0;
 

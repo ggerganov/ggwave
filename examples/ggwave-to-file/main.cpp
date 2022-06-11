@@ -102,7 +102,7 @@ int main(int argc, char** argv) {
     }
 
     std::vector<char> bufferPCM(nBytes);
-    std::memcpy(bufferPCM.data(), ggWave.txData(), nBytes);
+    std::memcpy(bufferPCM.data(), ggWave.txWaveform(), nBytes);
 
     fprintf(stderr, "Output size = %d bytes\n", (int) bufferPCM.size());
 

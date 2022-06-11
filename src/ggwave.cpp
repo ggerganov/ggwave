@@ -539,6 +539,8 @@ bool GGWave::prepare(const Parameters & parameters, bool allocate) {
         m_rx.protocol   = {};
         m_rx.protocolId = GGWAVE_PROTOCOL_COUNT;
         m_rx.protocols  = Protocols::rx();
+
+        m_rx.minFreqStart = minFreqStart(m_rx.protocols);
     }
 
     if (m_isTxEnabled) {
@@ -1779,27 +1781,25 @@ void GGWave::decode_fixed() {
     }
     for (int i = 1; i < m_samplesPerFrame/2; ++i) {
         m_rx.spectrum[i] += m_rx.spectrum[m_samplesPerFrame - i];
-        amax = GG_MAX(amax, m_rx.spectrum[i]);
+        if (i >= m_rx.minFreqStart) {
+            amax = GG_MAX(amax, m_rx.spectrum[i]);
+        }
     }
-
 
     // original, floating-point version
-    //m_rx.spectrumHistoryFixed[m_rx.historyIdFixed] = m_rx.spectrum;
+    //m_rx.spectrumHistoryFixed[m_rx.historyIdFixed].copy(m_rx.spectrum);
 
-    // in theory, using uint8_t should work almost the same and save 4 times the memory, but for some reason
-    // the results are not as good as with the floating-point version
     // float -> uint8_t
-    //amax = 255.0f/(amax == 0.0f ? 1.0f : amax);
-    //for (int i = 0; i < m_samplesPerFrame; ++i) {
-    //    m_rx.spectrumHistoryFixed[m_rx.historyIdFixed][i] = GG_MIN(255.0f, GG_MAX(0.0f, (float) round(m_rx.spectrum[i]*amax)));
-    //}
-
-    // hence we opt for the uint16_t version, saving 2 times the memory and getting similar results as the floating-point version
-    // float -> uint16_t
-    amax = 65535.0f/(amax == 0.0f ? 1.0f : amax);
+    amax = 255.0f/(amax == 0.0f ? 1.0f : amax);
     for (int i = 0; i < m_samplesPerFrame; ++i) {
-        m_rx.spectrumHistoryFixed[m_rx.historyIdFixed][i] = GG_MIN(65535.0f, GG_MAX(0.0f, (float) round(m_rx.spectrum[i]*amax)));
+        m_rx.spectrumHistoryFixed[m_rx.historyIdFixed][i] = GG_MIN(255.0f, GG_MAX(0.0f, (float) round(m_rx.spectrum[i]*amax)));
     }
+
+    // float -> uint16_t
+    //amax = 65535.0f/(amax == 0.0f ? 1.0f : amax);
+    //for (int i = 0; i < m_samplesPerFrame; ++i) {
+    //    m_rx.spectrumHistoryFixed[m_rx.historyIdFixed][i] = GG_MIN(65535.0f, GG_MAX(0.0f, (float) round(m_rx.spectrum[i]*amax)));
+    //}
 
     if (++m_rx.historyIdFixed >= (int) m_rx.spectrumHistoryFixed.size()) {
         m_rx.historyIdFixed = 0;
@@ -1848,9 +1848,9 @@ void GGWave::decode_fixed() {
 
                 for (int j = 0; j < protocol.bytesPerTx; ++j) {
                     int f0bin = 0;
-                    uint16_t f0max = m_rx.spectrumHistoryFixed[historyId][binStart + 2*j*binDelta];
+                    auto f0max = m_rx.spectrumHistoryFixed[historyId][binStart + 2*j*binDelta];
 
-                    for (int b = 0; b < 16; ++b) {
+                    for (int b = 1; b < 16; ++b) {
                         {
                             const auto & v = m_rx.spectrumHistoryFixed[historyId][binStart + 2*j*binDelta + b];
 
@@ -1863,8 +1863,8 @@ void GGWave::decode_fixed() {
 
                     int f1bin = 0;
                     if (protocol.extra == 1) {
-                        uint16_t f1max = m_rx.spectrumHistoryFixed[historyId][binStart + 2*j*binDelta + binOffset];
-                        for (int b = 0; b < 16; ++b) {
+                        auto f1max = m_rx.spectrumHistoryFixed[historyId][binStart + 2*j*binDelta + binOffset];
+                        for (int b = 1; b < 16; ++b) {
                             const auto & v = m_rx.spectrumHistoryFixed[historyId][binStart + 2*j*binDelta + binOffset + b];
 
                             if (f1max <= v) {
@@ -1986,6 +1986,18 @@ int GGWave::maxTonesPerTx(const Protocols & protocols) const {
             continue;
         }
         res = GG_MAX(res, protocol.nTones());
+    }
+    return res;
+}
+
+int GGWave::minFreqStart(const Protocols & protocols) const {
+    int res = m_samplesPerFrame;
+    for (int i = 0; i < protocols.size(); ++i) {
+        const auto & protocol = protocols[i];
+        if (protocol.enabled == false) {
+            continue;
+        }
+        res = GG_MIN(res, protocol.freqStart);
     }
     return res;
 }

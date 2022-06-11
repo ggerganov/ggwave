@@ -293,7 +293,7 @@ bool GGWave_mainLoop() {
         SDL_PauseAudioDevice(g_devIdInp, SDL_TRUE);
 
         const auto nBytes = g_ggWave->encode();
-        SDL_QueueAudio(g_devIdOut, g_ggWave->txData(), nBytes);
+        SDL_QueueAudio(g_devIdOut, g_ggWave->txWaveform(), nBytes);
     }
 
     return true;

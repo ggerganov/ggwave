@@ -219,7 +219,7 @@ int main(int argc, char ** argv) {
             const auto nBytes = instanceOut.encode();
             printf("Expected = %d, actual = %d\n", expectedSize, nBytes);
             CHECK(expectedSize >= nBytes);
-            { auto p = (const uint8_t *)(instanceOut.txData()); buffer.resize(nBytes); memcpy(buffer.data(), p, nBytes); }
+            { auto p = (const uint8_t *)(instanceOut.txWaveform()); buffer.resize(nBytes); memcpy(buffer.data(), p, nBytes); }
             addNoiseHelper(0.01, parameters.sampleFormatOut); // add some artificial noise
             convertHelper(parameters.sampleFormatOut, parameters.sampleFormatInp);
         }
@@ -273,7 +273,7 @@ int main(int argc, char ** argv) {
                         const auto nBytes = instance.encode();
                         printf("Expected = %d, actual = %d\n", expectedSize, nBytes);
                         CHECK(expectedSize == nBytes);
-                        { auto p = (const uint8_t *)(instance.txData()); buffer.resize(nBytes); memcpy(buffer.data(), p, nBytes); }
+                        { auto p = (const uint8_t *)(instance.txWaveform()); buffer.resize(nBytes); memcpy(buffer.data(), p, nBytes); }
                         convertHelper(formatOut, formatInp);
                         instance.decode(buffer.data(), buffer.size());
 
@@ -300,7 +300,7 @@ int main(int argc, char ** argv) {
                         const auto nBytes = instance.encode();
                         printf("Expected = %d, actual = %d\n", expectedSize, nBytes);
                         CHECK(expectedSize == nBytes);
-                        { auto p = (const uint8_t *)(instance.txData()); buffer.resize(nBytes); memcpy(buffer.data(), p, nBytes); }
+                        { auto p = (const uint8_t *)(instance.txWaveform()); buffer.resize(nBytes); memcpy(buffer.data(), p, nBytes); }
                         convertHelper(formatOut, formatInp);
                         instance.decode(buffer.data(), buffer.size());
 

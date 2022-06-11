@@ -518,9 +518,9 @@ public:
 
     using Tone = int8_t;
 
-    // generated tones
+    // Tone data structure
     //
-    //   Each Tone is the bin index of the tone frequency.
+    //   Each Tone element is the bin index of the tone frequency.
     //   For protocol p:
     //     - freq_hz = (p.freqStart + Tone) * hzPerSample
     //     - duration_ms = p.txDuration_ms(samplesPerFrame, sampleRate)
@@ -537,26 +537,31 @@ public:
     using RecordedData = ggvector<float>;
     using TxRxData     = ggvector<uint8_t>;
 
-    // default constructor
+    // Default constructor
     //
     //   The GGWave object is not ready to use until you call prepare()
     //   No memory is allocated with this constructor.
     //
     GGWave() = default;
 
-    // constructor with parameters
+    // Constructor with parameters
     //
     //  Construct and prepare the GGWave object using the given parameters.
-    //  The constructor calls prepare() for you.
+    //  This constructor calls prepare() for you.
     //
     GGWave(const Parameters & parameters);
 
     ~GGWave();
 
-    // prepare the GGWave object
+    // Prepare the GGWave object
     //
     //   All memory buffers used by the GGWave instance are allocated with this function.
     //   No memory allocations occur after that.
+    //
+    //   Call this method if you used the default constructor.
+    //   Do not call this method if you used the constructor with parameters.
+    //
+    //   The encode() and decode() methods will not work until this method is called.
     //
     //   The sizes of the buffers are determined by the parameters and the contents of:
     //
@@ -593,7 +598,7 @@ public:
     //
     bool prepare(const Parameters & parameters, bool allocate = true);
 
-    // set file stream for the internal ggwave logging
+    // Set file stream for the internal ggwave logging
     //
     //   By default, ggwave prints internal log messages to stderr.
     //   To disable logging all together, call this method with nullptr.
@@ -604,53 +609,55 @@ public:
 
     static const Parameters & getDefaultParameters();
 
-    // set Tx data to encode
+    // Set Tx data to encode into sound
     //
     //   This prepares the GGWave instance for transmission.
-    //   To perform the actual encoding, the encode() method must be called
+    //   To perform the actual encoding, call the encode() method.
     //
-    //   returns false upon invalid parameters or failure to initialize
+    //   Returns false upon invalid parameters or failure to initialize the transmission
     //
     bool init(const char * text, TxProtocolId protocolId, const int volume = kDefaultVolume);
     bool init(int dataSize, const char * dataBuffer, TxProtocolId protocolId, const int volume = kDefaultVolume);
 
-    // expected waveform size of the encoded Tx data in bytes
+    // Expected waveform size of the encoded Tx data in bytes
     //
-    //   When the output sampling rate is not equal to operating sample rate the result of this method is overestimation of
-    //   the actual number of bytes that would be produced
+    //   When the output sampling rate is not equal to operating sample rate the result of this method is overestimation
+    //   of the actual number of bytes that would be produced
     //
     uint32_t encodeSize_bytes() const;
 
-    // expected waveform size of the encoded Tx data in samples
+    // Expected waveform size of the encoded Tx data in samples
     //
-    //   When the output sampling rate is not equal to operating sample rate the result of this method is overestimation of
-    //   the actual number of samples that would be produced
+    //   When the output sampling rate is not equal to operating sample rate the result of this method is overestimation
+    //   of the actual number of samples that would be produced
     //
     uint32_t encodeSize_samples() const;
 
-    // encode Tx data into an audio waveform
+    // Encode Tx data into an audio waveform
     //
-    //   After calling this method, the generated waveform is available through the txData() method
+    //   After calling this method, use the Tx methods to get the encoded audio data.
     //
-    //   returns the number of bytes in the generated waveform
+    //   The generated waveform is available through the txWaveform() method
+    //   The tone frequencies are available through the txTones() method
+    //
+    //   Returns the number of bytes in the generated waveform
     //
     uint32_t encode();
 
-    const void * txData() const;
-
-    // decode an audio waveform
+    // Decode an audio waveform
     //
     //   data   - pointer to the waveform data
     //   nBytes - number of bytes in the waveform
     //
+    //   The samples pointed to by "data" should be in the format given by sampleFormatInp().
     //   After calling this method, use the Rx methods to check if any data was decoded successfully.
     //
-    //   returns false if the provided waveform is somehow invalid
+    //   Returns false if the provided waveform is somehow invalid
     //
     bool decode(const void * data, uint32_t nBytes);
 
     //
-    // instance state
+    // Instance state
     //
 
     bool isDSSEnabled() const;
@@ -659,7 +666,7 @@ public:
     int sampleSizeInp()   const;
     int sampleSizeOut()   const;
 
-    float hzPerSample() const;
+    float hzPerSample()   const;
     float sampleRateInp() const;
     float sampleRateOut() const;
     SampleFormat sampleFormatInp() const;
@@ -671,21 +678,27 @@ public:
     // Tx
     //
 
-    // get a list of the tones generated for the last waveform
+    // Get the generated Wavform samples for the last encode() call
     //
-    //   Call this method after calling encode() to get a list of the tones
-    //   participating in the generated waveform
+    //   Call this method after calling encode() to get the generated waveform. The format of the samples pointed to by
+    //   the returned pointer is determined by the sampleFormatOut() method.
+    //
+    const void * txWaveform() const;
+
+    // Get a list of the tones generated for the last encode() call
+    //
+    //   Call this method after calling encode() to get a list of the tones participating in the generated waveform
     //
     const Tones txTones() const;
 
     // true if there is data pending to be transmitted
     bool txHasData() const;
 
-    // consume the amplitude data from the last generated waveform
+    // Consume the amplitude data from the last generated waveform
     bool txTakeAmplitudeI16(AmplitudeI16 & dst);
 
-    // the instance will allow Tx only with these protocols
-    // they are determined upon construction, using GGWave::Protocols::tx()
+    // The instance will allow Tx only with these protocols. They are determined upon construction or when calling the
+    // prepare() method, base on the contents of the global GGWave::Protocols::tx()
     const TxProtocols & txProtocols() const;
 
     //
@@ -703,14 +716,16 @@ public:
 
     bool rxStopReceiving();
 
-    // the instance will attempt to decode only these protocols
-    // they are determined upon construction, using GGWave::Protocols::rx()
+    // The instance will attempt to decode only these protocols.
+    // They are determined upon construction or when calling the prepare() method, base on the contents of the global
+    // GGWave::Protocols::rx()
     //
-    // note: do not enable protocols that were not enabled upon construction of the GGWave
-    // instance, or the decoding will likely crash
+    // Note: do not enable protocols that were not enabled upon preparation of the GGWave instance, or the decoding
+    // will likely crash
+    //
     RxProtocols & rxProtocols();
 
-    // information about last received data
+    // Information about last received data
     int                  rxDataLength() const;
     const TxRxData &     rxData()       const;
     const RxProtocol &   rxProtocol()   const;
@@ -718,14 +733,16 @@ public:
     const Spectrum &     rxSpectrum()   const;
     const Amplitude &    rxAmplitude()  const;
 
-    // consume the received data
+    // Consume the received data
     //
-    // returns the data length in bytes
+    //   Returns the data length in bytes
+    //
     int rxTakeData(TxRxData & dst);
 
-    // consume the received spectrum / amplitude data
+    // Consume the received spectrum / amplitude data
     //
-    // returns true if there was new data available
+    //   Returns true if there was new data available
+    //
     bool rxTakeSpectrum(Spectrum & dst);
     bool rxTakeAmplitude(Amplitude & dst);
 
@@ -733,7 +750,7 @@ public:
     // Utils
     //
 
-    // compute FFT of real values
+    // Compute FFT of real values
     //
     //   src - input real-valued data, size is N
     //   dst - output complex-valued data, size is 2*N
@@ -742,7 +759,7 @@ public:
     //
     bool computeFFTR(const float * src, float * dst, int N);
 
-    // resample audio waveforms from one sample rate to another using sinc interpolation
+    // Resample audio waveforms from one sample rate to another using sinc interpolation
     class Resampler {
     public:
         // this controls the number of neighboring samples
@@ -803,7 +820,7 @@ private:
 
     double bitFreq(const Protocol & p, int bit) const;
 
-    // initialized via prepare()
+    // Initialized via prepare()
     float        m_sampleRateInp        = -1.0f;
     float        m_sampleRateOut        = -1.0f;
     float        m_sampleRate           = -1.0f;
@@ -835,7 +852,7 @@ private:
     bool         m_txOnlyTones          = false;
     bool         m_isDSSEnabled         = false;
 
-    // common
+    // Common
     TxRxData m_dataEncoded;
     TxRxData m_workRSLength; // Reed-Solomon work buffers
     TxRxData m_workRSData;

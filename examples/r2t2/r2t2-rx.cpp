@@ -224,8 +224,8 @@ bool GGWave_init(
     if (reinit) {
         if (g_ggWave) delete g_ggWave;
 
-        ggwave_OperatingMode mode = GGWAVE_OPERATING_MODE_RX;
-        if (useDSS) mode = ggwave_OperatingMode(mode | GGWAVE_OPERATING_MODE_USE_DSS);
+        GGWave::OperatingMode mode = GGWAVE_OPERATING_MODE_RX;
+        if (useDSS) mode |= GGWAVE_OPERATING_MODE_USE_DSS;
 
         g_ggWave = new GGWave({
             payloadLength,

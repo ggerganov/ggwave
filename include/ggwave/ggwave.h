@@ -87,14 +87,14 @@ extern "C" {
     //   GGWAVE_OPERATING_MODE_USE_DSS:
     //     Enable the built-in Direct Sequence Spread (DSS) algorithm
     //
-    typedef enum {
+    enum {
         GGWAVE_OPERATING_MODE_RX            = 1 << 1,
         GGWAVE_OPERATING_MODE_TX            = 1 << 2,
         GGWAVE_OPERATING_MODE_RX_AND_TX     = (GGWAVE_OPERATING_MODE_RX |
                                                GGWAVE_OPERATING_MODE_TX),
         GGWAVE_OPERATING_MODE_TX_ONLY_TONES = 1 << 3,
         GGWAVE_OPERATING_MODE_USE_DSS       = 1 << 4,
-    } ggwave_OperatingMode;
+    };
 
     // GGWave instance parameters
     //
@@ -123,15 +123,15 @@ extern "C" {
     //   not be allocated.
     //
     typedef struct {
-        int payloadLength;                      // payload length
-        float sampleRateInp;                    // capture sample rate
-        float sampleRateOut;                    // playback sample rate
-        float sampleRate;                       // the operating sample rate
-        int samplesPerFrame;                    // number of samples per audio frame
-        float soundMarkerThreshold;             // sound marker detection threshold
-        ggwave_SampleFormat sampleFormatInp;    // format of the captured audio samples
-        ggwave_SampleFormat sampleFormatOut;    // format of the playback audio samples
-        ggwave_OperatingMode operatingMode;     // operating mode
+        int                 payloadLength;        // payload length
+        float               sampleRateInp;        // capture sample rate
+        float               sampleRateOut;        // playback sample rate
+        float               sampleRate;           // the operating sample rate
+        int                 samplesPerFrame;      // number of samples per audio frame
+        float               soundMarkerThreshold; // sound marker detection threshold
+        ggwave_SampleFormat sampleFormatInp;      // format of the captured audio samples
+        ggwave_SampleFormat sampleFormatOut;      // format of the playback audio samples
+        int                 operatingMode;        // operating mode
     } ggwave_Parameters;
 
     // GGWave instances are identified with an integer and are stored
@@ -415,7 +415,7 @@ public:
     using ProtocolId    = ggwave_ProtocolId;
     using TxProtocolId  = ggwave_ProtocolId;
     using RxProtocolId  = ggwave_ProtocolId;
-    using OperatingMode = ggwave_OperatingMode;
+    using OperatingMode = int; // ggwave_OperatingMode;
 
     struct Protocol {
         const char * name;  // string identifier of the protocol

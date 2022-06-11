@@ -212,8 +212,8 @@ bool GGWave_init(
     }
 
     if (reinit) {
-        ggwave_OperatingMode mode = GGWAVE_OPERATING_MODE_RX_AND_TX;
-        if (useDSS) mode = ggwave_OperatingMode(mode | GGWAVE_OPERATING_MODE_USE_DSS);
+        GGWave::OperatingMode mode = GGWAVE_OPERATING_MODE_RX_AND_TX;
+        if (useDSS) mode |= GGWAVE_OPERATING_MODE_USE_DSS;
 
         g_ggWave = std::make_shared<GGWave>(GGWave::Parameters {
             payloadLength,

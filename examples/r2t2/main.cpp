@@ -71,8 +71,8 @@ int main(int argc, char** argv) {
     const int txProtocolId  = argm.count("t") == 0 ? 0 : std::stoi(argm.at("t"));
     const int payloadLength = argm.count("l") == 0 ? 16 : std::stoi(argm.at("l"));
 
-    ggwave_OperatingMode mode = ggwave_OperatingMode(GGWAVE_OPERATING_MODE_TX | GGWAVE_OPERATING_MODE_TX_ONLY_TONES);
-    if (useDSS) mode = ggwave_OperatingMode(mode | GGWAVE_OPERATING_MODE_USE_DSS);
+    GGWave::OperatingMode mode = GGWAVE_OPERATING_MODE_TX | GGWAVE_OPERATING_MODE_TX_ONLY_TONES;
+    if (useDSS) mode |= GGWAVE_OPERATING_MODE_USE_DSS;
 
     GGWave ggWave({
         payloadLength,

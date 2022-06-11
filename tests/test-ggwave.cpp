@@ -265,6 +265,7 @@ int main(int argc, char ** argv) {
                         auto parameters = GGWave::getDefaultParameters();
                         parameters.sampleFormatInp = formatInp;
                         parameters.sampleFormatOut = formatOut;
+                        if (rand() % 2 == 0) parameters.operatingMode |= GGWAVE_OPERATING_MODE_USE_DSS;
                         GGWave instance(parameters);
                         instance.rxProtocols().only(GGWave::ProtocolId(protocolId));
 
@@ -292,6 +293,7 @@ int main(int argc, char ** argv) {
                         parameters.payloadLength = length;
                         parameters.sampleFormatInp = formatInp;
                         parameters.sampleFormatOut = formatOut;
+                        if (rand() % 2 == 0) parameters.operatingMode |= GGWAVE_OPERATING_MODE_USE_DSS;
                         GGWave instance(parameters);
                         instance.rxProtocols().only(GGWave::ProtocolId(protocolId));
 

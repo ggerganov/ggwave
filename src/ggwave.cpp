@@ -644,7 +644,7 @@ const GGWave::Parameters & GGWave::getDefaultParameters() {
         kDefaultSoundMarkerThreshold,
         GGWAVE_SAMPLE_FORMAT_F32,
         GGWAVE_SAMPLE_FORMAT_F32,
-        (ggwave_OperatingMode) (GGWAVE_OPERATING_MODE_RX | GGWAVE_OPERATING_MODE_TX),
+        GGWAVE_OPERATING_MODE_RX | GGWAVE_OPERATING_MODE_TX,
     };
 
     return result;

@@ -520,13 +520,13 @@ public:
 
     // generated tones
     //
-    //  Each Tone is the bin index of the tone frequency.
-    //  For protocol p:
-    //    - freq_hz = (p.freqStart + Tone) * hzPerSample
-    //    - duration_ms = p.txDuration_ms(samplesPerFrame, sampleRate)
+    //   Each Tone is the bin index of the tone frequency.
+    //   For protocol p:
+    //     - freq_hz = (p.freqStart + Tone) * hzPerSample
+    //     - duration_ms = p.txDuration_ms(samplesPerFrame, sampleRate)
     //
-    //  If the protocol is mono-tone, each element of the vector corresponds to a single tone.
-    //  Otherwise, the tones within a single Tx are separated by value of -1
+    //   If the protocol is mono-tone, each element of the vector corresponds to a single tone.
+    //   Otherwise, the tones within a single Tx are separated by value of -1
     //
     using Tones = ggvector<Tone>;
 
@@ -537,51 +537,68 @@ public:
     using RecordedData = ggvector<float>;
     using TxRxData     = ggvector<uint8_t>;
 
-    // constructor
+    // default constructor
     //
-    //  All memory buffers used by the GGWave instance are allocated upon construction.
-    //  No memory allocations occur after that.
+    //   The GGWave object is not ready to use until you call prepare()
+    //   No memory is allocated with this constructor.
     //
-    //  The sizes of the buffers are determined by the parameters and the contents of:
+    GGWave() = default;
+
+    // constructor with parameters
     //
-    //    - GGWave::Protocols::rx()
-    //    - GGWave::Protocols::tx()
-    //
-    //  For optimal performance and minimum memory usage, make sure to enable only the
-    //  Rx and Tx protocols that you need.
-    //
-    //  For example, using a single protocol for Tx is achieved like this:
-    //
-    //    Parameters parameters;
-    //    parameters.operatingMode = GGWAVE_OPERATING_MODE_TX;
-    //    GGWave::Protocols::tx().only(GGWave::ProtocolId::GGWAVE_PROTOCOL_AUDIBLE_NORMAL);
-    //    GGWave instance(parameters);
-    //    instance.init(...);
-    //    instance.encode();
-    //
-    //  The created instance will only be able to transmit data using the "Normal"
-    //  protocol. Rx will be disabled.
-    //
-    //  To create a corresponding Rx-only instance, use the following:
-    //
-    //    Parameters parameters;
-    //    parameters.operatingMode = GGWAVE_OPERATING_MODE_RX;
-    //    GGWave::Protocols::rx().only(GGWave::ProtocolId::GGWAVE_PROTOCOL_AUDIBLE_NORMAL);
-    //    GGWave instance(parameters);
-    //    instance.decode(...);
+    //  Construct and prepare the GGWave object using the given parameters.
+    //  The constructor calls prepare() for you.
     //
     GGWave(const Parameters & parameters);
+
     ~GGWave();
 
-    bool prepare(const Parameters & parameters);
-    bool alloc(void * p, int & n);
+    // prepare the GGWave object
+    //
+    //   All memory buffers used by the GGWave instance are allocated with this function.
+    //   No memory allocations occur after that.
+    //
+    //   The sizes of the buffers are determined by the parameters and the contents of:
+    //
+    //     - GGWave::Protocols::rx()
+    //     - GGWave::Protocols::tx()
+    //
+    //   For optimal performance and minimum memory usage, make sure to enable only the
+    //   Rx and Tx protocols that you need.
+    //
+    //   For example, using a single protocol for Tx is achieved like this:
+    //
+    //     Parameters parameters;
+    //     parameters.operatingMode = GGWAVE_OPERATING_MODE_TX;
+    //     GGWave::Protocols::tx().only(GGWave::ProtocolId::GGWAVE_PROTOCOL_AUDIBLE_NORMAL);
+    //     GGWave instance(parameters);
+    //     instance.init(...);
+    //     instance.encode();
+    //
+    //   The created instance will only be able to transmit data using the "Normal"
+    //   protocol. Rx will be disabled.
+    //
+    //   To create a corresponding Rx-only instance, use the following:
+    //
+    //     Parameters parameters;
+    //     parameters.operatingMode = GGWAVE_OPERATING_MODE_RX;
+    //     GGWave::Protocols::rx().only(GGWave::ProtocolId::GGWAVE_PROTOCOL_AUDIBLE_NORMAL);
+    //     GGWave instance(parameters);
+    //     instance.decode(...);
+    //
+    //   If "allocate" is false, the memory buffers are not allocated and only the required size
+    //   is computed. This is useful if you want to just see how much memory is needed for the
+    //   specific set of parameters and protocols. Do not use this function after you have already
+    //   prepared the instance. Instead, use the heapSize() method to see how much memory is used.
+    //
+    bool prepare(const Parameters & parameters, bool allocate = true);
 
     // set file stream for the internal ggwave logging
     //
-    //  By default, ggwave prints internal log messages to stderr.
-    //  To disable logging all together, call this method with nullptr.
+    //   By default, ggwave prints internal log messages to stderr.
+    //   To disable logging all together, call this method with nullptr.
     //
-    //  Note: not thread-safe. Do not call while any GGWave instances are running
+    //   Note: not thread-safe. Do not call while any GGWave instances are running
     //
     static void setLogFile(FILE * fptr);
 
@@ -589,10 +606,10 @@ public:
 
     // set Tx data to encode
     //
-    //  This prepares the GGWave instance for transmission.
-    //  To perform the actual encoding, the encode() method must be called
+    //   This prepares the GGWave instance for transmission.
+    //   To perform the actual encoding, the encode() method must be called
     //
-    //  returns false upon invalid parameters or failure to initialize
+    //   returns false upon invalid parameters or failure to initialize
     //
     bool init(const char * text, TxProtocolId protocolId, const int volume = kDefaultVolume);
     bool init(int dataSize, const char * dataBuffer, TxProtocolId protocolId, const int volume = kDefaultVolume);
@@ -765,15 +782,17 @@ public:
 
         struct State {
             int nSamplesTotal = 0;
-            int timeInt = 0;
-            int timeLast = 0;
-            double timeNow = 0.0;
+            int timeInt       = 0;
+            int timeLast      = 0;
+            double timeNow    = 0.0;
         };
 
         State m_state;
     };
 
 private:
+    bool alloc(void * p, int & n);
+
     void decode_fixed();
     void decode_variable();
 
@@ -784,36 +803,37 @@ private:
 
     double bitFreq(const Protocol & p, int bit) const;
 
-    const float m_sampleRateInp;
-    const float m_sampleRateOut;
-    const float m_sampleRate;
-    const int m_samplesPerFrame;
-    const float m_isamplesPerFrame;
-    const int m_sampleSizeInp;
-    const int m_sampleSizeOut;
-    const SampleFormat m_sampleFormatInp;
-    const SampleFormat m_sampleFormatOut;
+    // initialized via prepare()
+    float        m_sampleRateInp        = -1.0f;
+    float        m_sampleRateOut        = -1.0f;
+    float        m_sampleRate           = -1.0f;
+    int          m_samplesPerFrame      = -1;
+    float        m_isamplesPerFrame     = -1.0f;
+    int          m_sampleSizeInp        = -1;
+    int          m_sampleSizeOut        = -1;
+    SampleFormat m_sampleFormatInp      = GGWAVE_SAMPLE_FORMAT_UNDEFINED;
+    SampleFormat m_sampleFormatOut      = GGWAVE_SAMPLE_FORMAT_UNDEFINED;
 
-    const float m_hzPerSample;
-    const float m_ihzPerSample;
+    float        m_hzPerSample          = -1.0f;
+    float        m_ihzPerSample         = -1.0f;
 
-    const int m_freqDelta_bin;
-    const float m_freqDelta_hz;
+    int          m_freqDelta_bin        = -1;
+    float        m_freqDelta_hz         = -1.0f;
 
-    const int m_nBitsInMarker;
-    const int m_nMarkerFrames;
-    const int m_encodedDataOffset;
+    int          m_nBitsInMarker        = -1;
+    int          m_nMarkerFrames        = -1;
+    int          m_encodedDataOffset    = -1;
 
-    const float m_soundMarkerThreshold;
+    float        m_soundMarkerThreshold = -1.0f;
 
-    const bool m_isFixedPayloadLength;
-    const int m_payloadLength;
+    bool         m_isFixedPayloadLength = false;
+    int          m_payloadLength        = -1;
 
-    const bool m_isRxEnabled;
-    const bool m_isTxEnabled;
-    const bool m_needResampling;
-    const bool m_txOnlyTones;
-    const bool m_isDSSEnabled;
+    bool         m_isRxEnabled          = false;
+    bool         m_isTxEnabled          = false;
+    bool         m_needResampling       = false;
+    bool         m_txOnlyTones          = false;
+    bool         m_isDSSEnabled         = false;
 
     // common
     TxRxData m_dataEncoded;
@@ -900,8 +920,8 @@ private:
 
     mutable Resampler m_resampler;
 
-    void * m_heap;
-    int m_heapSize;
+    void * m_heap  = nullptr;
+    int m_heapSize = 0;
 };
 
 #endif

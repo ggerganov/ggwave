@@ -433,57 +433,7 @@ void ggalloc(ggmatrix<T> & v, int n, int m, void * buf, int & bufSize) {
 // GGWave
 //
 
-GGWave::GGWave(const Parameters & parameters) :
-    m_sampleRateInp       (parameters.sampleRateInp),
-    m_sampleRateOut       (parameters.sampleRateOut),
-    m_sampleRate          (parameters.sampleRate),
-    m_samplesPerFrame     (parameters.samplesPerFrame),
-    m_isamplesPerFrame    (1.0f/m_samplesPerFrame),
-    m_sampleSizeInp       (bytesForSampleFormat(parameters.sampleFormatInp)),
-    m_sampleSizeOut       (bytesForSampleFormat(parameters.sampleFormatOut)),
-    m_sampleFormatInp     (parameters.sampleFormatInp),
-    m_sampleFormatOut     (parameters.sampleFormatOut),
-    m_hzPerSample         (m_sampleRate/m_samplesPerFrame),
-    m_ihzPerSample        (1.0f/m_hzPerSample),
-    m_freqDelta_bin       (1),
-    m_freqDelta_hz        (2*m_hzPerSample),
-    m_nBitsInMarker       (16),
-    m_nMarkerFrames       (parameters.payloadLength > 0 ? 0 : kDefaultMarkerFrames),
-    m_encodedDataOffset   (parameters.payloadLength > 0 ? 0 : kDefaultEncodedDataOffset),
-    m_soundMarkerThreshold(parameters.soundMarkerThreshold),
-    m_isFixedPayloadLength(parameters.payloadLength > 0),
-    m_payloadLength       (parameters.payloadLength),
-    m_isRxEnabled         (parameters.operatingMode & GGWAVE_OPERATING_MODE_RX),
-    m_isTxEnabled         (parameters.operatingMode & GGWAVE_OPERATING_MODE_TX),
-    m_needResampling      (m_sampleRateInp != m_sampleRate || m_sampleRateOut != m_sampleRate),
-    m_txOnlyTones         (parameters.operatingMode & GGWAVE_OPERATING_MODE_TX_ONLY_TONES),
-    m_isDSSEnabled        (parameters.operatingMode & GGWAVE_OPERATING_MODE_USE_DSS) {
-
-    if (m_sampleSizeInp == 0) {
-        ggprintf("Invalid or unsupported capture sample format: %d\n", (int) parameters.sampleFormatInp);
-        return;
-    }
-
-    if (m_sampleSizeOut == 0) {
-        ggprintf("Invalid or unsupported playback sample format: %d\n", (int) parameters.sampleFormatOut);
-        return;
-    }
-
-    if (parameters.samplesPerFrame > kMaxSamplesPerFrame) {
-        ggprintf("Invalid samples per frame: %d, max: %d\n", parameters.samplesPerFrame, kMaxSamplesPerFrame);
-        return;
-    }
-
-    if (m_sampleRateInp < kSampleRateMin) {
-        ggprintf("Error: capture sample rate (%g Hz) must be >= %g Hz\n", m_sampleRateInp, kSampleRateMin);
-        return;
-    }
-
-    if (m_sampleRateInp > kSampleRateMax) {
-        ggprintf("Error: capture sample rate (%g Hz) must be <= %g Hz\n", m_sampleRateInp, kSampleRateMax);
-        return;
-    }
-
+GGWave::GGWave(const Parameters & parameters) {
     prepare(parameters);
 }
 
@@ -493,8 +443,66 @@ GGWave::~GGWave() {
     }
 }
 
-bool GGWave::prepare(const Parameters & parameters) {
-    // TODO: initialize members from parameters
+bool GGWave::prepare(const Parameters & parameters, bool allocate) {
+    if (m_heap) {
+        free(m_heap);
+        m_heap = nullptr;
+        m_heapSize = 0;
+    }
+
+    // parameter initialization:
+
+    m_sampleRateInp        = parameters.sampleRateInp;
+    m_sampleRateOut        = parameters.sampleRateOut;
+    m_sampleRate           = parameters.sampleRate;
+    m_samplesPerFrame      = parameters.samplesPerFrame;
+    m_isamplesPerFrame     = 1.0f/m_samplesPerFrame;
+    m_sampleSizeInp        = bytesForSampleFormat(parameters.sampleFormatInp);
+    m_sampleSizeOut        = bytesForSampleFormat(parameters.sampleFormatOut);
+    m_sampleFormatInp      = parameters.sampleFormatInp;
+    m_sampleFormatOut      = parameters.sampleFormatOut;
+    m_hzPerSample          = m_sampleRate/m_samplesPerFrame;
+    m_ihzPerSample         = 1.0f/m_hzPerSample;
+    m_freqDelta_bin        = 1;
+    m_freqDelta_hz         = 2*m_hzPerSample;
+    m_nBitsInMarker        = 16;
+    m_nMarkerFrames        = parameters.payloadLength > 0 ? 0 : kDefaultMarkerFrames;
+    m_encodedDataOffset    = parameters.payloadLength > 0 ? 0 : kDefaultEncodedDataOffset;
+    m_soundMarkerThreshold = parameters.soundMarkerThreshold;
+    m_isFixedPayloadLength = parameters.payloadLength > 0;
+    m_payloadLength        = parameters.payloadLength;
+    m_isRxEnabled          = parameters.operatingMode & GGWAVE_OPERATING_MODE_RX;
+    m_isTxEnabled          = parameters.operatingMode & GGWAVE_OPERATING_MODE_TX;
+    m_needResampling       = m_sampleRateInp != m_sampleRate || m_sampleRateOut != m_sampleRate;
+    m_txOnlyTones          = parameters.operatingMode & GGWAVE_OPERATING_MODE_TX_ONLY_TONES;
+    m_isDSSEnabled         = parameters.operatingMode & GGWAVE_OPERATING_MODE_USE_DSS;
+
+    if (m_sampleSizeInp == 0) {
+        ggprintf("Invalid or unsupported capture sample format: %d\n", (int) parameters.sampleFormatInp);
+        return false;
+    }
+
+    if (m_sampleSizeOut == 0) {
+        ggprintf("Invalid or unsupported playback sample format: %d\n", (int) parameters.sampleFormatOut);
+        return false;
+    }
+
+    if (parameters.samplesPerFrame > kMaxSamplesPerFrame) {
+        ggprintf("Invalid samples per frame: %d, max: %d\n", parameters.samplesPerFrame, kMaxSamplesPerFrame);
+        return false;
+    }
+
+    if (m_sampleRateInp < kSampleRateMin) {
+        ggprintf("Error: capture sample rate (%g Hz) must be >= %g Hz\n", m_sampleRateInp, kSampleRateMin);
+        return false;
+    }
+
+    if (m_sampleRateInp > kSampleRateMax) {
+        ggprintf("Error: capture sample rate (%g Hz) must be <= %g Hz\n", m_sampleRateInp, kSampleRateMax);
+        return false;
+    }
+
+    // memory allocation:
 
     m_heap = nullptr;
     m_heapSize = 0;
@@ -502,6 +510,10 @@ bool GGWave::prepare(const Parameters & parameters) {
     if (this->alloc(m_heap, m_heapSize) == false) {
         ggprintf("Error: failed to compute the size of the required memory\n");
         return false;
+    }
+
+    if (allocate == false) {
+        return true;
     }
 
     const auto heapSize0 = m_heapSize;

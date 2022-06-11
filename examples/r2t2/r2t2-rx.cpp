@@ -324,15 +324,14 @@ int main(int argc, char** argv) {
     printf("\n");
 #endif
 
-    auto & protocols = GGWave::Protocols::rx();
-    protocols = {
+    GGWave::Protocols::rx() = { {
         { "[R2T2] Normal",      64,  9, 1, 2, true, },
         { "[R2T2] Fast",        64,  6, 1, 2, true, },
         { "[R2T2] Fastest",     64,  3, 1, 2, true, },
         { "[R2T2] Low Normal",  16,  9, 1, 2, true, },
         { "[R2T2] Low Fast",    16,  6, 1, 2, true, },
         { "[R2T2] Low Fastest", 16,  3, 1, 2, true, },
-    };
+    } };
 
     const auto argm         = parseCmdArguments(argc, argv);
     const int captureId     = argm.count("c") == 0 ? 0 : std::stoi(argm.at("c"));

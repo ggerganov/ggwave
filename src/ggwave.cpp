@@ -355,13 +355,6 @@ void GGWave::Protocols::only(ProtocolId id) {
     data[id].enabled = true;
 }
 
-void GGWave::Protocols::only(std::initializer_list<ProtocolId> ids) {
-    disableAll();
-    for (auto id : ids) {
-        data[id].enabled = true;
-    }
-}
-
 GGWave::TxProtocols & GGWave::Protocols::tx() {
     static TxProtocols protocols = kDefault();
 

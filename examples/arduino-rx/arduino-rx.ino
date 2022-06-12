@@ -10,8 +10,8 @@ const size_t kSampleSize_bytes = sizeof(TSample);
 // default number of output channels
 const char channels = 1;
 
-// default PCM output frequency
-const int frequency = 6000;
+// default PCM output sampleRate
+const int sampleRate = 6000;
 const int samplesPerFrame = 128;
 
 const int qpow = 9;
@@ -63,9 +63,9 @@ void setup() {
     auto p = GGWave::getDefaultParameters();
 
     p.payloadLength   = 16;
-    p.sampleRateInp   = frequency;
-    p.sampleRateOut   = frequency;
-    p.sampleRate      = frequency;
+    p.sampleRateInp   = sampleRate;
+    p.sampleRateOut   = sampleRate;
+    p.sampleRate      = sampleRate;
     p.samplesPerFrame = samplesPerFrame;
     p.sampleFormatInp = GGWAVE_SAMPLE_FORMAT_I16;
     p.sampleFormatOut = GGWAVE_SAMPLE_FORMAT_I16;
@@ -106,7 +106,7 @@ void setup() {
     // - one channel (mono mode)
     // - a 16 kHz sample rate for the Arduino Nano 33 BLE Sense
     // - a 32 kHz or 64 kHz sample rate for the Arduino Portenta Vision Shields
-    if (!PDM.begin(channels, frequency)) {
+    if (!PDM.begin(channels, sampleRate)) {
         Serial.println(F("Failed to start PDM!"));
         while (1);
     }
@@ -131,10 +131,10 @@ void loop() {
             auto tEnd = millis();
             if (++niter % 10 == 0) {
                 // print the time it took the last decode() call to complete
-                // should be smaller than samplesPerFrame/frequency seconds
-                // for example: samplesPerFrame = 128, frequency = 6000 => not more than 20 ms
+                // should be smaller than samplesPerFrame/sampleRate seconds
+                // for example: samplesPerFrame = 128, sampleRate = 6000 => not more than 20 ms
                 Serial.println(tEnd - tStart);
-                if (tEnd - tStart > 1000*(float(samplesPerFrame)/frequency)) {
+                if (tEnd - tStart > 1000*(float(samplesPerFrame)/sampleRate)) {
                     Serial.println(F("Warning: decode() took too long to execute!"));
                 }
             }
@@ -156,7 +156,7 @@ void loop() {
                     send_text(ggwave, kPinSpeaker, "hello", GGWAVE_PROTOCOL_MT_FASTEST);
 
                     // resume microphone capture
-                    if (!PDM.begin(channels, frequency)) {
+                    if (!PDM.begin(channels, sampleRate)) {
                         Serial.println(F("Failed to start PDM!"));
                         while (1);
                     }

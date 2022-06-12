@@ -90,6 +90,7 @@ else()
     add_subdirectory(arduino-rx)
     add_subdirectory(arduino-tx)
     add_subdirectory(arduino-tx-obsolete)
+    add_subdirectory(esp32-rx)
 endif()
 
 if (GGWAVE_SUPPORT_SDL2)

@@ -390,7 +390,11 @@ public:
 #include <stdio.h>
 
 #ifdef ARDUINO
+#ifdef ARDUINO_ARCH_AVR
 #include <avr/pgmspace.h>
+#else
+#include <pgmspace.h>
+#endif
 #endif
 
 class GGWave {

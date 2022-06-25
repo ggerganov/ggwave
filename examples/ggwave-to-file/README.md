@@ -86,8 +86,10 @@ curl -sS 'https://ggwave-to-file.ggerganov.com/?m=Hello world!&p=4' --output hel
 
 ```python
 import requests
+import wave
 
-def ggwave(message: str, protocolId: int = 1, sampleRate: float = 48000, volume: int = 50, payloadLength: int = -1):
+
+def ggwave(message: str, file: str, protocolId: int = 1, sampleRate: float = 48000, volume: int = 50, payloadLength: int = -1):
 
     url = 'https://ggwave-to-file.ggerganov.com/'
 
@@ -101,22 +103,23 @@ def ggwave(message: str, protocolId: int = 1, sampleRate: float = 48000, volume:
 
     response = requests.get(url, params=params)
 
-    if response == '':
+    if response == '' or b'Usage: ggwave-to-file' in response.content:
         raise SyntaxError('Request failed')
 
-    return response
+    with wave.open(file, 'wb') as f:
+        f.setnchannels(1)
+        f.setframerate(sampleRate)
+        f.setsampwidth(2)
+        f.writeframes(response.context)
 
 ```
 
 ...
 
 ```python
-import sys
 
-# query waveform from server
-result = ggwave("Hello world!")
+# query waveform from server and write to file
+ggwave("Hello world!", "hello_world.wav")
 
-# dump wav file to stdout
-sys.stdout.buffer.write(result.content)
 
 ```

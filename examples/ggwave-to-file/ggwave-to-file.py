@@ -1,17 +1,23 @@
+from typing import Dict, Union
 import requests
 import wave
 
 
-def ggwave(message: str, file: str, protocolId: int = 1, sampleRate: float = 48000, volume: int = 50, payloadLength: int = -1) -> None:
+def ggwave(message: str,
+           file: str,
+           protocolId: int = 1,
+           sampleRate: float = 48000,
+           volume: int = 50,
+           payloadLength: int = -1) -> None:
 
     url = 'https://ggwave-to-file.ggerganov.com/'
 
-    params = {
-        'm': message,       # message to encode
-        'p': protocolId,    # transmission protocol to use
-        's': sampleRate,    # output sample rate
-        'v': volume,        # output volume
-        'l': payloadLength, # if positive - use fixed-length encoding
+    params: Dict[str, Union[str, int, float]] = {
+        'm': message,        # message to encode
+        'p': protocolId,     # transmission protocol to use
+        's': sampleRate,     # output sample rate
+        'v': volume,         # output volume
+        'l': payloadLength,  # if positive - use fixed-length encoding
     }
 
     response = requests.get(url, params=params)

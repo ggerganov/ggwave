@@ -390,7 +390,7 @@ public:
 #include <stdio.h>
 
 #ifdef ARDUINO
-#ifdef ARDUINO_ARCH_AVR
+#if defined(ARDUINO_ARCH_AVR) || defined(ARDUINO_ARCH_SAMD) || defined(ARDUINO_ARDUINO_NANO33BLE) || defined(ARDUINO_ARCH_MBED_RP2040) || defined(ARDUINO_ARCH_RP2040)
 #include <avr/pgmspace.h>
 #else
 #include <pgmspace.h>

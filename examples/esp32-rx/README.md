@@ -16,4 +16,4 @@ The received messages are displayed on the attached OLED display
 
 https://user-images.githubusercontent.com/1991296/177211906-2102e9fa-8203-4b80-82e6-4839bf66f01f.mp4
 
-[Watch high quality on Youtube]()
+[Watch high quality on Youtube](https://youtu.be/38JoMwdpH6I)

@@ -1,5 +1,6 @@
 #include "ggwave/ggwave.h"
 
+#include <soc/adc_channel.h>
 #include <driver/i2s.h>
 
 // global GGwave instance
@@ -8,8 +9,12 @@ GGWave ggwave;
 using TSample = int16_t;
 const size_t kSampleSize_bytes = sizeof(TSample);
 
-const int sampleRate = 12000;
-const int samplesPerFrame = 256;
+const int sampleRate = 24000;
+const int samplesPerFrame = 512;
+
+// switch to the following settings if only using MT protocols
+//const int sampleRate = 12000;
+//const int samplesPerFrame = 256;
 
 TSample sampleBuffer[samplesPerFrame];
 
@@ -32,10 +37,62 @@ const i2s_config_t adc_i2s_config = {
     .fixed_mclk           = 0
 };
 
+// uncoment this to enable SSD1306 display output
+#define DISPLAY_OUTPUT 1
+
+#ifdef DISPLAY_OUTPUT
+
+#include <SPI.h>
+#include <Wire.h>
+#include <Adafruit_GFX.h>
+#include <Adafruit_SSD1306.h>
+
+#define SCREEN_WIDTH 128 // OLED display width, in pixels
+#define SCREEN_HEIGHT 32 // OLED display height, in pixels
+
+// Declaration for an SSD1306 display connected to I2C (SDA, SCL pins)
+// The pins for I2C are defined by the Wire-library.
+// On an arduino UNO:       A4(SDA), A5(SCL)
+// On an arduino MEGA 2560: 20(SDA), 21(SCL)
+// On an arduino LEONARDO:   2(SDA),  3(SCL), ...
+#define OLED_RESET     -1 // Reset pin # (or -1 if sharing Arduino reset pin)
+#define SCREEN_ADDRESS 0x3C ///< See datasheet for Address; 0x3D for 128x64, 0x3C for 128x32
+Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
+
+#endif
+
 void setup() {
     Serial.begin(115200);
     while (!Serial);
     Serial.println(F("GGWave test for ESP32"));
+
+#ifdef DISPLAY_OUTPUT
+    {
+        // SSD1306_SWITCHCAPVCC = generate display voltage from 3.3V internally
+        if(!display.begin(SSD1306_SWITCHCAPVCC, SCREEN_ADDRESS)) {
+            Serial.println(F("SSD1306 allocation failed"));
+            for(;;); // Don't proceed, loop forever
+        }
+
+        // Show initial display buffer contents on the screen --
+        // the library initializes this with an Adafruit splash screen.
+        //display.display();
+        //delay(2000); // Pause for 2 seconds
+
+        // Clear the buffer
+        display.clearDisplay();
+
+        display.setTextSize(2);
+        display.setTextColor(SSD1306_WHITE); // Draw white text
+        display.setCursor(0, 0);     // Start at top-left corner
+        display.println(F("GGWave!"));
+        display.setTextSize(1);
+        display.println(F(""));
+        display.println(F("Listening..."));
+
+        display.display();
+    }
+#endif
 
     {
         Serial.println(F("Trying to create ggwave instance"));
@@ -54,19 +111,16 @@ void setup() {
         p.operatingMode   = GGWAVE_OPERATING_MODE_RX | GGWAVE_OPERATING_MODE_TX | GGWAVE_OPERATING_MODE_USE_DSS | GGWAVE_OPERATING_MODE_TX_ONLY_TONES;
 
         GGWave::Protocols::tx().disableAll();
-        //GGWave::Protocols::tx().toggle(GGWAVE_PROTOCOL_DT_NORMAL,  true);
-        //GGWave::Protocols::tx().toggle(GGWAVE_PROTOCOL_DT_FAST,    true);
-        //GGWave::Protocols::tx().toggle(GGWAVE_PROTOCOL_DT_FASTEST, true);
-        GGWave::Protocols::tx().toggle(GGWAVE_PROTOCOL_MT_NORMAL,  true);
-        GGWave::Protocols::tx().toggle(GGWAVE_PROTOCOL_MT_FAST,    true);
+        //GGWave::Protocols::tx().toggle(GGWAVE_PROTOCOL_MT_NORMAL,  true);
+        //GGWave::Protocols::tx().toggle(GGWAVE_PROTOCOL_MT_FAST,    true);
         GGWave::Protocols::tx().toggle(GGWAVE_PROTOCOL_MT_FASTEST, true);
 
         GGWave::Protocols::rx().disableAll();
         //GGWave::Protocols::rx().toggle(GGWAVE_PROTOCOL_DT_NORMAL,  true);
         //GGWave::Protocols::rx().toggle(GGWAVE_PROTOCOL_DT_FAST,    true);
-        //GGWave::Protocols::rx().toggle(GGWAVE_PROTOCOL_DT_FASTEST, true);
-        GGWave::Protocols::rx().toggle(GGWAVE_PROTOCOL_MT_NORMAL,  true);
-        GGWave::Protocols::rx().toggle(GGWAVE_PROTOCOL_MT_FAST,    true);
+        GGWave::Protocols::rx().toggle(GGWAVE_PROTOCOL_DT_FASTEST, true);
+        //GGWave::Protocols::rx().toggle(GGWAVE_PROTOCOL_MT_NORMAL,  true);
+        //GGWave::Protocols::rx().toggle(GGWAVE_PROTOCOL_MT_FAST,    true);
         GGWave::Protocols::rx().toggle(GGWAVE_PROTOCOL_MT_FASTEST, true);
 
         ggwave.prepare(p);
@@ -122,6 +176,11 @@ void loop() {
             s1 = s0 ^ s1;
             s0 = s0 ^ s1;
         }
+
+        // use with serial plotter to observe real-time audio signal
+        //for (int i = 0; i < samples_read; i++) {
+        //    Serial.println(sampleBuffer[i]);
+        //}
     }
 
     auto tStart = millis();
@@ -148,9 +207,18 @@ void loop() {
         Serial.println(F(" bytes:"));
 
         Serial.println((char *) result.data());
-    }
 
-    //for (int i = 0; i < samples_read; i++) {
-    //    Serial.println(samples[i]);
-    //}
+#ifdef DISPLAY_OUTPUT
+        {
+            display.clearDisplay();
+
+            display.setTextSize(2);
+            display.setTextColor(SSD1306_WHITE);
+            display.setCursor(0, 0);
+            display.println((char *) result.data());
+
+            display.display();
+        }
+#endif
+    }
 }

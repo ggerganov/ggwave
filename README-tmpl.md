@@ -18,6 +18,10 @@ Click on the images below to hear what it sounds like:
 
 https://user-images.githubusercontent.com/1991296/166411509-5e1b9bcb-3655-40b1-9dc3-9bec72889dcf.mp4
 
+https://user-images.githubusercontent.com/1991296/168469004-aeb9b9fe-cf81-4db7-b602-62e4ae659341.mp4
+
+<a href="https://youtu.be/aj_GLBtU3Vw"><img width="100%" src="https://user-images.githubusercontent.com/1991296/177214041-26456254-d4b5-425b-bc57-48bcfc8f816e.png"></img></a>
+
 ## Details
 
 This library allows you to communicate small amounts of data between air-gapped devices using sound. It implements a simple FSK-based transmission protocol that can be easily integrated in various projects. The bandwidth rate is between 8-16 bytes/sec depending on the protocol parameters. Error correction codes (ECC) are used to improve demodulation robustness.
@@ -112,6 +116,10 @@ The [examples](https://github.com/ggerganov/ggwave/blob/master/examples/) folder
 | [ggwave-objc](https://github.com/ggerganov/ggwave-objc) | Minimal Objective-C iOS app using ggwave | AudioToolbox |
 | [ggwave-java](https://github.com/ggerganov/ggwave-java) | Minimal Java Android app using ggwave | android.media |
 | [ggwave-fm](https://github.com/rgerganov/ggwave-fm) | Transmit ggwave messages with HackRF | Radio |
+| [esp32-rx](https://github.com/ggerganov/ggwave/tree/master/examples/esp32-rx) | Transmit and receive messages using ESP32 | ESP32 |
+| [arduino-rx](https://github.com/ggerganov/ggwave/tree/master/examples/arduino-rx) | Transmit and receive messages using Arduino RP2040 | Arduino |
+| [arduino-tx](https://github.com/ggerganov/ggwave/tree/master/examples/arduino-tx) | Transmit messages using Arduino Uno | Arduino |
+| [arduino-rx-web](https://github.com/ggerganov/ggwave/tree/master/examples/arduino-rx-web) | Receive messages from Arduino Uno | Web Audio API |
 
 Other projects using **ggwave** or one of its prototypes:
 

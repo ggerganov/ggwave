@@ -15,4 +15,4 @@ The development board has a built-in microphone which makes this device very sui
 
 https://user-images.githubusercontent.com/1991296/177210657-3c7421ce-5c12-4caf-a86c-251191eefe50.mp4
 
-[Watch high quality on Youtube]()
+[Watch high quality on Youtube](https://youtu.be/HiDpGvnxPLs)

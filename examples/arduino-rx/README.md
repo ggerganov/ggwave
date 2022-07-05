@@ -1,7 +1,7 @@
 # arduino-rx
 
 This is a sample project for receiving and transmitting audio data using [Arduino RP2040](https://docs.arduino.cc/hardware/nano-rp2040-connect) microcontroller.
-The development board has a built-in microphone which makes this device very suitable for data-over-sound project.
+The development board has a built-in microphone which makes this device very suitable for data-over-sound projects.
 
 ## Setup
 

@@ -2,6 +2,23 @@
 
 ## [Unreleased]
 
+## [v0.4.0] - 2022-07-05
+
+**This release introduces some breaking changes in the C and C++ API!**
+
+Make sure to read the `ggwave.h` header for more information
+
+- Major refactoring in order to support microcontrollers ([#65](https://github.com/ggerganov/ggwave/pull/65)
+- Zero memory allocations during runtime
+- Do not include STL headers anymore
+- New, low-frequency, mono-tone (MT) protocols suitable for microcontrollers
+- Remove code-duplication for some of the examples
+- Better FFT implementation
+- Less memory usage
+- Bug fix in fixed-length payload decoding
+- Add Arduino and ESP32 examples
+- Support for Direct Sequence Spread (DSS)
+
 ## [v0.3.1] - 2021-11-27
 
 - Add interface for changing ggwave's internal logging ([#52](https://github.com/ggerganov/ggwave/pull/52), [#55](https://github.com/ggerganov/ggwave/pull/55))
@@ -24,7 +41,8 @@
 - Reed-Solomon based ECC
 - Ultrasound support
 
-[unreleased]: https://github.com/ggerganov/ggwave/compare/ggwave-v0.3.1...HEAD
+[unreleased]: https://github.com/ggerganov/ggwave/compare/ggwave-v0.4.0...HEAD
+[v0.4.0]: https://github.com/ggerganov/ggwave/releases/tag/ggwave-v0.4.0
 [v0.3.1]: https://github.com/ggerganov/ggwave/releases/tag/ggwave-v0.3.1
 [v0.3.0]: https://github.com/ggerganov/ggwave/releases/tag/ggwave-v0.3.0
 [v0.2.0]: https://github.com/ggerganov/ggwave/releases/tag/ggwave-v0.2.0

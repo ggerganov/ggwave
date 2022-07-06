@@ -1,4 +1,4 @@
-#include "ggwave/ggwave.h"
+#include <ggwave.h>
 
 #include <soc/adc_channel.h>
 #include <driver/i2s.h>

@@ -1,4 +1,4 @@
-#include "ggwave/ggwave.h"
+#include <ggwave.h>
 
 const int kPinLed0    = 13;
 const int kPinSpeaker = 10;

@@ -1,23 +1,65 @@
+// esp32-rx
+//
+// Sample sketch for receiving data using "ggwave"
+//
+// Tested with:
+//   - NodeMCU-ESP32-S
+//
+// Tested microphones:
+//   - MAX9814
+//   - KY-037
+//   - KY-038
+//   - WS Sound sensor
+//
+// The ESP32 microcontroller has a built-int 12-bit ADC which is used to digitalize the analog signal
+// from the external microphone.
+//
+// The sketch optionally supports displaying the received "ggwave" data on an OLED display.
+// Use the DISPLAY_OUTPUT macro to enable or disable this functionality.
+//
+// If you don't have a display, you can simply observe the decoded data in the serial monitor.
+//
+// If you want to perform a quick test, you can use the free "Waver" application:
+//   - Web:     https://waver.ggerganov.com
+//   - Android: https://play.google.com/store/apps/details?id=com.ggerganov.Waver
+//   - iOS:     https://apps.apple.com/us/app/waver-data-over-sound/id1543607865
+//
+// Make sure to enable the "Fixed-length" option in "Waver"'s settings and set the number of
+// bytes to be equal to "payloadLength" used in the sketch. Also, select a protocol that is
+// listed as Rx in the current sketch.
+//
+// Demo: https://youtu.be/38JoMwdpH6I
+//
+// Sketch: https://github.com/ggerganov/ggwave/tree/master/examples/esp32-rx
+//
+
+// Uncoment this line to enable SSD1306 display output
+//#define DISPLAY_OUTPUT 1
+
 #include <ggwave.h>
 
 #include <soc/adc_channel.h>
 #include <driver/i2s.h>
 
-// global GGwave instance
+// Global GGwave instance
 GGWave ggwave;
 
+// Audio capture configuration
 using TSample = int16_t;
 const size_t kSampleSize_bytes = sizeof(TSample);
 
+// High sample rate - better quality, but more CPU/Memory usage
 const int sampleRate = 24000;
 const int samplesPerFrame = 512;
 
-// switch to the following settings if only using MT protocols
+// Low sample rate
+// Only MT protocols will work in this mode
 //const int sampleRate = 12000;
 //const int samplesPerFrame = 256;
 
 TSample sampleBuffer[samplesPerFrame];
 
+// ADC configuration
 const i2s_port_t     i2s_port    = I2S_NUM_0;
 const adc_unit_t     adc_unit    = ADC_UNIT_1;
 const adc1_channel_t adc_channel = ADC1_GPIO35_CHANNEL;
@@ -36,9 +78,6 @@ const i2s_config_t adc_i2s_config = {
     .tx_desc_auto_clear   = false,
     .fixed_mclk           = 0
 };
-
-// uncoment this to enable SSD1306 display output
-#define DISPLAY_OUTPUT 1
 
 #ifdef DISPLAY_OUTPUT
 
@@ -64,7 +103,6 @@ Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 void setup() {
     Serial.begin(115200);
     while (!Serial);
-    Serial.println(F("GGWave test for ESP32"));
 
 #ifdef DISPLAY_OUTPUT
     {
@@ -94,27 +132,34 @@ void setup() {
     }
 #endif
 
+    // Initialize "ggwave"
     {
-        Serial.println(F("Trying to create ggwave instance"));
+        Serial.println(F("Trying to initialize the ggwave instance"));
 
         ggwave.setLogFile(nullptr);
 
         auto p = GGWave::getDefaultParameters();
 
+        // Adjust the "ggwave" parameters to your needs.
+        // Make sure that the "payloadLength" parameter matches the one used on the transmitting side.
         p.payloadLength   = 16;
         p.sampleRateInp   = sampleRate;
         p.sampleRateOut   = sampleRate;
         p.sampleRate      = sampleRate;
         p.samplesPerFrame = samplesPerFrame;
         p.sampleFormatInp = GGWAVE_SAMPLE_FORMAT_I16;
-        p.sampleFormatOut = GGWAVE_SAMPLE_FORMAT_I16;
+        p.sampleFormatOut = GGWAVE_SAMPLE_FORMAT_U8;
         p.operatingMode   = GGWAVE_OPERATING_MODE_RX | GGWAVE_OPERATING_MODE_TX | GGWAVE_OPERATING_MODE_USE_DSS | GGWAVE_OPERATING_MODE_TX_ONLY_TONES;
 
+        // Protocols to use for TX
+        // Remove the ones that you don't need to reduce memory usage
         GGWave::Protocols::tx().disableAll();
         //GGWave::Protocols::tx().toggle(GGWAVE_PROTOCOL_MT_NORMAL,  true);
         //GGWave::Protocols::tx().toggle(GGWAVE_PROTOCOL_MT_FAST,    true);
         GGWave::Protocols::tx().toggle(GGWAVE_PROTOCOL_MT_FASTEST, true);
 
+        // Protocols to use for RX
+        // Remove the ones that you don't need to reduce memory usage
         GGWave::Protocols::rx().disableAll();
         //GGWave::Protocols::rx().toggle(GGWAVE_PROTOCOL_DT_NORMAL,  true);
         //GGWave::Protocols::rx().toggle(GGWAVE_PROTOCOL_DT_FAST,    true);
@@ -123,25 +168,25 @@ void setup() {
         //GGWave::Protocols::rx().toggle(GGWAVE_PROTOCOL_MT_FAST,    true);
         GGWave::Protocols::rx().toggle(GGWAVE_PROTOCOL_MT_FASTEST, true);
 
+        // Initialize the ggwave instance and print the memory usage
         ggwave.prepare(p);
 
-        delay(1000);
-
-        Serial.print(F("Instance initialized! Memory used: "));
+        Serial.print(F("Instance initialized successfully! Memory used: "));
         Serial.print(ggwave.heapSize());
         Serial.println(F(" bytes"));
-
-        Serial.println(F("Trying to start I2S ADC"));
     }
 
+    // Start capturing audio
     {
-        //install and start i2s driver
+        Serial.println(F("Trying to start I2S ADC"));
+
+        // Install and start i2s driver
         i2s_driver_install(i2s_port, &adc_i2s_config, 0, NULL);
 
-        //init ADC pad
+        // Init ADC pad
         i2s_set_adc_mode(adc_unit, adc_channel);
 
-        // enable the adc
+        // Enable the adc
         i2s_adc_enable(i2s_port);
 
         Serial.println(F("I2S ADC started"));
@@ -149,12 +194,12 @@ void setup() {
 }
 
 void loop() {
-    static int nr = 0;
-    static int niter = 0;
+    int nr = 0;
+    int niter = 0;
 
-    static GGWave::TxRxData result;
+    GGWave::TxRxData result;
 
-    // read from i2s - the samples are 12-bit so we need to do some massaging to make them 16-bit
+    // Read from i2s - the samples are 12-bit so we need to do some massaging to make them 16-bit
     {
         size_t bytes_read = 0;
         i2s_read(i2s_port, sampleBuffer, sizeof(int16_t)*samplesPerFrame, &bytes_read, portMAX_DELAY);
@@ -177,16 +222,19 @@ void loop() {
             s0 = s0 ^ s1;
         }
 
-        // use with serial plotter to observe real-time audio signal
+        // Use this with the serial plotter to observe real-time audio signal
         //for (int i = 0; i < samples_read; i++) {
         //    Serial.println(sampleBuffer[i]);
         //}
     }
 
+    // Try to decode any "ggwave" data:
     auto tStart = millis();
+
     if (ggwave.decode(sampleBuffer, samplesPerFrame*kSampleSize_bytes) == false) {
         Serial.println("Failed to decode");
     }
+
     auto tEnd = millis();
 
     if (++niter % 10 == 0) {
@@ -199,6 +247,7 @@ void loop() {
         }
     }
 
+    // Check if we have successfully decoded any data:
     nr = ggwave.rxTakeData(result);
     if (nr > 0) {
         Serial.println(tEnd - tStart);

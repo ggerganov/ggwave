@@ -1,5 +1,28 @@
+// arduino-tx
+//
+// Sample sketch for transmitting data using "ggwave"
+//
+// Tested with:
+//   - Arduino Uno R3
+//   - Arduino Nano RP2040 Connect
+//   - NodeMCU-ESP32-S
+//
+// If you want to perform a quick test, you can use the free "Waver" application:
+//   - Web:     https://waver.ggerganov.com
+//   - Android: https://play.google.com/store/apps/details?id=com.ggerganov.Waver
+//   - iOS:     https://apps.apple.com/us/app/waver-data-over-sound/id1543607865
+//
+// Make sure to enable the "Fixed-length" option in "Waver"'s settings and set the number of
+// bytes to be equal to "payloadLength" used in the sketch.
+//
+// Demo: https://youtu.be/qbzKo3zbQcI
+//
+// Sketch: https://github.com/ggerganov/ggwave/tree/master/examples/arduino-tx
+//
+
 #include <ggwave.h>
 
+// Pin configuration
 const int kPinLed0    = 13;
 const int kPinSpeaker = 10;
 const int kPinButton0 = 2;
@@ -8,13 +31,13 @@ const int kPinButton1 = 4;
 const int samplesPerFrame = 128;
 const int sampleRate      = 6000;
 
-// global GGwave instance
+// Global GGwave instance
 GGWave ggwave;
 
 char txt[64];
 #define P(str) (strcpy_P(txt, PSTR(str)), txt)
 
-// helper function to output the generated GGWave waveform via a buzzer
+// Helper function to output the generated GGWave waveform via a buzzer
 void send_text(GGWave & ggwave, uint8_t pin, const char * text, GGWave::TxProtocolId protocolId) {
     Serial.print(F("Sending text: "));
     Serial.println(text);
@@ -44,26 +67,37 @@ void setup() {
     pinMode(kPinButton0, INPUT);
     pinMode(kPinButton1, INPUT);
 
-    Serial.println(F("Trying to create ggwave instance"));
+    // Initialize "ggwave"
+    {
+        Serial.println(F("Trying to initialize the ggwave instance"));
 
-    auto p = GGWave::getDefaultParameters();
-    p.payloadLength   = 16;
-    p.sampleRateInp   = sampleRate;
-    p.sampleRateOut   = sampleRate;
-    p.sampleRate      = sampleRate;
-    p.samplesPerFrame = samplesPerFrame;
-    p.sampleFormatInp = GGWAVE_SAMPLE_FORMAT_I16;
-    p.sampleFormatOut = GGWAVE_SAMPLE_FORMAT_U8;
-    p.operatingMode   = GGWAVE_OPERATING_MODE_TX | GGWAVE_OPERATING_MODE_TX_ONLY_TONES | GGWAVE_OPERATING_MODE_USE_DSS;
+        ggwave.setLogFile(nullptr);
 
-    GGWave::Protocols::tx().only(GGWAVE_PROTOCOL_MT_FASTEST);
-    ggwave.prepare(p);
-    ggwave.setLogFile(nullptr);
-    Serial.println(ggwave.heapSize());
+        auto p = GGWave::getDefaultParameters();
 
-    Serial.println(F("Instance initialized"));
+        // Adjust the "ggwave" parameters to your needs.
+        // Make sure that the "payloadLength" parameter matches the one used on the transmitting side.
+        p.payloadLength   = 16;
+        p.sampleRateInp   = sampleRate;
+        p.sampleRateOut   = sampleRate;
+        p.sampleRate      = sampleRate;
+        p.samplesPerFrame = samplesPerFrame;
+        p.sampleFormatInp = GGWAVE_SAMPLE_FORMAT_I16;
+        p.sampleFormatOut = GGWAVE_SAMPLE_FORMAT_U8;
+        p.operatingMode   = GGWAVE_OPERATING_MODE_TX | GGWAVE_OPERATING_MODE_TX_ONLY_TONES | GGWAVE_OPERATING_MODE_USE_DSS;
+
+        // Protocols to use for TX
+        GGWave::Protocols::tx().only(GGWAVE_PROTOCOL_MT_FASTEST);
+
+        // Initialize the ggwave instance and print the memory usage
+        ggwave.prepare(p);
+        Serial.println(ggwave.heapSize());
+
+        Serial.println(F("Instance initialized successfully!"));
+    }
 }
 
+// Button state
 int pressed = 0;
 bool isDown = false;
 

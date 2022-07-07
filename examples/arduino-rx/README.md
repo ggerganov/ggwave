@@ -9,7 +9,9 @@ The development board has a built-in microphone which makes this device very sui
 - OLED SSD1306
 - Generic speaker
 
-![IMG_0559](https://user-images.githubusercontent.com/1991296/177210268-5aad972a-ce5a-485e-b1a9-11dc73ea572b.JPEG)
+![Sketch-Breadboard](fritzing-sketch_bb.png)
+
+![Sketch-Photo](https://user-images.githubusercontent.com/1991296/177850326-e5fefde3-93ee-4cf9-8fa5-861eef9565f7.JPEG)
 
 ## Demo
 

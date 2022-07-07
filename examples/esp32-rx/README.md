@@ -10,7 +10,9 @@ The received messages are displayed on the attached OLED display
 - OLED SSD1306
 - MAX9814 (also works with KY-037, KY-038 and WS Sound sensor)
 
-![IMG_0558](https://user-images.githubusercontent.com/1991296/177211779-5266222a-bab6-4b94-8369-ee1f1b064560.JPEG)
+![Sketch-Breadboard](fritzing-sketch_bb.png)
+
+![Sketch-photo](https://user-images.githubusercontent.com/1991296/177842221-411c77a4-09cd-43b7-988f-44eebbad8f8c.JPEG)
 
 ## Demo
 

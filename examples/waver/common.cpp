@@ -1177,7 +1177,7 @@ void renderMain() {
         {
             const float df = statsCurrent.sampleRate/statsCurrent.samplesPerFrame;
             const auto & protocol = settings.txProtocols[settings.protocolId];
-            ImGui::Text("%6.2f Hz - %6.2f Hz", df*protocol.freqStart, df*(protocol.freqStart + 2*16*protocol.bytesPerTx));
+            ImGui::Text("%6.2f Hz - %6.2f Hz", df*protocol.freqStart, df*(protocol.freqStart + float(2*16*protocol.bytesPerTx)/protocol.extra));
         }
 
         // fixed-length

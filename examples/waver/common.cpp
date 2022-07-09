@@ -614,10 +614,23 @@ void updateCore() {
         if (inputCurrent.flags.newMessage) {
             int n = (int) inputCurrent.message.data.size();
 
-            ggWave->init(
+            if (ggWave->init(
                     n, inputCurrent.message.data.data(),
                     GGWave::TxProtocolId(inputCurrent.message.protocolId),
-                    100*inputCurrent.message.volume);
+                    100*inputCurrent.message.volume) == false) {
+                g_buffer.stateCore.update = true;
+                g_buffer.stateCore.flags.newMessage = true;
+                g_buffer.stateCore.message = {
+                    false,
+                    std::chrono::system_clock::now(),
+                    (GGWave::Protocols::tx()[inputCurrent.message.protocolId].extra == 2 && inputCurrent.payloadLength <= 0) ?
+                        "MT protocols require fixed-length mode" : "Failed to transmit",
+                    ggWave->rxProtocolId(),
+                    ggWave->isDSSEnabled(),
+                    0,
+                    Message::Error,
+                };
+            }
         }
 
         if (inputCurrent.flags.needReinit) {
@@ -673,7 +686,7 @@ void updateCore() {
         g_buffer.stateCore.message = {
             true,
             std::chrono::system_clock::now(),
-            "",
+            "Failed to decode",
             ggWave->rxProtocolId(),
             ggWave->isDSSEnabled(),
             0,
@@ -842,7 +855,7 @@ void renderMain() {
         float sampleRateOffset = -512.0f;
         bool isFixedLength = false;
         bool directSequenceSpread = false;
-        int payloadLength = 8;
+        int payloadLength = 16;
         float volume = 0.10f;
 
         GGWave::TxProtocols txProtocols;
@@ -1185,7 +1198,7 @@ void renderMain() {
         if (settings.isFixedLength) {
             ImGui::SameLine();
             ImGui::PushItemWidth(0.5*ImGui::GetContentRegionAvailWidth());
-            if (ImGui::SliderInt("Bytes", &settings.payloadLength, 1, 16)) {
+            if (ImGui::SliderInt("Bytes", &settings.payloadLength, 1, GGWave::kMaxLengthFixed)) {
                 g_buffer.inputUI.update = true;
                 g_buffer.inputUI.flags.needReinit = true;
                 g_buffer.inputUI.payloadLength = settings.isFixedLength ? settings.payloadLength : -1;
@@ -1375,7 +1388,7 @@ void renderMain() {
                         {
                             auto col = ImVec4 { 1.0f, 0.0f, 0.0f, 1.0f };
                             col.w = interp;
-                            ImGui::TextColored(col, "Failed to receive");
+                            ImGui::TextColored(col, "Error: %s", message.data.c_str());
                         }
                         break;
                     case Message::Text:

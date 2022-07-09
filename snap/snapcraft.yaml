@@ -26,7 +26,7 @@
     - The files are transmitted over TCP/IP. The sound message is used only to initiate the network connections between the devices
     - Waver allows sharing multiple files to multiple devices at once
 
-  base: core20
+  base: core18
   grade: stable
   confinement: strict
 
@@ -52,6 +52,7 @@
         - make
         - libsdl2-dev
       stage-packages:
+        - libopengl0
         - libsdl2-2.0-0
         - libgl1
         - libglx0

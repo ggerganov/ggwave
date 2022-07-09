@@ -1133,6 +1133,12 @@ void renderMain() {
         }
         {
             auto posSave = ImGui::GetCursorScreenPos();
+            ImGui::Text("%s", "");
+            ImGui::SetCursorScreenPos({ posSave.x + kLabelWidth, posSave.y });
+            ImGui::TextDisabled("[MT] = mono-tone");
+        }
+        {
+            auto posSave = ImGui::GetCursorScreenPos();
             ImGui::Text("Tx Protocol: ");
             ImGui::SetCursorScreenPos({ posSave.x + kLabelWidth, posSave.y });
         }

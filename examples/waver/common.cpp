@@ -1146,7 +1146,8 @@ void renderMain() {
         }
         {
             const auto & protocol = settings.txProtocols[settings.protocolId];
-            ImGui::Text("%4.2f B/s", (float(0.715f*protocol.bytesPerTx)/(protocol.framesPerTx*statsCurrent.samplesPerFrame))*statsCurrent.sampleRate);
+            const float bandwidth = ((float(0.715f*protocol.bytesPerTx)/(protocol.framesPerTx*statsCurrent.samplesPerFrame))*statsCurrent.sampleRate)/protocol.extra;
+            ImGui::Text("%4.2f B/s", bandwidth);
         }
 
         {

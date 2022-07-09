@@ -26,7 +26,7 @@
     - The files are transmitted over TCP/IP. The sound message is used only to initiate the network connections between the devices
     - Waver allows sharing multiple files to multiple devices at once
 
-  base: core18
+  base: core20
   grade: stable
   confinement: strict
 

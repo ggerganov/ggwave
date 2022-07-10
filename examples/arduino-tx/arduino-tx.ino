@@ -89,6 +89,13 @@ void setup() {
         // Protocols to use for TX
         GGWave::Protocols::tx().only(GGWAVE_PROTOCOL_MT_FASTEST);
 
+        // Sometimes, the speaker might not be able to produce frequencies in the Mono-tone range of 1-2 kHz.
+        // In such cases, you can shift the base frequency up by changing the "freqStart" parameter of the protocol.
+        // Make sure that in the receiver (for example, the "Waver" app) the base frequency is shifted by the same amount.
+        // Here we shift the frequency by +48 bins. Each bin is equal to 48000/1024 = 46.875 Hz.
+        // So the base frequency is shifted by +2250 Hz.
+        //GGWave::Protocols::tx()[GGWAVE_PROTOCOL_MT_FASTEST].freqStart += 48;
+
         // Initialize the ggwave instance and print the memory usage
         ggwave.prepare(p);
         Serial.println(ggwave.heapSize());

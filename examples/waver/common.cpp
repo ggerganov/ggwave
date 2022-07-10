@@ -236,6 +236,7 @@ struct Input {
             dst.update = true;
             dst.flags.needReinit = true;
             dst.sampleRateOffset = std::move(this->sampleRateOffset);
+            dst.freqStartShift = std::move(this->freqStartShift);
             dst.payloadLength = std::move(this->payloadLength);
             dst.directSequenceSpread = std::move(this->directSequenceSpread);
         }
@@ -266,6 +267,7 @@ struct Input {
 
     // reinit
     float sampleRateOffset = 0;
+    int freqStartShift = 0;
     int payloadLength = -1;
 
     // spectrum
@@ -636,9 +638,18 @@ void updateCore() {
         if (inputCurrent.flags.needReinit) {
             static auto sampleRateInpOld = ggWave->sampleRateInp();
             static auto sampleRateOutOld = ggWave->sampleRateOut();
+            static auto freqStartShiftOld = 0;
+
             auto sampleFormatInpOld = ggWave->sampleFormatInp();
             auto sampleFormatOutOld = ggWave->sampleFormatOut();
             auto rxProtocolsOld = ggWave->rxProtocols();
+
+            for (int i = 0; i < GGWAVE_PROTOCOL_COUNT; ++i) {
+                GGWave::Protocols::tx()[i].freqStart = std::max(1, GGWave::Protocols::tx()[i].freqStart + inputCurrent.freqStartShift - freqStartShiftOld);
+                rxProtocolsOld[i].freqStart = std::max(1, rxProtocolsOld[i].freqStart + inputCurrent.freqStartShift - freqStartShiftOld);
+            }
+
+            freqStartShiftOld = inputCurrent.freqStartShift;
 
             GGWave::OperatingMode mode = GGWAVE_OPERATING_MODE_RX_AND_TX;
             if (inputCurrent.directSequenceSpread) mode |= GGWAVE_OPERATING_MODE_USE_DSS;
@@ -853,6 +864,8 @@ void renderMain() {
         int protocolId = GGWAVE_PROTOCOL_AUDIBLE_FAST;
         bool isSampleRateOffset = false;
         float sampleRateOffset = -512.0f;
+        bool isFreqStartShift = false;
+        int freqStartShift = 48;
         bool isFixedLength = false;
         bool directSequenceSpread = false;
         int payloadLength = 16;
@@ -1055,7 +1068,7 @@ void renderMain() {
 
     if (windowId == WindowId::Settings) {
         ImGui::BeginChild("Settings:main", ImGui::GetContentRegionAvail(), true, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
-        ImGui::Text("Waver v1.5.1");
+        ImGui::Text("Waver v1.5.2");
         ImGui::Separator();
 
         ImGui::Text("%s", "");
@@ -1177,7 +1190,10 @@ void renderMain() {
         {
             const float df = statsCurrent.sampleRate/statsCurrent.samplesPerFrame;
             const auto & protocol = settings.txProtocols[settings.protocolId];
-            ImGui::Text("%6.2f Hz - %6.2f Hz", df*protocol.freqStart, df*(protocol.freqStart + float(2*16*protocol.bytesPerTx)/protocol.extra));
+            const auto freqStart = std::max(1, protocol.freqStart + (settings.isFreqStartShift ? settings.freqStartShift : 0));
+            const float f0 = df*freqStart;
+            const float f1 = df*(freqStart + float(2*16*protocol.bytesPerTx)/protocol.extra);
+            ImGui::Text("%6.2f Hz - %6.2f Hz", f0, f1);
         }
 
         // fixed-length
@@ -1204,7 +1220,7 @@ void renderMain() {
         if (settings.isFixedLength) {
             ImGui::SameLine();
             ImGui::PushItemWidth(0.5*ImGui::GetContentRegionAvailWidth());
-            if (ImGui::SliderInt("Bytes", &settings.payloadLength, 1, GGWave::kMaxLengthFixed)) {
+            if (ImGui::DragInt("Bytes", &settings.payloadLength, 1, 1, GGWave::kMaxLengthFixed)) {
                 g_buffer.inputUI.update = true;
                 g_buffer.inputUI.flags.needReinit = true;
                 g_buffer.inputUI.payloadLength = settings.isFixedLength ? settings.payloadLength : -1;
@@ -1212,8 +1228,71 @@ void renderMain() {
             ImGui::PopItemWidth();
         }
 
+        // Direct-sequence spread
+        //ImGui::Text("%s", "");
+        {
+            auto posSave = ImGui::GetCursorScreenPos();
+            ImGui::Text("%s", "");
+            ImGui::SetCursorScreenPos({ posSave.x + kLabelWidth, posSave.y });
+            ImGui::PushTextWrapPos();
+            ImGui::TextDisabled("Direct-sequence spread");
+            ImGui::PopTextWrapPos();
+        }
+        {
+            auto posSave = ImGui::GetCursorScreenPos();
+            ImGui::Text("Use DSS: ");
+            ImGui::SetCursorScreenPos({ posSave.x + kLabelWidth, posSave.y });
+        }
+        if (ImGui::Checkbox("##direct-sequence-spread", &settings.directSequenceSpread)) {
+            g_buffer.inputUI.update = true;
+            g_buffer.inputUI.flags.needReinit = true;
+            g_buffer.inputUI.directSequenceSpread = settings.directSequenceSpread;
+        }
+
+        // FreqStart offset
+        //ImGui::Text("%s", "");
+        {
+            auto posSave = ImGui::GetCursorScreenPos();
+            ImGui::Text("%s", "");
+            ImGui::SetCursorScreenPos({ posSave.x + kLabelWidth, posSave.y });
+            ImGui::PushTextWrapPos();
+            ImGui::TextDisabled("Apply tx/rx frequency shift");
+            ImGui::PopTextWrapPos();
+        }
+        {
+            auto posSave = ImGui::GetCursorScreenPos();
+            ImGui::Text("Freq shift: ");
+            ImGui::SetCursorScreenPos({ posSave.x + kLabelWidth, posSave.y });
+        }
+        if (ImGui::Checkbox("##freq-start-offset", &settings.isFreqStartShift)) {
+            g_buffer.inputUI.update = true;
+            g_buffer.inputUI.flags.needReinit = true;
+            g_buffer.inputUI.freqStartShift = settings.isFreqStartShift ? settings.freqStartShift : 0;
+        }
+
+        if (settings.isFreqStartShift) {
+            ImGui::SameLine();
+            ImGui::PushItemWidth(0.5*ImGui::GetContentRegionAvailWidth());
+            if (ImGui::DragInt("bins", &settings.freqStartShift, 1, -64, 64, "%d")) {
+                g_buffer.inputUI.update = true;
+                g_buffer.inputUI.flags.needReinit = true;
+                g_buffer.inputUI.freqStartShift = settings.isFreqStartShift ? settings.freqStartShift : 0;
+            }
+            ImGui::PopItemWidth();
+
+            {
+                auto posSave = ImGui::GetCursorScreenPos();
+                ImGui::Text("");
+                ImGui::SetCursorScreenPos({ posSave.x + kLabelWidth, posSave.y });
+            }
+            {
+                const float df = statsCurrent.sampleRate/statsCurrent.samplesPerFrame;
+                ImGui::Text("%6.2f Hz", df*settings.freqStartShift);
+            }
+        }
+
         // Output sample-rate offset
-        ImGui::Text("%s", "");
+        //ImGui::Text("%s", "");
         {
             auto posSave = ImGui::GetCursorScreenPos();
             ImGui::Text("%s", "");
@@ -1242,27 +1321,6 @@ void renderMain() {
                 g_buffer.inputUI.sampleRateOffset = settings.isSampleRateOffset ? settings.sampleRateOffset : 0;
             }
             ImGui::PopItemWidth();
-        }
-
-        // Direct-sequence spread
-        ImGui::Text("%s", "");
-        {
-            auto posSave = ImGui::GetCursorScreenPos();
-            ImGui::Text("%s", "");
-            ImGui::SetCursorScreenPos({ posSave.x + kLabelWidth, posSave.y });
-            ImGui::PushTextWrapPos();
-            ImGui::TextDisabled("Direct-sequence spread");
-            ImGui::PopTextWrapPos();
-        }
-        {
-            auto posSave = ImGui::GetCursorScreenPos();
-            ImGui::Text("Use DSS: ");
-            ImGui::SetCursorScreenPos({ posSave.x + kLabelWidth, posSave.y });
-        }
-        if (ImGui::Checkbox("##direct-sequence-spread", &settings.directSequenceSpread)) {
-            g_buffer.inputUI.update = true;
-            g_buffer.inputUI.flags.needReinit = true;
-            g_buffer.inputUI.directSequenceSpread = settings.directSequenceSpread;
         }
 
         // rx protocols

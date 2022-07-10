@@ -488,28 +488,30 @@ public:
                     protocols.data[i].name = nullptr;
                     protocols.data[i].enabled = false;
                 }
-#ifndef ARDUINO
-#define PSTR(str) (str)
+
+#if defined(ARDUINO_AVR_UNO)
+// For Arduino Uno, we put the strings in PROGMEM to save as much RAM as possible:
+#define GGWAVE_PSTR PSTR
+#else
+#define GGWAVE_PSTR(str) (str)
 #endif
 
 #ifndef GGWAVE_CONFIG_FEW_PROTOCOLS
-                protocols.data[GGWAVE_PROTOCOL_AUDIBLE_NORMAL]     = { PSTR("Normal"),       40,  9, 3, 1, true, };
-                protocols.data[GGWAVE_PROTOCOL_AUDIBLE_FAST]       = { PSTR("Fast"),         40,  6, 3, 1, true, };
-                protocols.data[GGWAVE_PROTOCOL_AUDIBLE_FASTEST]    = { PSTR("Fastest"),      40,  3, 3, 1, true, };
-                protocols.data[GGWAVE_PROTOCOL_ULTRASOUND_NORMAL]  = { PSTR("[U] Normal"),   320, 9, 3, 1, true, };
-                protocols.data[GGWAVE_PROTOCOL_ULTRASOUND_FAST]    = { PSTR("[U] Fast"),     320, 6, 3, 1, true, };
-                protocols.data[GGWAVE_PROTOCOL_ULTRASOUND_FASTEST] = { PSTR("[U] Fastest"),  320, 3, 3, 1, true, };
+                protocols.data[GGWAVE_PROTOCOL_AUDIBLE_NORMAL]     = { GGWAVE_PSTR("Normal"),       40,  9, 3, 1, true, };
+                protocols.data[GGWAVE_PROTOCOL_AUDIBLE_FAST]       = { GGWAVE_PSTR("Fast"),         40,  6, 3, 1, true, };
+                protocols.data[GGWAVE_PROTOCOL_AUDIBLE_FASTEST]    = { GGWAVE_PSTR("Fastest"),      40,  3, 3, 1, true, };
+                protocols.data[GGWAVE_PROTOCOL_ULTRASOUND_NORMAL]  = { GGWAVE_PSTR("[U] Normal"),   320, 9, 3, 1, true, };
+                protocols.data[GGWAVE_PROTOCOL_ULTRASOUND_FAST]    = { GGWAVE_PSTR("[U] Fast"),     320, 6, 3, 1, true, };
+                protocols.data[GGWAVE_PROTOCOL_ULTRASOUND_FASTEST] = { GGWAVE_PSTR("[U] Fastest"),  320, 3, 3, 1, true, };
 #endif
-                protocols.data[GGWAVE_PROTOCOL_DT_NORMAL]          = { PSTR("[DT] Normal"),  24,  9, 1, 1, true, };
-                protocols.data[GGWAVE_PROTOCOL_DT_FAST]            = { PSTR("[DT] Fast"),    24,  6, 1, 1, true, };
-                protocols.data[GGWAVE_PROTOCOL_DT_FASTEST]         = { PSTR("[DT] Fastest"), 24,  3, 1, 1, true, };
-                protocols.data[GGWAVE_PROTOCOL_MT_NORMAL]          = { PSTR("[MT] Normal"),  24,  9, 1, 2, true, };
-                protocols.data[GGWAVE_PROTOCOL_MT_FAST]            = { PSTR("[MT] Fast"),    24,  6, 1, 2, true, };
-                protocols.data[GGWAVE_PROTOCOL_MT_FASTEST]         = { PSTR("[MT] Fastest"), 24,  3, 1, 2, true, };
+                protocols.data[GGWAVE_PROTOCOL_DT_NORMAL]          = { GGWAVE_PSTR("[DT] Normal"),  24,  9, 1, 1, true, };
+                protocols.data[GGWAVE_PROTOCOL_DT_FAST]            = { GGWAVE_PSTR("[DT] Fast"),    24,  6, 1, 1, true, };
+                protocols.data[GGWAVE_PROTOCOL_DT_FASTEST]         = { GGWAVE_PSTR("[DT] Fastest"), 24,  3, 1, 1, true, };
+                protocols.data[GGWAVE_PROTOCOL_MT_NORMAL]          = { GGWAVE_PSTR("[MT] Normal"),  24,  9, 1, 2, true, };
+                protocols.data[GGWAVE_PROTOCOL_MT_FAST]            = { GGWAVE_PSTR("[MT] Fast"),    24,  6, 1, 2, true, };
+                protocols.data[GGWAVE_PROTOCOL_MT_FASTEST]         = { GGWAVE_PSTR("[MT] Fastest"), 24,  3, 1, 2, true, };
 
-#ifndef ARDUINO
-#undef PSTR
-#endif
+#undef GGWAVE_PSTR
                 initialized = true;
             }
 

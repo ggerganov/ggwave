@@ -35,6 +35,7 @@
 #include <PDM.h>
 
 // Pin configuration
+const int kPinLED0    = 2;
 const int kPinButton0 = 5;
 const int kPinSpeaker = 10;
 
@@ -108,8 +109,11 @@ void setup() {
     Serial.begin(57600);
     //while (!Serial);
 
+    pinMode(kPinLED0, OUTPUT);
     pinMode(kPinSpeaker, OUTPUT);
     pinMode(kPinButton0, INPUT_PULLUP);
+
+    digitalWrite(kPinLED0, LOW);
 
 #ifdef DISPLAY_OUTPUT
     {
@@ -167,15 +171,16 @@ void setup() {
         //GGWave::Protocols::tx().toggle(GGWAVE_PROTOCOL_MT_NORMAL,  true);
         //GGWave::Protocols::tx().toggle(GGWAVE_PROTOCOL_MT_FAST,    true);
         GGWave::Protocols::tx().toggle(GGWAVE_PROTOCOL_MT_FASTEST, true);
+        //GGWave::Protocols::tx()[GGWAVE_PROTOCOL_MT_FASTEST].freqStart += 48;
 
         // Protocols to use for RX
         // Remove the ones that you don't need to reduce memory usage
         GGWave::Protocols::rx().disableAll();
-        GGWave::Protocols::rx().toggle(GGWAVE_PROTOCOL_DT_NORMAL,  true);
-        GGWave::Protocols::rx().toggle(GGWAVE_PROTOCOL_DT_FAST,    true);
+        //GGWave::Protocols::rx().toggle(GGWAVE_PROTOCOL_DT_NORMAL,  true);
+        //GGWave::Protocols::rx().toggle(GGWAVE_PROTOCOL_DT_FAST,    true);
         GGWave::Protocols::rx().toggle(GGWAVE_PROTOCOL_DT_FASTEST, true);
-        GGWave::Protocols::rx().toggle(GGWAVE_PROTOCOL_MT_NORMAL,  true);
-        GGWave::Protocols::rx().toggle(GGWAVE_PROTOCOL_MT_FAST,    true);
+        //GGWave::Protocols::rx().toggle(GGWAVE_PROTOCOL_MT_NORMAL,  true);
+        //GGWave::Protocols::rx().toggle(GGWAVE_PROTOCOL_MT_FAST,    true);
         GGWave::Protocols::rx().toggle(GGWAVE_PROTOCOL_MT_FASTEST, true);
 
         // Initialize the ggwave instance and print the memory usage
@@ -209,7 +214,10 @@ void loop() {
     int but0Prev = HIGH;
 
     GGWave::TxRxData result;
+    GGWave::Spectrum rxSpectrum;
+
     char resultLast[17];
+    int tLastReceive = -10000;
 
     // Main loop ..
     while (true) {
@@ -245,20 +253,50 @@ void loop() {
 
                 Serial.println((char *) result.data());
 
-#ifdef DISPLAY_OUTPUT
-                {
-                    display.clearDisplay();
-
-                    display.setTextSize(2);
-                    display.setTextColor(SSD1306_WHITE);
-                    display.setCursor(0, 0);
-                    display.println((char *) result.data());
-
-                    display.display();
-                }
-#endif
                 strcpy(resultLast, (char *) result.data());
+                tLastReceive = tEnd;
             }
+
+#ifdef DISPLAY_OUTPUT
+            const auto t = millis();
+
+            if (ggwave.rxTakeSpectrum(rxSpectrum) && t > 2000) {
+                const bool isNew = t - tLastReceive < 2000;
+
+                if (isNew) {
+                    digitalWrite(kPinLED0, HIGH);
+                } else {
+                    digitalWrite(kPinLED0, LOW);
+                }
+
+                display.clearDisplay();
+
+                display.setTextSize(isNew ? 2 : 1);
+                display.setTextColor(SSD1306_WHITE);
+                display.setCursor(0, 0);
+                display.println(resultLast);
+
+                const int nBin0 = 16;
+                const int nBins = 64;
+                const int dX = SCREEN_WIDTH/nBins;
+
+                float smax = 0.0f;
+                for (int x = 0; x < nBins; x++) {
+                    smax = std::max(smax, rxSpectrum[nBin0 + x]);
+                }
+                smax = smax == 0.0f ? 1.0f : 1.0f/smax;
+
+                const float h = isNew ? 0.25f: 0.75f;
+                for (int x = 0; x < nBins; x++) {
+                    const int x0 = x*dX;
+                    const int x1 = x0 + dX;
+                    const int y = (int) (h*SCREEN_HEIGHT*(rxSpectrum[nBin0 + x]*smax));
+                    display.fillRect(x0, SCREEN_HEIGHT - y, dX, y, SSD1306_WHITE);
+                }
+
+                display.display();
+            }
+#endif
         }
 
         // This should never happen.

@@ -41,6 +41,9 @@
 #include <soc/adc_channel.h>
 #include <driver/i2s.h>
 
+// Pin configuration
+const int kPinLED0 = 2;
+
 // Global GGwave instance
 GGWave ggwave;
 
@@ -103,6 +106,9 @@ Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 void setup() {
     Serial.begin(115200);
     while (!Serial);
+
+    pinMode(kPinLED0, OUTPUT);
+    digitalWrite(kPinLED0, LOW);
 
 #ifdef DISPLAY_OUTPUT
     {
@@ -193,12 +199,13 @@ void setup() {
     }
 }
 
+int niter = 0;
+int tLastReceive = -10000;
+
+GGWave::TxRxData result;
+GGWave::Spectrum rxSpectrum;
+
 void loop() {
-    int nr = 0;
-    int niter = 0;
-
-    GGWave::TxRxData result;
-
     // Read from i2s - the samples are 12-bit so we need to do some massaging to make them 16-bit
     {
         size_t bytes_read = 0;
@@ -248,7 +255,7 @@ void loop() {
     }
 
     // Check if we have successfully decoded any data:
-    nr = ggwave.rxTakeData(result);
+    int nr = ggwave.rxTakeData(result);
     if (nr > 0) {
         Serial.println(tEnd - tStart);
         Serial.print(F("Received data with length "));
@@ -257,17 +264,47 @@ void loop() {
 
         Serial.println((char *) result.data());
 
-#ifdef DISPLAY_OUTPUT
-        {
-            display.clearDisplay();
-
-            display.setTextSize(2);
-            display.setTextColor(SSD1306_WHITE);
-            display.setCursor(0, 0);
-            display.println((char *) result.data());
-
-            display.display();
-        }
-#endif
+        tLastReceive = tEnd;
     }
+
+#ifdef DISPLAY_OUTPUT
+    const auto t = millis();
+
+    if (ggwave.rxTakeSpectrum(rxSpectrum) && t > 2000) {
+        const bool isNew = t - tLastReceive < 2000;
+
+        if (isNew) {
+            digitalWrite(kPinLED0, HIGH);
+        } else {
+            digitalWrite(kPinLED0, LOW);
+        }
+
+        display.clearDisplay();
+
+        display.setTextSize(isNew ? 2 : 1);
+        display.setTextColor(SSD1306_WHITE);
+        display.setCursor(0, 0);
+        display.println((char *) result.data());
+
+        const int nBin0 = 16;
+        const int nBins = 64;
+        const int dX = SCREEN_WIDTH/nBins;
+
+        float smax = 0.0f;
+        for (int x = 0; x < nBins; x++) {
+            smax = std::max(smax, rxSpectrum[nBin0 + x]);
+        }
+        smax = smax == 0.0f ? 1.0f : 1.0f/smax;
+
+        const float h = isNew ? 0.25f: 0.75f;
+        for (int x = 0; x < nBins; x++) {
+            const int x0 = x*dX;
+            const int x1 = x0 + dX;
+            const int y = (int) (h*SCREEN_HEIGHT*(rxSpectrum[nBin0 + x]*smax));
+            display.fillRect(x0, SCREEN_HEIGHT - y, dX, y, SSD1306_WHITE);
+        }
+
+        display.display();
+    }
+#endif
 }

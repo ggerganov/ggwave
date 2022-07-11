@@ -263,6 +263,7 @@ extern "C" {
     //
     //         int ret = ggwave_decode(instance, waveform, samplesPerFrame*sizeOfSample_bytes, payload);
     //         if (ret > 0) {
+    //             payload[ret] = 0; // null terminate the string
     //             printf("Received payload: '%s'\n", payload);
     //         }
     //     }

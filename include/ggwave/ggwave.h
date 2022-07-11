@@ -765,6 +765,19 @@ public:
     //
     bool computeFFTR(const float * src, float * dst, int N);
 
+    // Compute FFT of real values (static)
+    //
+    //   src - input real-valued data, size is N
+    //   dst - output complex-valued data, size is 2*N
+    //   ip  - work buffer, with size 2*N
+    //   w   - work buffer, with size 3 + sqrt(N/2)
+    //
+    //   First time calling thid function, make sure that ip[0] == 0
+    //   This will initialize some internal coefficients and store them in ip and w for
+    //   future usage.
+    //
+    static bool computeFFTR(const float * src, float * dst, int N, int * ip, float * w);
+
     // Resample audio waveforms from one sample rate to another using sinc interpolation
     class Resampler {
     public:

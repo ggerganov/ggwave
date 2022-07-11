@@ -1300,6 +1300,12 @@ bool GGWave::computeFFTR(const float * src, float * dst, int N) {
     return true;
 }
 
+bool GGWave::computeFFTR(const float * src, float * dst, int N, int * ip, float * w) {
+    FFT(src, dst, N, ip, w);
+
+    return true;
+}
+
 //
 // GGWave::Resampler
 //

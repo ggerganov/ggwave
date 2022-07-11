@@ -1,5 +1,3 @@
-#include "fft.h"
-
 #include "ggwave/ggwave.h"
 #include "ggwave-common.h"
 
@@ -178,14 +176,34 @@ bool GGWave_mainLoop() {
         SDL_ClearQueuedAudio(g_devIdInp);
     }
 
-    int n = 0;
+    static bool isInitialzed = false;
+
     static float data[g_nSamplesPerFrame];
     static float out[2*g_nSamplesPerFrame];
+
+    static int   workI[2*g_nSamplesPerFrame];
+    static float workF[g_nSamplesPerFrame/2];
+
+    if (!isInitialzed) {
+        memset(data, 0, sizeof(data));
+        memset(out,  0, sizeof(out));
+
+        memset(workI, 0, sizeof(workI));
+        memset(workF, 0, sizeof(workF));
+
+        isInitialzed = true;
+    }
+
+    int n = 0;
+
     do {
         n = SDL_DequeueAudio(g_devIdInp, data, sizeof(float)*g_nSamplesPerFrame);
         if (n <= 0) break;
 
-        FFT(data, out, g_nSamplesPerFrame, 1.0);
+        if (GGWave::computeFFTR(data, out, g_nSamplesPerFrame, workI, workF) == false) {
+            fprintf(stderr, "Failed to compute FFT!\n");
+            return false;
+        }
 
         for (int i = 0; i < g_nSamplesPerFrame; ++i) {
             out[i] = std::sqrt(out[2*i + 0]*out[2*i + 0] + out[2*i + 1]*out[2*i + 1]);

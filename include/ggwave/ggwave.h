@@ -72,6 +72,12 @@ extern "C" {
         GGWAVE_PROTOCOL_COUNT,
     } ggwave_ProtocolId;
 
+    typedef enum {
+        GGWAVE_FILTER_HANN,
+        GGWAVE_FILTER_HAMMING,
+        GGWAVE_FILTER_FIRST_ORDER_HIGH_PASS,
+    } ggwave_Filter;
+
     // Operating modes of ggwave
     //
     //   GGWAVE_OPERATING_MODE_RX:
@@ -770,14 +776,41 @@ public:
     //
     //   src - input real-valued data, size is N
     //   dst - output complex-valued data, size is 2*N
-    //   ip  - work buffer, with size 2*N
-    //   w   - work buffer, with size 3 + sqrt(N/2)
+    //   wi  - work buffer, with size 2*N
+    //   wf  - work buffer, with size 3 + sqrt(N/2)
     //
-    //   First time calling thid function, make sure that ip[0] == 0
-    //   This will initialize some internal coefficients and store them in ip and w for
+    //   First time calling this function, make sure that wi[0] == 0
+    //   This will initialize some internal coefficients and store them in wi and wf for
     //   future usage.
     //
-    static bool computeFFTR(const float * src, float * dst, int N, int * ip, float * w);
+    //   If wi == nullptr                   - returns the needed size for wi
+    //   If wi != nullptr and wf == nullptr - returns the needed size for wf
+    //   If wi != nullptr and wf != nullptr - returns 1 on success, 0 on failure
+    //
+    static int computeFFTR(const float * src, float * dst, int N, int * wi, float * wf);
+
+    // Filter the waveform
+    //
+    //   filter   - filter to use
+    //   waveform - input waveform, size is N
+    //   N        - number of samples in the waveform
+    //   p0       - parameter
+    //   p1       - parameter
+    //   w        - work buffer
+    //
+    //   Filter is applied in-place.
+    //   First time calling this function, make sure that w[0] == 0 and w[1] == 0
+    //   This will initialize some internal coefficients and store them in w for
+    //   future usage.
+    //
+    //   For GGWAVE_FILTER_FIRST_ORDER_HIGH_PASS:
+    //     - p0 = cutoff frequency in Hz
+    //     - p1 = sample rate in Hz
+    //
+    //   If w == nullptr - returns the needed size for w for the specified filter
+    //   If w != nullptr - returns 1 on success, 0 on failure
+    //
+    static int filter(ggwave_Filter filter, float * waveform, int N, float p0, float p1, float * w);
 
     // Resample audio waveforms from one sample rate to another using sinc interpolation
     class Resampler {

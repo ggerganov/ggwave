@@ -224,14 +224,14 @@ uint8_t getDSSMagic(int i) {
 #endif
 }
 
-void FFT(float * f, int N, int * ip, float * w) {
-    rdft(N, 1, f, ip, w);
+void FFT(float * f, int N, int * wi, float * wf) {
+    rdft(N, 1, f, wi, wf);
 }
 
-void FFT(const float * src, float * dst, int N, int * ip, float * w) {
+void FFT(const float * src, float * dst, int N, int * wi, float * wf) {
     memcpy(dst, src, N * sizeof(float));
 
-    FFT(dst, N, ip, w);
+    FFT(dst, N, wi, wf);
 }
 
 inline void addAmplitudeSmooth(
@@ -1300,10 +1300,82 @@ bool GGWave::computeFFTR(const float * src, float * dst, int N) {
     return true;
 }
 
-bool GGWave::computeFFTR(const float * src, float * dst, int N, int * ip, float * w) {
-    FFT(src, dst, N, ip, w);
+int GGWave::computeFFTR(const float * src, float * dst, int N, int * wi, float * wf) {
+    if (wi == nullptr) return 2*N;
+    if (wf == nullptr) return 3 + sqrt(N/2);
 
-    return true;
+    FFT(src, dst, N, wi, wf);
+
+    return 1;
+}
+
+int GGWave::filter(ggwave_Filter filter, float * waveform, int N, float p0, float p1, float * w) {
+    if (w == nullptr) {
+        switch (filter) {
+            case GGWAVE_FILTER_HANN:                  return N;
+            case GGWAVE_FILTER_HAMMING:               return N;
+            case GGWAVE_FILTER_FIRST_ORDER_HIGH_PASS: return 11;
+        };
+    }
+
+    if (w[0] == 0.0f && w[1] == 0.0f) {
+        switch (filter) {
+            case GGWAVE_FILTER_HANN:
+                {
+                    const float f = 2.0f*M_PI/(float)N;
+                    for (int i = 0; i < N; i++) {
+                        w[i] = 0.5f - 0.5f*cosf(f*(float)i);
+                    }
+                } break;
+            case GGWAVE_FILTER_HAMMING:
+                {
+                    const float f = 2.0f*M_PI/(float)N;
+                    for (int i = 0; i < N; i++) {
+                        w[i] = 0.54f - 0.46f*cosf(f*(float)i);
+                    }
+                } break;
+            case GGWAVE_FILTER_FIRST_ORDER_HIGH_PASS:
+                {
+                    const float th = 2.0f*M_PI*p0/p1;
+                    const float g = cos(th)/(1.0f + sin(th));
+                    w[0] = (1.0f + g)/2.0f;
+                    w[1] = -((1.0f + g)/2.0f);
+                    w[2] = 0.0f;
+                    w[3] = -g;
+                    w[4] = 0.0f;
+
+                    w[5] = 0.0f;
+                    w[6] = 0.0f;
+                    w[7] = 0.0f;
+                    w[8] = 0.0f;
+                } break;
+        };
+    }
+
+    switch (filter) {
+        case GGWAVE_FILTER_HANN:
+        case GGWAVE_FILTER_HAMMING:
+            {
+                for (int i = 0; i < N; i++) {
+                    waveform[i] *= w[i];
+                }
+            } break;
+        case GGWAVE_FILTER_FIRST_ORDER_HIGH_PASS:
+            {
+                for (int i = 0; i < N; i++) {
+                    float xn = waveform[i];
+                    float yn = w[0]*xn + w[1]*w[5] + w[2]*w[6] + w[3]*w[7] + w[4]*w[8];
+                    w[6] = w[5];
+                    w[5] = xn;
+                    w[8] = w[7];
+                    w[7] = yn;
+
+                    waveform[i] = yn;
+                }
+            } break;
+    };
+
+    return 1;
 }
 
 //

@@ -13,6 +13,7 @@
 #include <SDL.h>
 #include <SDL_opengl.h>
 
+#include <cmath>
 #include <fstream>
 #include <vector>
 #include <functional>
@@ -41,6 +42,10 @@ int g_binMin = 0;
 int g_binMax = g_nBins;
 
 float g_scale = 30.0;
+
+bool g_filter0 = false;
+bool g_filter1 = false;
+bool g_filter2 = false;
 
 bool g_showControls = true;
 
@@ -179,10 +184,14 @@ bool GGWave_mainLoop() {
     static bool isInitialzed = false;
 
     static float data[g_nSamplesPerFrame];
-    static float out[2*g_nSamplesPerFrame];
+    static float out [2*g_nSamplesPerFrame];
 
     static int   workI[2*g_nSamplesPerFrame];
     static float workF[g_nSamplesPerFrame/2];
+
+    static float workF0[g_nSamplesPerFrame];
+    static float workF1[g_nSamplesPerFrame];
+    static float workF2[11];
 
     if (!isInitialzed) {
         memset(data, 0, sizeof(data));
@@ -190,6 +199,10 @@ bool GGWave_mainLoop() {
 
         memset(workI, 0, sizeof(workI));
         memset(workF, 0, sizeof(workF));
+
+        memset(workF0, 0, sizeof(workF0));
+        memset(workF1, 0, sizeof(workF1));
+        memset(workF2, 0, sizeof(workF2));
 
         isInitialzed = true;
     }
@@ -200,16 +213,28 @@ bool GGWave_mainLoop() {
         n = SDL_DequeueAudio(g_devIdInp, data, sizeof(float)*g_nSamplesPerFrame);
         if (n <= 0) break;
 
+        if (g_filter2) {
+            GGWave::filter(GGWAVE_FILTER_FIRST_ORDER_HIGH_PASS, data, g_nSamplesPerFrame, 750.0f, GGWave::kDefaultSampleRate, workF2);
+        }
+
+        if (g_filter0) {
+            GGWave::filter(GGWAVE_FILTER_HANN, data, g_nSamplesPerFrame, 750.0f, GGWave::kDefaultSampleRate, workF0);
+        }
+
+        if (g_filter1) {
+            GGWave::filter(GGWAVE_FILTER_HAMMING, data, g_nSamplesPerFrame, 750.0f, GGWave::kDefaultSampleRate, workF1);
+        }
+
         if (GGWave::computeFFTR(data, out, g_nSamplesPerFrame, workI, workF) == false) {
             fprintf(stderr, "Failed to compute FFT!\n");
             return false;
         }
 
         for (int i = 0; i < g_nSamplesPerFrame; ++i) {
-            out[i] = std::sqrt(out[2*i + 0]*out[2*i + 0] + out[2*i + 1]*out[2*i + 1]);
+            out[i]  = std::sqrt(out[2*i + 0]*out[2*i + 0] + out[2*i + 1]*out[2*i + 1]);
         }
         for (int i = 1; i < g_nSamplesPerFrame/2; ++i) {
-            out[i] += out[g_nSamplesPerFrame - i];
+            out[i]  += out[g_nSamplesPerFrame - i];
         }
 
         for (int i = 0; i < (int) g_freqData.size(); ++i) {
@@ -505,7 +530,19 @@ int main(int argc, char** argv) {
                     auto v = g_freqData[g_binMin + i].mag[k];
                     ImVec4 c = { 0.0f, 1.0f, 0.0, 0.0f };
                     c.w = v/(g_scale*sum);
-                    drawList->AddRectFilled({ p0.x + i*dx, p0.y + j*dy }, { p0.x + i*dx + dx, p0.y + j*dy + dy }, ImGui::ColorConvertFloat4ToU32(c));
+
+                    const ImVec2 rp0 = { p0.x + i*dx     , p0.y + j*dy };
+                    const ImVec2 rp1 = { p0.x + i*dx + dx, p0.y + j*dy + dy };
+
+                    drawList->AddRectFilled(rp0, rp1, ImGui::ColorConvertFloat4ToU32(c));
+
+                    // if hovering -> tooltip
+                    if (ImGui::IsMouseHoveringRect(rp0, rp1)) {
+                        ImGui::BeginTooltip();
+                        ImGui::Text("%.2f Hz", g_freqData[g_binMin + i].freq);
+                        ImGui::Text("%.2f", v);
+                        ImGui::EndTooltip();
+                    }
                 }
             }
 
@@ -524,7 +561,7 @@ int main(int argc, char** argv) {
         if (g_showControls) {
             ImGui::SetNextWindowFocus();
             ImGui::SetNextWindowPos({ std::max(20.0f, displaySize.x - 400.0f - 20.0f), 20.0f });
-            ImGui::SetNextWindowSize({ std::min(displaySize.x - 40.0f, 400.0f), 180.0f });
+            ImGui::SetNextWindowSize({ std::min(displaySize.x - 40.0f, 400.0f), 210.0f });
             ImGui::Begin("Controls", &g_showControls);
             ImGui::Text("Press 'c' to hide/show this window");
             {
@@ -535,6 +572,17 @@ int main(int argc, char** argv) {
                 ImGui::DragInt("Max", &g_binMax, 1, g_binMin + 1, g_nBins, buf);
             }
             ImGui::DragFloat("Scale", &g_scale, 1.0f, 1.0f, 1000.0f);
+
+            if (ImGui::Checkbox("High-pass", &g_filter2)) {
+            }
+            ImGui::SameLine();
+            if (ImGui::Checkbox("Hann", &g_filter0)) {
+            }
+            ImGui::SameLine();
+            if (ImGui::Checkbox("Hamming", &g_filter1)) {
+            }
+
+            ImGui::Text("%s", "");
 #ifndef __EMSCRIPTEN__
             if (ImGui::SliderFloat("Offset", &g_sampleRateOffset, -2048, 2048)) {
                 GGWave_deinit();

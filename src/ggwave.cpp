@@ -1672,11 +1672,13 @@ void GGWave::decode_variable() {
                         if ((rsLength.Decode(m_dataEncoded.data(), m_rx.data.data()) == 0) && (m_rx.data[0] > 0 && m_rx.data[0] <= 140)) {
                             knownLength = true;
                             decodedLength = m_rx.data[0];
+                            //printf("decoded length = %d, recvDuration_frames = %d\n", decodedLength, m_rx.recvDuration_frames);
 
                             const int nTotalBytesExpected = m_encodedDataOffset + decodedLength + ::getECCBytesForLength(decodedLength);
                             const int nTotalFramesExpected = 2*m_nMarkerFrames + ((nTotalBytesExpected + protocol.bytesPerTx - 1)/protocol.bytesPerTx)*protocol.framesPerTx;
                             if (m_rx.recvDuration_frames > nTotalFramesExpected ||
                                 m_rx.recvDuration_frames < nTotalFramesExpected - 2*m_nMarkerFrames) {
+                                //printf("  - invalid number of frames: %d (expected %d)\n", m_rx.recvDuration_frames, nTotalFramesExpected);
                                 knownLength = false;
                                 break;
                             }

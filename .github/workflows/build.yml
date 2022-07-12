@@ -29,6 +29,7 @@ jobs:
               run: |
                 make
                 ctest --output-on-failure
+                ./bin/test-ggwave-cpp --full
 
     ubuntu-18_04-python:
         runs-on: ubuntu-18.04

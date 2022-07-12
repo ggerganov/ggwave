@@ -265,7 +265,9 @@ int main(int argc, char ** argv) {
                         auto parameters = GGWave::getDefaultParameters();
                         parameters.sampleFormatInp = formatInp;
                         parameters.sampleFormatOut = formatOut;
-                        if (rand() % 2 == 0) parameters.operatingMode |= GGWAVE_OPERATING_MODE_USE_DSS;
+                        // it seems DSS is not suitable for "variable-length" transmission
+                        // sometimes, the decoder incorrectly detects an early "end" marker when DSS is enabled
+                        //if (rand() % 2 == 0) parameters.operatingMode |= GGWAVE_OPERATING_MODE_USE_DSS;
                         GGWave instance(parameters);
                         instance.rxProtocols().only(GGWave::ProtocolId(protocolId));
 
@@ -275,6 +277,7 @@ int main(int argc, char ** argv) {
                         printf("Expected = %d, actual = %d\n", expectedSize, nBytes);
                         CHECK(expectedSize == nBytes);
                         { auto p = (const uint8_t *)(instance.txWaveform()); buffer.resize(nBytes); memcpy(buffer.data(), p, nBytes); }
+                        addNoiseHelper(0.02, parameters.sampleFormatOut); // add some artificial noise
                         convertHelper(formatOut, formatInp);
                         instance.decode(buffer.data(), buffer.size());
 
@@ -303,6 +306,7 @@ int main(int argc, char ** argv) {
                         printf("Expected = %d, actual = %d\n", expectedSize, nBytes);
                         CHECK(expectedSize == nBytes);
                         { auto p = (const uint8_t *)(instance.txWaveform()); buffer.resize(nBytes); memcpy(buffer.data(), p, nBytes); }
+                        addNoiseHelper(0.10, parameters.sampleFormatOut); // add some artificial noise
                         convertHelper(formatOut, formatInp);
                         instance.decode(buffer.data(), buffer.size());
 

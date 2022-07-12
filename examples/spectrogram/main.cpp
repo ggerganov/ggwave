@@ -214,15 +214,15 @@ bool GGWave_mainLoop() {
         if (n <= 0) break;
 
         if (g_filter2) {
-            GGWave::filter(GGWAVE_FILTER_FIRST_ORDER_HIGH_PASS, data, g_nSamplesPerFrame, 750.0f, GGWave::kDefaultSampleRate, workF2);
+            GGWave::filter(GGWAVE_FILTER_FIRST_ORDER_HIGH_PASS, data, g_nSamplesPerFrame, 250.0f, GGWave::kDefaultSampleRate, workF2);
         }
 
         if (g_filter0) {
-            GGWave::filter(GGWAVE_FILTER_HANN, data, g_nSamplesPerFrame, 750.0f, GGWave::kDefaultSampleRate, workF0);
+            GGWave::filter(GGWAVE_FILTER_HANN, data, g_nSamplesPerFrame, 250.0f, GGWave::kDefaultSampleRate, workF0);
         }
 
         if (g_filter1) {
-            GGWave::filter(GGWAVE_FILTER_HAMMING, data, g_nSamplesPerFrame, 750.0f, GGWave::kDefaultSampleRate, workF1);
+            GGWave::filter(GGWAVE_FILTER_HAMMING, data, g_nSamplesPerFrame, 250.0f, GGWave::kDefaultSampleRate, workF1);
         }
 
         if (GGWave::computeFFTR(data, out, g_nSamplesPerFrame, workI, workF) == false) {

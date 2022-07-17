@@ -15,11 +15,15 @@
 #define M_PI 3.14159265358979323846
 #endif
 
+#ifdef GGWAVE_DISABLE_LOG
+#define ggprintf(...)
+#else
 #ifdef ARDUINO
 #define ggprintf(...)
 #else
 #define ggprintf(...) \
     g_fptr && fprintf(g_fptr, __VA_ARGS__)
+#endif
 #endif
 
 #define GG_MIN(A, B) (((A) < (B)) ? (A) : (B))

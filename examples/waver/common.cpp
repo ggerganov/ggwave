@@ -1068,7 +1068,7 @@ void renderMain() {
 
     if (windowId == WindowId::Settings) {
         ImGui::BeginChild("Settings:main", ImGui::GetContentRegionAvail(), true, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse);
-        ImGui::Text("Waver v1.5.2");
+        ImGui::Text("Waver v1.5.3");
         ImGui::Separator();
 
         ImGui::Text("%s", "");

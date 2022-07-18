@@ -36,6 +36,10 @@
 // Uncoment this line to enable SSD1306 display output
 //#define DISPLAY_OUTPUT 1
 
+// Uncoment this line to enable long-range transmission
+// The used protocols are slower and use more memory to decode, but are much more robust
+//#define EXAMPLE_LONG_RANGE 1
+
 #include <ggwave.h>
 
 #include <soc/adc_channel.h>
@@ -148,7 +152,12 @@ void setup() {
 
         // Adjust the "ggwave" parameters to your needs.
         // Make sure that the "payloadLength" parameter matches the one used on the transmitting side.
+#ifdef EXAMPLE_LONG_RANGE
+        // The "FAST" protocols require 2x more memory, so we reduce the payload length to compensate:
+        p.payloadLength   = 8;
+#else
         p.payloadLength   = 16;
+#endif
         p.sampleRateInp   = sampleRate;
         p.sampleRateOut   = sampleRate;
         p.sampleRate      = sampleRate;
@@ -168,18 +177,26 @@ void setup() {
         // Remove the ones that you don't need to reduce memory usage
         GGWave::Protocols::rx().disableAll();
         //GGWave::Protocols::rx().toggle(GGWAVE_PROTOCOL_DT_NORMAL,  true);
-        //GGWave::Protocols::rx().toggle(GGWAVE_PROTOCOL_DT_FAST,    true);
+#ifdef EXAMPLE_LONG_RANGE
+        GGWave::Protocols::rx().toggle(GGWAVE_PROTOCOL_DT_FAST,    true);
+#endif
         GGWave::Protocols::rx().toggle(GGWAVE_PROTOCOL_DT_FASTEST, true);
         //GGWave::Protocols::rx().toggle(GGWAVE_PROTOCOL_MT_NORMAL,  true);
-        //GGWave::Protocols::rx().toggle(GGWAVE_PROTOCOL_MT_FAST,    true);
+#ifdef EXAMPLE_LONG_RANGE
+        GGWave::Protocols::rx().toggle(GGWAVE_PROTOCOL_MT_FAST,    true);
+#endif
         GGWave::Protocols::rx().toggle(GGWAVE_PROTOCOL_MT_FASTEST, true);
 
-        // Initialize the ggwave instance and print the memory usage
-        ggwave.prepare(p);
+        // Print the memory required for the "ggwave" instance:
+        ggwave.prepare(p, false);
 
-        Serial.print(F("Instance initialized successfully! Memory used: "));
+        Serial.print(F("Required memory by the ggwave instance: "));
         Serial.print(ggwave.heapSize());
         Serial.println(F(" bytes"));
+
+        // Initialize the "ggwave" instance:
+        ggwave.prepare(p, true);
+        Serial.print(F("Instance initialized successfully! Memory used: "));
     }
 
     // Start capturing audio

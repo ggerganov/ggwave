@@ -2,13 +2,21 @@
 
 This is a sample project for receiving audio data using [ESP32](https://www.espressif.com/en/products/socs/esp32) microcontroller.
 The chip has a built-in 12-bit ADC which is used to process the analog audio from the external microphone module in real-time.
-The received messages are displayed on the attached OLED display
+The program also support input from I2S MEMS microphones that does not require the usage of the ADC.
+The received messages are optionally displayed on the attached OLED display.
 
 ## Setup
 
 - NodeMCU-ESP32
 - OLED SSD1306
-- MAX9814 (also works with KY-037, KY-038 and WS Sound sensor)
+- Microphone, tested with the following, but others could be also supported:
+  - Analog:
+    - MAX9814
+    - KY-037
+    - KY-038
+    - WS Sound sensor
+  - I2S MEMS:
+    - SPH0645
 
 ![Sketch-Breadboard](fritzing-sketch_bb.png)
 

@@ -1,18 +1,21 @@
 // esp32-rx
 //
-// Sample sketch for receiving data using "ggwave"
+// Sample sketch for receiving sound data using "ggwave"
 //
-// Tested with:
+// Tested MCU boards:
 //   - NodeMCU-ESP32-S
 //
-// Tested microphones:
+// Tested analog microphones:
 //   - MAX9814
 //   - KY-037
 //   - KY-038
 //   - WS Sound sensor
 //
+// Tested I2S microphones:
+//   - Adafruit I2S SPH0645
+//
 // The ESP32 microcontroller has a built-int 12-bit ADC which is used to digitalize the analog signal
-// from the external microphone.
+// from the external analog microphone. When I2S microphone is used, the ADC is not used.
 //
 // The sketch optionally supports displaying the received "ggwave" data on an OLED display.
 // Use the DISPLAY_OUTPUT macro to enable or disable this functionality.
@@ -33,11 +36,16 @@
 // Sketch: https://github.com/ggerganov/ggwave/tree/master/examples/esp32-rx
 //
 
+// Uncomment the line coresponding to your microhpone
+#define MIC_ANALOG
+//#define MIC_I2S
+//#define MIC_I2S_SPH0645
+
 // Uncoment this line to enable SSD1306 display output
 //#define DISPLAY_OUTPUT 1
 
 // Uncoment this line to enable long-range transmission
-// The used protocols are slower and use more memory to decode, but are much more robust
+// These protocols are slower and use more memory to decode, but are much more robust
 //#define EXAMPLE_LONG_RANGE 1
 
 #include <ggwave.h>
@@ -52,7 +60,12 @@ const int kPinLED0 = 2;
 GGWave ggwave;
 
 // Audio capture configuration
-using TSample = int16_t;
+using TSample                  = int16_t;
+#if defined(MIC_ANALOG)
+using TSampleInput             = int16_t;
+#elif defined(MIC_I2S) || defined(MIC_I2S_SPH0645)
+using TSampleInput             = int32_t;
+#endif
 const size_t kSampleSize_bytes = sizeof(TSample);
 
 // High sample rate - better quality, but more CPU/Memory usage
@@ -66,13 +79,22 @@ const int samplesPerFrame = 512;
 
 TSample sampleBuffer[samplesPerFrame];
 
+// helper buffer for data input in different formats:
+#if defined(MIC_ANALOG)
+TSampleInput * sampleBufferRaw = sampleBuffer;
+#elif defined(MIC_I2S) || defined(MIC_I2S_SPH0645)
+TSampleInput sampleBufferRaw[samplesPerFrame];
+#endif
+
+const i2s_port_t i2s_port = I2S_NUM_0;
+
+#if defined(MIC_ANALOG)
 // ADC configuration
-const i2s_port_t     i2s_port    = I2S_NUM_0;
 const adc_unit_t     adc_unit    = ADC_UNIT_1;
 const adc1_channel_t adc_channel = ADC1_GPIO35_CHANNEL;
 
 // i2s config for using the internal ADC
-const i2s_config_t adc_i2s_config = {
+const i2s_config_t i2s_config = {
     .mode                 = (i2s_mode_t)(I2S_MODE_MASTER | I2S_MODE_RX | I2S_MODE_ADC_BUILT_IN),
     .sample_rate          = sampleRate,
     .bits_per_sample      = I2S_BITS_PER_SAMPLE_16BIT,
@@ -85,6 +107,32 @@ const i2s_config_t adc_i2s_config = {
     .tx_desc_auto_clear   = false,
     .fixed_mclk           = 0
 };
+#endif
+
+#if defined(MIC_I2S) || defined(MIC_I2S_SPH0645)
+// i2s config for using I2S mic input from RIGHT channel
+const i2s_config_t i2s_config = {
+    .mode                     = i2s_mode_t(I2S_MODE_MASTER | I2S_MODE_RX),
+    .sample_rate              = sampleRate,
+    .bits_per_sample          = I2S_BITS_PER_SAMPLE_32BIT,
+    .channel_format           = I2S_CHANNEL_FMT_ONLY_RIGHT,
+    .communication_format     = i2s_comm_format_t(I2S_COMM_FORMAT_I2S | I2S_COMM_FORMAT_I2S_MSB),
+    .intr_alloc_flags         = ESP_INTR_FLAG_LEVEL1,
+    .dma_buf_count            = 4,
+    .dma_buf_len              = samplesPerFrame,
+    .use_apll                 = false,
+    .tx_desc_auto_clear       = false,
+    .fixed_mclk               = 0
+};
+
+// The pin config as per the setup
+const i2s_pin_config_t pin_config = {
+    .bck_io_num   = 26,   // Serial Clock (SCK)
+    .ws_io_num    = 25,    // Word Select (WS)
+    .data_out_num = I2S_PIN_NO_CHANGE, // not used (only for speakers)
+    .data_in_num  = 33   // Serial Data (SD)
+};
+#endif
 
 #ifdef DISPLAY_OUTPUT
 
@@ -201,10 +249,13 @@ void setup() {
 
     // Start capturing audio
     {
-        Serial.println(F("Trying to start I2S ADC"));
+        Serial.println(F("Initializing I2S interface"));
 
         // Install and start i2s driver
-        i2s_driver_install(i2s_port, &adc_i2s_config, 0, NULL);
+        i2s_driver_install(i2s_port, &i2s_config, 0, NULL);
+
+#if defined(MIC_ANALOG)
+        Serial.println(F("Using analog input - initializing ADC"));
 
         // Init ADC pad
         i2s_set_adc_mode(adc_unit, adc_channel);
@@ -213,6 +264,21 @@ void setup() {
         i2s_adc_enable(i2s_port);
 
         Serial.println(F("I2S ADC started"));
+#endif
+
+#if defined(MIC_I2S) || defined(MIC_I2S_SPH0645)
+        Serial.println(F("Using I2S input"));
+
+#if defined(MIC_I2S_SPH0645)
+        Serial.println(F("Applying fix for SPH0645"));
+
+        // https://github.com/atomic14/esp32_audio/blob/d2ac3490c0836cb46a69c83b0570873de18f695e/i2s_sampling/src/I2SMEMSSampler.cpp#L17-L22
+        REG_SET_BIT(I2S_TIMING_REG(i2s_port), BIT(9));
+        REG_SET_BIT(I2S_CONF_REG(i2s_port), I2S_RX_MSB_SHIFT);
+#endif
+
+        i2s_set_pin(i2s_port, &pin_config);
+#endif
     }
 }
 
@@ -223,17 +289,19 @@ GGWave::TxRxData result;
 GGWave::Spectrum rxSpectrum;
 
 void loop() {
-    // Read from i2s - the samples are 12-bit so we need to do some massaging to make them 16-bit
+    // Read from i2s
     {
         size_t bytes_read = 0;
-        i2s_read(i2s_port, sampleBuffer, sizeof(int16_t)*samplesPerFrame, &bytes_read, portMAX_DELAY);
+        i2s_read(i2s_port, sampleBufferRaw, sizeof(TSampleInput)*samplesPerFrame, &bytes_read, portMAX_DELAY);
 
-        int samples_read = bytes_read / sizeof(int16_t);
+        int samples_read = bytes_read/sizeof(TSampleInput);
         if (samples_read != samplesPerFrame) {
             Serial.println("Failed to read samples");
             return;
         }
 
+#if defined(MIC_ANALOG)
+        // the ADC samples are 12-bit so we need to do some massaging to make them 16-bit
         for (int i = 0; i < samples_read; i += 2) {
             auto & s0 = sampleBuffer[i];
             auto & s1 = sampleBuffer[i + 1];
@@ -245,12 +313,19 @@ void loop() {
             s1 = s0 ^ s1;
             s0 = s0 ^ s1;
         }
+#endif
 
-        // Use this with the serial plotter to observe real-time audio signal
-        //for (int i = 0; i < samples_read; i++) {
-        //    Serial.println(sampleBuffer[i]);
-        //}
+#if defined(MIC_I2S) || defined(MIC_I2S_SPH0645)
+        for (int i = 0; i < samples_read; ++i) {
+            sampleBuffer[i] = (sampleBufferRaw[i] & 0xFFFFFFF0) >> 11;
+        }
+#endif
     }
+
+    // Use this with the serial plotter to observe real-time audio signal
+    //for (int i = 0; i < samples_read; i++) {
+    //    Serial.println(sampleBuffer[i]);
+    //}
 
     // Try to decode any "ggwave" data:
     auto tStart = millis();

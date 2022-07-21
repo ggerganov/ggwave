@@ -6,6 +6,7 @@ if (isset($_GET['s'])) { $cmd .= " -s".intval($_GET['s']); }
 if (isset($_GET['v'])) { $cmd .= " -v".intval($_GET['v']); }
 if (isset($_GET['p'])) { $cmd .= " -p".intval($_GET['p']); }
 if (isset($_GET['l'])) { $cmd .= " -l".intval($_GET['l']); }
+if (isset($_GET['d'])) { if (intval($_GET['d']) > 0) $cmd .= " -d"; }
 
 $descriptorspec = array(
     0 => array("pipe", "r"),

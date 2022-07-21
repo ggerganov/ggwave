@@ -106,6 +106,7 @@ The [examples](https://github.com/ggerganov/ggwave/blob/master/examples/) folder
 | [ggwave-cli](https://github.com/ggerganov/ggwave/blob/master/examples/ggwave-cli) | Command line tool for sending/receiving data through sound | SDL |
 | [ggwave-wasm](https://github.com/ggerganov/ggwave/blob/master/examples/ggwave-wasm) | WebAssembly module for web applications | SDL |
 | [ggwave-to-file](https://github.com/ggerganov/ggwave/blob/master/examples/ggwave-to-file) | Output a generated waveform to an uncompressed WAV file | - |
+| [ggwave-from-file](https://github.com/ggerganov/ggwave/blob/master/examples/ggwave-from-file) | Decode a waveform from an uncompressed WAV file | - |
 | [waver](https://github.com/ggerganov/ggwave/blob/master/examples/waver) | GUI application for sending/receiving data through sound | SDL |
 | [ggwave-py](https://github.com/ggerganov/ggwave/blob/master/examples/ggwave-py) | Python examples | PortAudio |
 | [ggwave-js](https://github.com/ggerganov/ggwave/blob/master/examples/ggwave-js) | Javascript example | Web Audio API |

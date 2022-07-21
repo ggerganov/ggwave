@@ -10,18 +10,21 @@
 #include <iostream>
 
 int main(int argc, char** argv) {
-    fprintf(stderr, "Usage: %s [-vN] [-sN] [-pN] [-lN]\n", argv[0]);
+    fprintf(stderr, "Usage: %s [-vN] [-sN] [-pN] [-lN] [-d]\n", argv[0]);
     fprintf(stderr, "    -vN - output volume, N in (0, 100], (default: 50)\n");
-    fprintf(stderr, "    -SN - output sample rate, N in [%d, %d], (default: %d)\n", (int) GGWave::kSampleRateMin, (int) GGWave::kSampleRateMax, (int) GGWave::kDefaultSampleRate);
+    fprintf(stderr, "    -sN - output sample rate, N in [%d, %d], (default: %d)\n", (int) GGWave::kSampleRateMin, (int) GGWave::kSampleRateMax, (int) GGWave::kDefaultSampleRate);
     fprintf(stderr, "    -pN - select the transmission protocol id (default: 1)\n");
     fprintf(stderr, "    -lN - fixed payload length of size N, N in [1, %d]\n", GGWave::kMaxLengthFixed);
-    fprintf(stderr, "    -s  - use Direct Sequence Spread (DSS)\n");
+    fprintf(stderr, "    -d  - use Direct Sequence Spread (DSS)\n");
     fprintf(stderr, "\n");
     fprintf(stderr, "    Available protocols:\n");
 
     const auto & protocols = GGWave::Protocols::kDefault();
     for (int i = 0; i < (int) protocols.size(); ++i) {
         const auto & protocol = protocols[i];
+        if (protocol.enabled == false) {
+            continue;
+        }
         fprintf(stderr, "      %d - %s\n", i, protocol.name);
     }
     fprintf(stderr, "\n");
@@ -36,11 +39,11 @@ int main(int argc, char** argv) {
         return 0;
     }
 
-    const int volume          = argm.count("v") == 0 ? 50 : std::stoi(argm.at("v"));
-    const float sampleRateOut = argm.count("S") == 0 ? GGWave::kDefaultSampleRate : std::stof(argm.at("S"));
-    const int protocolId      = argm.count("p") == 0 ? 1 : std::stoi(argm.at("p"));
-    const int payloadLength   = argm.count("l") == 0 ? -1 : std::stoi(argm.at("l"));
-    const bool useDSS         = argm.count("s") > 0;
+    const int   volume        = argm.count("v") == 0 ? 50 : std::stoi(argm.at("v"));
+    const float sampleRateOut = argm.count("s") == 0 ? GGWave::kDefaultSampleRate : std::stof(argm.at("s"));
+    const int   protocolId    = argm.count("p") == 0 ?  1 : std::stoi(argm.at("p"));
+    const int   payloadLength = argm.count("l") == 0 ? -1 : std::stoi(argm.at("l"));
+    const bool  useDSS        = argm.count("d") >  0;
 
     if (volume <= 0 || volume > 100) {
         fprintf(stderr, "Invalid volume\n");

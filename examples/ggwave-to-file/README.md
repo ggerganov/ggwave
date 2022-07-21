@@ -3,22 +3,26 @@
 Output a generated waveform to an uncompressed WAV file.
 
 ```
-Usage: ./bin/ggwave-to-file [-vN] [-sN] [-pN] [-lN]
+Usage: ./bin/ggwave-to-file [-vN] [-sN] [-pN] [-lN] [-d]
     -vN - output volume, N in (0, 100], (default: 50)
     -sN - output sample rate, N in [6000, 96000], (default: 48000)
     -pN - select the transmission protocol id (default: 1)
     -lN - fixed payload length of size N, N in [1, 16]
+    -d  - use Direct Sequence Spread (DSS)
 
     Available protocols:
-      0 - Normal
-      1 - Fast
-      2 - Fastest
-      3 - [U] Normal
-      4 - [U] Fast
-      5 - [U] Fastest
-      6 - [DT] Normal
-      7 - [DT] Fast
-      8 - [DT] Fastest
+      0  - Normal
+      1  - Fast
+      2  - Fastest
+      3  - [U] Normal
+      4  - [U] Fast
+      5  - [U] Fastest
+      6  - [DT] Normal
+      7  - [DT] Fast
+      8  - [DT] Fastest
+      9  - [MT] Normal
+      10 - [MT] Fast
+      11 - [MT] Fastest
 ```
 
 ### Examples
@@ -45,6 +49,12 @@ Usage: ./bin/ggwave-to-file [-vN] [-sN] [-pN] [-lN]
 
   ```bash
   echo "Hello world!" | ./bin/ggwave-to-file -l12 > example.wav
+  ```
+
+- Use DSS when encoding the text
+
+  ```bash
+  echo "aaaaaaaa" | ./bin/ggwave-to-file -l8 -d > example.wav
   ```
 
 - Play the generated waveform directly through the speakers
@@ -89,13 +99,13 @@ from typing import Dict, Union
 import requests
 import wave
 
-
 def ggwave(message: str,
            file: str,
            protocolId: int = 1,
            sampleRate: float = 48000,
            volume: int = 50,
-           payloadLength: int = -1) -> None:
+           payloadLength: int = -1,
+           useDSS: int = 0) -> None:
 
     url = 'https://ggwave-to-file.ggerganov.com/'
 
@@ -105,6 +115,7 @@ def ggwave(message: str,
         's': sampleRate,     # output sample rate
         'v': volume,         # output volume
         'l': payloadLength,  # if positive - use fixed-length encoding
+        'd': useDSS,         # if positive - use DSS
     }
 
     response = requests.get(url, params=params)

@@ -2,13 +2,13 @@ from typing import Dict, Union
 import requests
 import wave
 
-
 def ggwave(message: str,
            file: str,
            protocolId: int = 1,
            sampleRate: float = 48000,
            volume: int = 50,
-           payloadLength: int = -1) -> None:
+           payloadLength: int = -1,
+           useDSS: int = 0) -> None:
 
     url = 'https://ggwave-to-file.ggerganov.com/'
 
@@ -18,6 +18,7 @@ def ggwave(message: str,
         's': sampleRate,     # output sample rate
         'v': volume,         # output volume
         'l': payloadLength,  # if positive - use fixed-length encoding
+        'd': useDSS,         # if positive - use DSS
     }
 
     response = requests.get(url, params=params)

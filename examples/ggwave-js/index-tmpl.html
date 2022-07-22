@@ -87,7 +87,7 @@
                 captureStop.click();
 
                 // generate audio waveform
-                var waveform = ggwave.encode(instance, txData.value, ggwave.TxProtocolId.GGWAVE_TX_PROTOCOL_AUDIBLE_FAST, 10)
+                var waveform = ggwave.encode(instance, txData.value, ggwave.ProtocolId.GGWAVE_PROTOCOL_AUDIBLE_FAST, 10)
 
                 // play audio
                 var buf = convertTypedArray(waveform, Float32Array);

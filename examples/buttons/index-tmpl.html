@@ -113,9 +113,9 @@
                 // generate audio waveform
                 var waveform = null;
                 if (document.getElementById("checkbox-fp").checked) {
-                    waveform = ggwave_FluentPet.encode(instance, payload, ggwave_FluentPet.TxProtocolId.GGWAVE_PROTOCOL_DT_FAST, 25)
+                    waveform = ggwave_FluentPet.encode(instance, payload, ggwave_FluentPet.ProtocolId.GGWAVE_PROTOCOL_DT_FAST, 25)
                 } else {
-                    waveform = ggwave.encode(instance, payload, ggwave.TxProtocolId.GGWAVE_PROTOCOL_DT_FAST, 25)
+                    waveform = ggwave.encode(instance, payload, ggwave.ProtocolId.GGWAVE_PROTOCOL_DT_FAST, 25)
                 }
 
                 // play audio

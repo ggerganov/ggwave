@@ -92,6 +92,7 @@ else()
     add_subdirectory(arduino-tx)
     add_subdirectory(arduino-tx-obsolete)
     add_subdirectory(esp32-rx)
+    add_subdirectory(rp2040-rx)
 endif()
 
 if (GGWAVE_SUPPORT_SDL2)

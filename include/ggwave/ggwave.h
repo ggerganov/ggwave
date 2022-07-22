@@ -15,7 +15,7 @@
 #    define GGWAVE_API
 #endif
 
-#if defined(ARDUINO)
+#if defined(ARDUINO_UNO)
 #define GGWAVE_CONFIG_FEW_PROTOCOLS
 #endif
 

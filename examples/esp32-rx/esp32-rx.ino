@@ -14,7 +14,7 @@
 // Tested I2S microphones:
 //   - Adafruit I2S SPH0645
 //
-// The ESP32 microcontroller has a built-int 12-bit ADC which is used to digitalize the analog signal
+// The ESP32 microcontroller has a built-in 12-bit ADC which is used to digitalize the analog signal
 // from the external analog microphone. When I2S microphone is used, the ADC is not used.
 //
 // The sketch optionally supports displaying the received "ggwave" data on an OLED display.
@@ -75,7 +75,7 @@
 
 // Uncoment this line to enable long-range transmission
 // These protocols are slower and use more memory to decode, but are much more robust
-//#define EXAMPLE_LONG_RANGE 1
+//#define LONG_RANGE 1
 
 #include <ggwave.h>
 
@@ -89,12 +89,13 @@ const int kPinLED0 = 2;
 GGWave ggwave;
 
 // Audio capture configuration
-using TSample                  = int16_t;
+using TSample      = int16_t;
 #if defined(MIC_ANALOG)
-using TSampleInput             = int16_t;
+using TSampleInput = int16_t;
 #elif defined(MIC_I2S) || defined(MIC_I2S_SPH0645)
-using TSampleInput             = int32_t;
+using TSampleInput = int32_t;
 #endif
+
 const size_t kSampleSize_bytes = sizeof(TSample);
 
 // High sample rate - better quality, but more CPU/Memory usage
@@ -193,6 +194,8 @@ void setup() {
 
 #ifdef DISPLAY_OUTPUT
     {
+        Serial.println(F("Initializing display..."));
+
         // SSD1306_SWITCHCAPVCC = generate display voltage from 3.3V internally
         if(!display.begin(SSD1306_SWITCHCAPVCC, SCREEN_ADDRESS)) {
             Serial.println(F("SSD1306 allocation failed"));
@@ -229,12 +232,15 @@ void setup() {
 
         // Adjust the "ggwave" parameters to your needs.
         // Make sure that the "payloadLength" parameter matches the one used on the transmitting side.
-#ifdef EXAMPLE_LONG_RANGE
+#ifdef LONG_RANGE
         // The "FAST" protocols require 2x more memory, so we reduce the payload length to compensate:
         p.payloadLength   = 8;
 #else
         p.payloadLength   = 16;
 #endif
+        Serial.print(F("Using payload length: "));
+        Serial.println(p.payloadLength);
+
         p.sampleRateInp   = sampleRate;
         p.sampleRateOut   = sampleRate;
         p.sampleRate      = sampleRate;
@@ -254,12 +260,12 @@ void setup() {
         // Remove the ones that you don't need to reduce memory usage
         GGWave::Protocols::rx().disableAll();
         //GGWave::Protocols::rx().toggle(GGWAVE_PROTOCOL_DT_NORMAL,  true);
-#ifdef EXAMPLE_LONG_RANGE
+#ifdef LONG_RANGE
         GGWave::Protocols::rx().toggle(GGWAVE_PROTOCOL_DT_FAST,    true);
 #endif
         GGWave::Protocols::rx().toggle(GGWAVE_PROTOCOL_DT_FASTEST, true);
         //GGWave::Protocols::rx().toggle(GGWAVE_PROTOCOL_MT_NORMAL,  true);
-#ifdef EXAMPLE_LONG_RANGE
+#ifdef LONG_RANGE
         GGWave::Protocols::rx().toggle(GGWAVE_PROTOCOL_MT_FAST,    true);
 #endif
         GGWave::Protocols::rx().toggle(GGWAVE_PROTOCOL_MT_FASTEST, true);
@@ -315,7 +321,6 @@ int niter = 0;
 int tLastReceive = -10000;
 
 GGWave::TxRxData result;
-GGWave::Spectrum rxSpectrum;
 
 void loop() {
     // Read from i2s
@@ -391,6 +396,7 @@ void loop() {
 #ifdef DISPLAY_OUTPUT
     const auto t = millis();
 
+    static GGWave::Spectrum rxSpectrum;
     if (ggwave.rxTakeSpectrum(rxSpectrum) && t > 2000) {
         const bool isNew = t - tLastReceive < 2000;
 

@@ -18,6 +18,35 @@ The received messages are optionally displayed on the attached OLED display.
   - I2S MEMS:
     - SPH0645
 
+## Pinout
+
+### Analog Microphone
+
+| EPS32   | Mic       |
+| ------- | --------- |
+| GND     | GND       |
+| 3.3V    | VCC / VDD |
+| GPIO 35 | Out       |
+
+### Digital Microphone
+
+| EPS32   | Mic         |
+| ------- | ----------- |
+| GND     | GND         |
+| 3.3V    | VCC / VDD   |
+| GPIO 26 | BCLK        |
+| GPIO 33 | Data / DOUT |
+| GPIO 25 | LRCL        |
+
+### I2C Display
+
+| EPS32   | Display     |
+| ------- | ----------- |
+| GND     | GND         |
+| 3.3V    | VCC / VDD   |
+| GPIO 21 | SDA         |
+| GPIO 22 | SCL         |
+
 ![Sketch-Breadboard](fritzing-sketch_bb.png)
 
 ![Sketch-photo](https://user-images.githubusercontent.com/1991296/177842221-411c77a4-09cd-43b7-988f-44eebbad8f8c.JPEG)

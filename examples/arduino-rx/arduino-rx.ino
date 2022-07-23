@@ -26,6 +26,24 @@
 //
 // Sketch: https://github.com/ggerganov/ggwave/tree/master/examples/arduino-rx
 //
+// ## Pinout for Arduino Nano RP2040 Connect
+//
+// ### I2C Display (optional)
+//
+// | MCU           | Display   |
+// | ------------- | --------- |
+// | GND           | GND       |
+// | 3.3V          | VCC / VDD |
+// | D18 / GPIO 12 | SDA       |
+// | D19 / GPIO 13 | SCL       |
+//
+// ### Peripherals (optional)
+//
+// | MCU           | Periph. |
+// | ------------- | ------- |
+// |  D5 / GPIO 17 | Button  |
+// | D10 / GPIO  5 | Speaker |
+//
 
 // Uncoment this line to enable SSD1306 display output
 //#define DISPLAY_OUTPUT 1

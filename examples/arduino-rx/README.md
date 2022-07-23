@@ -9,6 +9,24 @@ The development board has a built-in microphone which makes this device very sui
 - OLED SSD1306
 - Generic speaker
 
+## Pinout for Arduino Nano RP2040 Connect
+
+### I2C Display (optional)
+
+| MCU           | Display   |
+| ------------- | --------- |
+| GND           | GND       |
+| 3.3V          | VCC / VDD |
+| D18 / GPIO 12 | SDA       |
+| D19 / GPIO 13 | SCL       |
+
+### Peripherals (optional)
+
+| MCU           | Periph. |
+| ------------- | ------- |
+|  D5 / GPIO 17 | Button  |
+| D10 / GPIO  5 | Speaker |
+
 ![Sketch-Breadboard](fritzing-sketch_bb.png)
 
 ![Sketch-Photo](https://user-images.githubusercontent.com/1991296/177850326-e5fefde3-93ee-4cf9-8fa5-861eef9565f7.JPEG)

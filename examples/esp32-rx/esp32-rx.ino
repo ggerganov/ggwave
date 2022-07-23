@@ -35,6 +35,35 @@
 //
 // Sketch: https://github.com/ggerganov/ggwave/tree/master/examples/esp32-rx
 //
+// ## Pinout
+//
+// ### Analog Microphone
+//
+// | MCU     | Mic       |
+// | ------- | --------- |
+// | GND     | GND       |
+// | 3.3V    | VCC / VDD |
+// | GPIO 35 | Out       |
+//
+// ### Digital (I2S) Microphone
+//
+// | MCU     | Mic         |
+// | ------- | ----------- |
+// | GND     | GND         |
+// | 3.3V    | VCC / VDD   |
+// | GPIO 26 | BCLK        |
+// | GPIO 33 | Data / DOUT |
+// | GPIO 25 | LRCL        |
+//
+// ### I2C Display (optional)
+//
+// | MCU     | Display   |
+// | ------- | --------- |
+// | GND     | GND       |
+// | 3.3V    | VCC / VDD |
+// | GPIO 21 | SDA       |
+// | GPIO 22 | SCL       |
+//
 
 // Uncomment the line coresponding to your microhpone
 #define MIC_ANALOG

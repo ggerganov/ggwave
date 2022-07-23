@@ -22,15 +22,15 @@ The received messages are optionally displayed on the attached OLED display.
 
 ### Analog Microphone
 
-| EPS32   | Mic       |
+| MCU     | Mic       |
 | ------- | --------- |
 | GND     | GND       |
 | 3.3V    | VCC / VDD |
 | GPIO 35 | Out       |
 
-### Digital Microphone
+### Digital (I2S) Microphone
 
-| EPS32   | Mic         |
+| MCU     | Mic         |
 | ------- | ----------- |
 | GND     | GND         |
 | 3.3V    | VCC / VDD   |
@@ -38,9 +38,9 @@ The received messages are optionally displayed on the attached OLED display.
 | GPIO 33 | Data / DOUT |
 | GPIO 25 | LRCL        |
 
-### I2C Display
+### I2C Display (optional)
 
-| EPS32   | Display     |
+| MCU     | Display     |
 | ------- | ----------- |
 | GND     | GND         |
 | 3.3V    | VCC / VDD   |

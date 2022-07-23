@@ -328,15 +328,15 @@ void loop() {
         size_t bytes_read = 0;
         i2s_read(i2s_port, sampleBufferRaw, sizeof(TSampleInput)*samplesPerFrame, &bytes_read, portMAX_DELAY);
 
-        int samples_read = bytes_read/sizeof(TSampleInput);
-        if (samples_read != samplesPerFrame) {
+        int nSamples = bytes_read/sizeof(TSampleInput);
+        if (nSamples != samplesPerFrame) {
             Serial.println("Failed to read samples");
             return;
         }
 
 #if defined(MIC_ANALOG)
         // the ADC samples are 12-bit so we need to do some massaging to make them 16-bit
-        for (int i = 0; i < samples_read; i += 2) {
+        for (int i = 0; i < nSamples; i += 2) {
             auto & s0 = sampleBuffer[i];
             auto & s1 = sampleBuffer[i + 1];
 
@@ -350,14 +350,14 @@ void loop() {
 #endif
 
 #if defined(MIC_I2S) || defined(MIC_I2S_SPH0645)
-        for (int i = 0; i < samples_read; ++i) {
+        for (int i = 0; i < nSamples; ++i) {
             sampleBuffer[i] = (sampleBufferRaw[i] & 0xFFFFFFF0) >> 11;
         }
 #endif
     }
 
     // Use this with the serial plotter to observe real-time audio signal
-    //for (int i = 0; i < samples_read; i++) {
+    //for (int i = 0; i < nSamples; i++) {
     //    Serial.println(sampleBuffer[i]);
     //}
 

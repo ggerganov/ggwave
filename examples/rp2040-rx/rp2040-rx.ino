@@ -203,7 +203,7 @@ void loop() {
     int nSamples = samplesRead;
     samplesRead = 0;
 
-    //// loop through any new collected samples
+    // Use this with the serial plotter to observe real-time audio signal
     //for (int i = 0; i < nSamples; i++) {
     //    Serial.printf("%d\n", sampleBuffer[i]);
     //}

@@ -261,6 +261,11 @@ void loop() {
     // Main loop ..
     while (true) {
         while (qsize >= samplesPerFrame) {
+            // Use this with the serial plotter to observe real-time audio signal
+            //for (int i = 0; i < samplesPerFrame; i++) {
+            //    Serial.println(sampleBuffer[qhead + i]);
+            //}
+
             // We have enough captured samples - try to decode any "ggwave" data:
             auto tStart = millis();
 

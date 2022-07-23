@@ -117,9 +117,10 @@ The [examples](https://github.com/ggerganov/ggwave/blob/master/examples/) folder
 | [ggwave-objc](https://github.com/ggerganov/ggwave-objc) | Minimal Objective-C iOS app using ggwave | AudioToolbox |
 | [ggwave-java](https://github.com/ggerganov/ggwave-java) | Minimal Java Android app using ggwave | android.media |
 | [ggwave-fm](https://github.com/rgerganov/ggwave-fm) | Transmit ggwave messages with HackRF | Radio |
-| [esp32-rx](https://github.com/ggerganov/ggwave/tree/master/examples/esp32-rx) | Transmit and receive messages using ESP32 | ESP32 |
-| [arduino-rx](https://github.com/ggerganov/ggwave/tree/master/examples/arduino-rx) | Transmit and receive messages using Arduino RP2040 | Arduino |
-| [arduino-tx](https://github.com/ggerganov/ggwave/tree/master/examples/arduino-tx) | Transmit messages using Arduino Uno | Arduino |
+| [esp32-rx](https://github.com/ggerganov/ggwave/tree/master/examples/esp32-rx) | Transmit and receive messages using ESP32 | - |
+| [rp2040-rx](https://github.com/ggerganov/ggwave/tree/master/examples/rp2040-rx) | Transmit and receive messages using Raspberry Pi Pico (RP2040) | - |
+| [arduino-rx](https://github.com/ggerganov/ggwave/tree/master/examples/arduino-rx) | Transmit and receive messages using Arduino RP2040 | - |
+| [arduino-tx](https://github.com/ggerganov/ggwave/tree/master/examples/arduino-tx) | Transmit messages using Arduino Uno | - |
 | [arduino-rx-web](https://github.com/ggerganov/ggwave/tree/master/examples/arduino-rx-web) | Receive messages from Arduino Uno | Web Audio API |
 
 Other projects using **ggwave** or one of its prototypes:

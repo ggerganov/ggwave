@@ -75,10 +75,10 @@ You can use it to query audio waveforms by specifying the text message as a GET 
 
 ```bash
 # audible example
-curl -sS 'https://ggwave-to-file.ggerganov.com/?m=Hello world!' --output hello.wav
+curl -sS 'https://ggwave-to-file.ggerganov.com/?m=Hello%20world!' --output hello.wav
 
 # ultrasound example
-curl -sS 'https://ggwave-to-file.ggerganov.com/?m=Hello world!&p=4' --output hello.wav
+curl -sS 'https://ggwave-to-file.ggerganov.com/?m=Hello%20world!&p=4' --output hello.wav
 ```
 
 ### browser

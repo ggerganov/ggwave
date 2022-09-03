@@ -61,10 +61,10 @@ You can easily test the library using the free [waver](https://github.com/ggerga
 
   ```bash
   # audible example
-  curl -sS 'https://ggwave-to-file.ggerganov.com/?m=Hello world!' --output hello.wav
+  curl -sS 'https://ggwave-to-file.ggerganov.com/?m=Hello%20world!' --output hello.wav
 
   # ultrasound example
-  curl -sS 'https://ggwave-to-file.ggerganov.com/?m=Hello world!&p=4' --output hello.wav
+  curl -sS 'https://ggwave-to-file.ggerganov.com/?m=Hello%20world!&p=4' --output hello.wav
   ```
 
 

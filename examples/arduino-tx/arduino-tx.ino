@@ -6,6 +6,7 @@
 //   - Arduino Uno R3
 //   - Arduino Nano RP2040 Connect
 //   - NodeMCU-ESP32-S
+//   - NodeMCU-ESP8266EX
 //
 // If you want to perform a quick test, you can use the free "Waver" application:
 //   - Web:     https://waver.ggerganov.com

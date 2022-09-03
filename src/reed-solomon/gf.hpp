@@ -129,7 +129,11 @@ inline uint8_t div(uint8_t x, uint8_t y){
  * @param power - power
  * @return x^power */
 inline uint8_t pow(uint8_t x, intmax_t power){
+#ifdef ARDUINO
+    intmax_t i = pgm_read_byte(log + x);
+#else
     intmax_t i = log[x];
+#endif
     i *= power;
     i %= 255;
     if(i < 0) i = i + 255;

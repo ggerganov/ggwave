@@ -330,6 +330,16 @@ extern "C" {
             ggwave_ProtocolId protocolId,
             int state);
 
+    // Set freqStart for an Rx protocol
+    GGWAVE_API void ggwave_rxProtocolSetFreqStart(
+            ggwave_ProtocolId protocolId,
+            int freqStart);
+
+    // Set freqStart for a Tx protocol
+    GGWAVE_API void ggwave_txProtocolSetFreqStart(
+            ggwave_ProtocolId protocolId,
+            int freqStart);
+
 #ifdef __cplusplus
 }
 

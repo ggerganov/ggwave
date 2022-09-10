@@ -204,6 +204,20 @@ void ggwave_txToggleProtocol(
     GGWave::Protocols::tx().toggle(protocolId, state != 0);
 }
 
+extern "C"
+void ggwave_rxProtocolSetFreqStart(
+        ggwave_ProtocolId protocolId,
+        int freqStart) {
+    GGWave::Protocols::rx()[protocolId].freqStart = freqStart;
+}
+
+extern "C"
+void ggwave_txProtocolSetFreqStart(
+        ggwave_ProtocolId protocolId,
+        int freqStart) {
+    GGWave::Protocols::tx()[protocolId].freqStart = freqStart;
+}
+
 //
 // C++ implementation
 //

@@ -96,6 +96,9 @@
                 if (!context) {
                     context = new AudioContext({sampleRate: 48000});
 
+                    // If you applied a shift on the transmitter side, you need to apply the same shift on the receiver side:
+                    //ggwave.rxProtocolSetFreqStart(ggwave.ProtocolId.GGWAVE_PROTOCOL_MT_FASTEST, 24 + 48);
+
                     parameters = ggwave.getDefaultParameters();
                     parameters.payloadLength = kPayloadLength;
                     parameters.samplesPerFrame = 1024;

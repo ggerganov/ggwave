@@ -23,6 +23,9 @@ EMSCRIPTEN_BINDINGS(ggwave) {
         .value("GGWAVE_PROTOCOL_DT_NORMAL",          GGWAVE_PROTOCOL_DT_NORMAL)
         .value("GGWAVE_PROTOCOL_DT_FAST",            GGWAVE_PROTOCOL_DT_FAST)
         .value("GGWAVE_PROTOCOL_DT_FASTEST",         GGWAVE_PROTOCOL_DT_FASTEST)
+        .value("GGWAVE_PROTOCOL_MT_NORMAL",          GGWAVE_PROTOCOL_MT_NORMAL)
+        .value("GGWAVE_PROTOCOL_MT_FAST",            GGWAVE_PROTOCOL_MT_FAST)
+        .value("GGWAVE_PROTOCOL_MT_FASTEST",         GGWAVE_PROTOCOL_MT_FASTEST)
 
         .value("GGWAVE_PROTOCOL_CUSTOM_0", GGWAVE_PROTOCOL_CUSTOM_0)
         .value("GGWAVE_PROTOCOL_CUSTOM_1", GGWAVE_PROTOCOL_CUSTOM_1)
@@ -112,5 +115,17 @@ EMSCRIPTEN_BINDINGS(ggwave) {
                     [](ggwave_ProtocolId protocolId,
                        int state) {
                         ggwave_txToggleProtocol(protocolId, state);
+                    }));
+
+    emscripten::function("rxProtocolSetFreqStart", emscripten::optional_override(
+                    [](ggwave_ProtocolId protocolId,
+                       int freqStart) {
+                        ggwave_rxProtocolSetFreqStart(protocolId, freqStart);
+                    }));
+
+    emscripten::function("txProtocolSetFreqStart", emscripten::optional_override(
+                    [](ggwave_ProtocolId protocolId,
+                       int freqStart) {
+                        ggwave_txProtocolSetFreqStart(protocolId, freqStart);
                     }));
 }

@@ -27,6 +27,10 @@ if (MINGW)
         )
 endif()
 
+install(DIRECTORY ../include/ggwave
+    DESTINATION include
+    )
+
 install(TARGETS ${TARGET}
     LIBRARY DESTINATION lib
     ARCHIVE DESTINATION lib/static

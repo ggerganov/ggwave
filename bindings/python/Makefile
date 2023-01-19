@@ -7,7 +7,7 @@ ggwave:
 
 pyggwave.bycython.cpp: ggwave.pyx cggwave.pxd
 	python -m pip install cython
-	cython --cplus ggwave.pyx -o ggwave.bycython.cpp
+	cython --cleanup=3 --cplus ggwave.pyx -o ggwave.bycython.cpp
 
 # To build package, README.rst is needed, because it goes into long description of package,
 # which is what is visible on PyPI.

@@ -1,7 +1,9 @@
 #include "ggwave-common.h"
 
+#if !defined(_WIN32)
 #include <dlfcn.h>
 #include <unistd.h>
+#endif
 
 #include <cstring>
 #include <fstream>

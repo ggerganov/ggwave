@@ -28,7 +28,8 @@ int main() {
     char decoded[16];
 
     int n = ggwave_encode(instance, payload, 4, GGWAVE_PROTOCOL_AUDIBLE_FASTEST, 50, NULL, 1);
-    char waveform[n];
+    char *waveform = malloc(n);
+    CHECK(waveform != NULL);
 
     int ne = ggwave_encode(instance, payload, 4, GGWAVE_PROTOCOL_AUDIBLE_FASTEST, 50, waveform, 0);
     CHECK(ne > 0);
@@ -71,6 +72,7 @@ int main() {
     CHECK(strcmp(decoded, payload) == 0);
 
     ggwave_free(instance);
+    free(waveform);
 
     return 0;
 }

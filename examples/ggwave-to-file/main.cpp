@@ -10,7 +10,15 @@
 #include <iostream>
 
 int main(int argc, char** argv) {
+
+    #if defined(_WIN32)
+    const std::string & defaultFile = "audio.wav";
+    #else
+    const std::string & defaultFile = "/dev/stdout";
+    #endif
+
     fprintf(stderr, "Usage: %s [-vN] [-sN] [-pN] [-lN] [-d]\n", argv[0]);
+    fprintf(stderr, "    -fF - output filename, (default: %s)\n", defaultFile.c_str());
     fprintf(stderr, "    -vN - output volume, N in (0, 100], (default: 50)\n");
     fprintf(stderr, "    -sN - output sample rate, N in [%d, %d], (default: %d)\n", (int) GGWave::kSampleRateMin, (int) GGWave::kSampleRateMax, (int) GGWave::kDefaultSampleRate);
     fprintf(stderr, "    -pN - select the transmission protocol id (default: 1)\n");
@@ -40,6 +48,7 @@ int main(int argc, char** argv) {
     }
 
     const int   volume        = argm.count("v") == 0 ? 50 : std::stoi(argm.at("v"));
+    const std::string &file   = argm.count("f") == 0 ? defaultFile : argm.at("f");
     const float sampleRateOut = argm.count("s") == 0 ? GGWave::kDefaultSampleRate : std::stof(argm.at("s"));
     const int   protocolId    = argm.count("p") == 0 ?  1 : std::stoi(argm.at("p"));
     const int   payloadLength = argm.count("l") == 0 ? -1 : std::stoi(argm.at("l"));
@@ -107,6 +116,7 @@ int main(int argc, char** argv) {
     std::vector<char> bufferPCM(nBytes);
     std::memcpy(bufferPCM.data(), ggWave.txWaveform(), nBytes);
 
+    fprintf(stderr, "Output file = %s\n", file.c_str());
     fprintf(stderr, "Output size = %d bytes\n", (int) bufferPCM.size());
 
     drwav_data_format format;
@@ -119,7 +129,7 @@ int main(int argc, char** argv) {
     fprintf(stderr, "Writing WAV data ...\n");
 
     drwav wav;
-    drwav_init_file_write(&wav, "/dev/stdout", &format, NULL);
+    drwav_init_file_write(&wav, file.c_str(), &format, NULL);
     drwav_uint64 framesWritten = drwav_write_pcm_frames(&wav, bufferPCM.size()/2, bufferPCM.data());
 
     fprintf(stderr, "WAV frames written = %d\n", (int) framesWritten);

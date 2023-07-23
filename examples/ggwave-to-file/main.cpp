@@ -48,7 +48,7 @@ int main(int argc, char** argv) {
     }
 
     const int   volume        = argm.count("v") == 0 ? 50 : std::stoi(argm.at("v"));
-    const std::string &file   = argm.count("f") == 0 ? defaultFile : argm.at("f");
+    const std::string & file  = argm.count("f") == 0 ? defaultFile : argm.at("f");
     const float sampleRateOut = argm.count("s") == 0 ? GGWave::kDefaultSampleRate : std::stof(argm.at("s"));
     const int   protocolId    = argm.count("p") == 0 ?  1 : std::stoi(argm.at("p"));
     const int   payloadLength = argm.count("l") == 0 ? -1 : std::stoi(argm.at("l"));

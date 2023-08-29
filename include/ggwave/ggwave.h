@@ -340,6 +340,10 @@ extern "C" {
             ggwave_ProtocolId protocolId,
             int freqStart);
 
+    // Return rxDurationFrames
+    GGWAVE_API int ggwave_rxDurationFrames(
+            ggwave_Instance instance);
+
 #ifdef __cplusplus
 }
 
@@ -736,6 +740,7 @@ public:
     int rxFramesLeftToRecord()  const;
     int rxFramesToAnalyze()     const;
     int rxFramesLeftToAnalyze() const;
+    int rxDurationFrames()      const;
 
     bool rxStopReceiving();
 

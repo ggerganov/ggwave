@@ -75,7 +75,7 @@ EMSCRIPTEN_BINDINGS(ggwave) {
 
                         int nActual = ggwave_encode(instance, data.data(), data.size(), protocolId, volume, result.data(), 0);
 
-                        printf("n = %d, nActual = %d\n", n, nActual);
+                        // printf("n = %d, nActual = %d\n", n, nActual);
                         return emscripten::val(emscripten::typed_memory_view(nActual, result.data()));
                     }));
 
@@ -127,5 +127,10 @@ EMSCRIPTEN_BINDINGS(ggwave) {
                     [](ggwave_ProtocolId protocolId,
                        int freqStart) {
                         ggwave_txProtocolSetFreqStart(protocolId, freqStart);
+                    }));
+
+    emscripten::function("rxDurationFrames", emscripten::optional_override(
+                    [](ggwave_Instance instance) {
+                        return ggwave_rxDurationFrames(instance);
                     }));
 }

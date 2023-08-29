@@ -340,7 +340,7 @@ extern "C" {
             ggwave_ProtocolId protocolId,
             int freqStart);
 
-    // Return rxDurationFrames
+    // Return recvDuration_frames value for a rx protocol
     GGWAVE_API int ggwave_rxDurationFrames(
             ggwave_Instance instance);
 

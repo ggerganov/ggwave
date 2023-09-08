@@ -218,6 +218,12 @@ void ggwave_txProtocolSetFreqStart(
     GGWave::Protocols::tx()[protocolId].freqStart = freqStart;
 }
 
+extern "C"
+int ggwave_rxDurationFrames(ggwave_Instance id) {
+    GGWave * ggWave = (GGWave *) g_instances[id];
+    return ggWave->rxDurationFrames();
+}
+
 //
 // C++ implementation
 //
@@ -1255,6 +1261,7 @@ int GGWave::rxFramesToRecord()      const { return m_rx.framesToRecord; }
 int GGWave::rxFramesLeftToRecord()  const { return m_rx.framesLeftToRecord; }
 int GGWave::rxFramesToAnalyze()     const { return m_rx.framesToAnalyze; }
 int GGWave::rxFramesLeftToAnalyze() const { return m_rx.framesLeftToAnalyze; }
+int GGWave::rxDurationFrames()      const { return m_rx.recvDuration_frames; }
 
 bool GGWave::rxStopReceiving() {
     if (m_rx.receiving == false) {

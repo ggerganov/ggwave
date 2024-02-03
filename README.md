@@ -33,7 +33,7 @@ Here is a list of possible applications of **ggwave** with a few examples:
 - **Serverless, one-to-many broadcast**
   - [wave-share](https://github.com/ggerganov/wave-share) - file sharing through sound
 - **Internet of Things**
-  - [esp32-rx](https://github.com/ggerganov/ggwave/tree/master/examples/esp32-rx), [arduino-rx](https://github.com/ggerganov/ggwave/tree/master/examples/arduino-rx), [rp2040-rx](https://github.com/ggerganov/ggwave/tree/master/examples/rp2040-rx), [arduino-tx](https://github.com/ggerganov/ggwave/tree/master/examples/arduino-tx) - Sand and receive sound data on microcontrollers
+  - [esp32-rx](https://github.com/ggerganov/ggwave/tree/master/examples/esp32-rx), [arduino-rx](https://github.com/ggerganov/ggwave/tree/master/examples/arduino-rx), [rp2040-rx](https://github.com/ggerganov/ggwave/tree/master/examples/rp2040-rx), [arduino-tx](https://github.com/ggerganov/ggwave/tree/master/examples/arduino-tx) - Send and receive sound data on microcontrollers
   - [r2t2](https://github.com/ggerganov/ggwave/tree/master/examples/r2t2) - Transmit data with the PC speaker
   - [buttons](https://github.com/ggerganov/ggwave/tree/master/examples/buttons) - Record and send commands via [Talking buttons](https://github.com/ggerganov/ggwave/discussions/27)
 - **Audio QR codes**

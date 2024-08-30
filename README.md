@@ -38,7 +38,8 @@ Here is a list of possible applications of **ggwave** with a few examples:
   - [buttons](https://github.com/ggerganov/ggwave/tree/master/examples/buttons) - Record and send commands via [Talking buttons](https://github.com/ggerganov/ggwave/discussions/27)
 - **Audio QR codes**
   - [[Twitter]](https://twitter.com/ggerganov/status/1509558482567057417) - Broadcast your clipboard to nearby devices
-- **Device pairing**
+- **Device pairing / Contact exchange**
+  - [PairSonic](https://github.com/seemoo-lab/pairsonic) - Exchange contact information and public keys with nearby devices
 - **Authorization**
 
 ## Try it out

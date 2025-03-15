@@ -127,6 +127,16 @@ include(CPack)
 set(DEB_PYTHON_BUILD_DIR "${CMAKE_SOURCE_DIR}/bindings/python/")
 set(DEB_PYTHON_OUTPUT_FILE_PREFIX "${DEB_PYTHON_BUILD_DIR}/dist")
 
+set(ENV{SOURCE_DATE_EPOCH} "0")
+execute_process(
+  COMMAND git log -1 --pretty=%ct
+  WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+  TIMEOUT 1
+  OUTPUT_VARIABLE SOURCE_DATE_EPOCH
+  OUTPUT_STRIP_TRAILING_WHITESPACE
+)
+set(ENV{SOURCE_DATE_EPOCH} ${SOURCE_DATE_EPOCH})
+
 add_custom_target(deb_python_binding
     COMMAND cd ${DEB_PYTHON_BUILD_DIR} && make deb
     COMMENT "Building Debian package for Python binding"
@@ -134,7 +144,7 @@ add_custom_target(deb_python_binding
 )
 
 add_custom_target(deb_c_library
-    COMMAND cpack 
+    COMMAND SOURCE_DATE_EPOCH=${SOURCE_DATE_EPOCH} cpack 
     COMMENT "Building Debian package for C library"
     WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
 )
@@ -156,5 +166,6 @@ add_custom_target(deb
 add_custom_command(TARGET deb
     POST_BUILD
     COMMAND ls -alh ${CPACK_OUTPUT_FILE_PREFIX}/* 
+    COMMENT "SOURCE_DATE_EPOCH=${SOURCE_DATE_EPOCH}"
     WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
 )

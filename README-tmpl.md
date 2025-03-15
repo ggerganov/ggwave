@@ -157,6 +157,24 @@ make
 ./bin/ggwave-cli
 ```
 
+#### Local Debian packages
+
+Build reproducible `libggwave-dev` and `python3-ggwave` Debian packages:
+```bash
+# Fetch source
+git clone https://github.com/ggerganov/ggwave --recursive
+cd ggwave
+
+# Configure
+cmake . -DGGWAVE_BUILD_EXAMPLES=OFF -DCMAKE_BUILD_TYPE=Release
+
+# Build
+make deb
+
+# Install
+sudo dpkg -i dist/*.deb
+```
+
 ### Emscripten
 
 ```bash

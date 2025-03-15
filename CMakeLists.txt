@@ -99,6 +99,8 @@ if (GGWAVE_BUILD_EXAMPLES)
     add_subdirectory(examples)
 endif()
 
+
+
 set(CPACK_COMPONENTS_GROUPING ALL_COMPONENTS_IN_ONE)
 set(CPACK_DEB_COMPONENT_INSTALL YES)
 set(CPACK_DEBIAN_FILE_NAME DEB-DEFAULT)
@@ -121,3 +123,38 @@ set(CPACK_RESOURCE_FILE_README "${CMAKE_CURRENT_SOURCE_DIR}/README.md")
 set(CPACK_STRIP_FILES YES)
 set(CPACK_VERBATIM_VARIABLES YES)
 include(CPack)
+
+set(DEB_PYTHON_BUILD_DIR "${CMAKE_SOURCE_DIR}/bindings/python/")
+set(DEB_PYTHON_OUTPUT_FILE_PREFIX "${DEB_PYTHON_BUILD_DIR}/dist")
+
+add_custom_target(deb_python_binding
+    COMMAND cd ${DEB_PYTHON_BUILD_DIR} && make deb
+    COMMENT "Building Debian package for Python binding"
+    WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+)
+
+add_custom_target(deb_c_library
+    COMMAND cpack 
+    COMMENT "Building Debian package for C library"
+    WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+)
+
+add_custom_target(deb_python_move
+    COMMAND mv ${DEB_PYTHON_OUTPUT_FILE_PREFIX}/*.deb ${CPACK_OUTPUT_FILE_PREFIX}/
+    COMMENT "Moving Debian package for Python binding into ${CPACK_OUTPUT_FILE_PREFIX}/"
+    WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+    DEPENDS deb_python_binding deb_c_library
+)
+
+add_custom_target(deb
+    COMMAND sha256sum ${CPACK_OUTPUT_FILE_PREFIX}/* 
+    COMMENT "Debian package sha256 hashes"
+    DEPENDS deb_c_library deb_python_binding deb_python_move
+    WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+)
+
+add_custom_command(TARGET deb
+    POST_BUILD
+    COMMAND ls -alh ${CPACK_OUTPUT_FILE_PREFIX}/* 
+    WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+)

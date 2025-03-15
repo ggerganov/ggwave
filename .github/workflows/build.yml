@@ -53,6 +53,38 @@ jobs:
                 dpkg -I dist/libggwave-dev_*.deb
                 sha256sum dist/libggwave-dev_*.deb
 
+    ubuntu-24_04-target-deb:
+        runs-on: ubuntu-24.04
+        strategy:
+            matrix:
+                build: [Release]
+
+        steps:
+            - name: Clone
+              uses: actions/checkout@v1
+              with:
+                  submodules: recursive
+
+            - name: Dependencies
+              run: |
+                  sudo apt update
+                  sudo apt install cython3 build-essential debhelper-compat
+                  sudo apt install dh-python python3-all-dev python3-build
+                  sudo apt install python3-cogapp python3-venv
+
+            - name: Build Debian packages
+              run: |
+                cmake . -DGGWAVE_BUILD_EXAMPLES=OFF -DCMAKE_BUILD_TYPE=${{ matrix.build }}
+                make deb
+
+            - name: Inspect generated Debian packages
+              run: |
+                dpkg --contents dist/libggwave*.deb
+                dpkg -I dist/libggwave*.deb
+                dpkg --contents dist/python3*.deb
+                dpkg -I dist/python3*.deb
+                sha256sum dist/*.deb
+
     ubuntu-24_04-gcc:
         runs-on: ubuntu-24.04
 

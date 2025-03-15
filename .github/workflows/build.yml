@@ -24,6 +24,35 @@ jobs:
                 cd bindings/python
                 make deb
 
+    ubuntu-24_04-libggwave-dev-deb:
+        runs-on: ubuntu-24.04
+        strategy:
+            matrix:
+                build: [Release]
+
+        steps:
+            - name: Clone
+              uses: actions/checkout@v1
+              with:
+                  submodules: recursive
+
+            - name: Dependencies
+              run: |
+                  sudo apt update
+                  sudo apt install build-essential
+
+            - name: Build Debian package for libggwave
+              run: |
+                cmake . -DGGWAVE_BUILD_EXAMPLES=OFF -DCMAKE_BUILD_TYPE=${{ matrix.build }}
+                make
+                cpack
+
+            - name: Inspect generated Debian package
+              run: |
+                dpkg --contents dist/libggwave-dev_*.deb
+                dpkg -I dist/libggwave-dev_*.deb
+                sha256sum dist/libggwave-dev_*.deb
+
     ubuntu-24_04-gcc:
         runs-on: ubuntu-24.04
 

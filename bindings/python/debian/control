@@ -1,0 +1,40 @@
+Source: ggwave
+Section: python
+Priority: optional
+Maintainer: Georgi Gerganov <ggerganov@gmail.com>
+Build-Depends: debhelper-compat (= 13),
+               dh-python,
+               cython3,
+               python3-all-dev,
+               python3-setuptools,
+Standards-Version: 4.6.2.0
+Testsuite: autopkgtest-pkg-pybuild
+Homepage: https://github.com/ggerganov/ggwave
+Rules-Requires-Root: no
+
+Package: python3-ggwave
+Architecture: any
+Depends: ${misc:Depends}, ${python3:Depends}, ${shlibs:Depends},
+Description: Tiny data-over-sound library
+ Tiny data-over-sound library.
+ .
+ .
+  .. code:: python
+ .
+     # generate audio waveform for string "hello python"
+     waveform = ggwave.encode("hello python")
+ .
+     # decode audio waveform
+     text = ggwave.decode(instance, waveform)
+ .
+ .
+ --------
+ Features
+ --------
+ .
+  * Audible and ultrasound transmissions available
+  * Bandwidth of 8-16 bytes/s (depending on the transmission protocol)
+  * Robust FSK modulation
+  * Reed-Solomon based error correction
+ .
+ ------------

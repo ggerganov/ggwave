@@ -2,8 +2,91 @@ name: CI
 on: [push]
 
 jobs:
-    ubuntu-18_04-gcc:
-        runs-on: ubuntu-18.04
+
+    ubuntu-24_04-python3-ggwave-deb:
+        runs-on: ubuntu-24.04
+
+        steps:
+            - name: Clone
+              uses: actions/checkout@v1
+              with:
+                  submodules: recursive
+
+            - name: Dependencies
+              run: |
+                  sudo apt update
+                  sudo apt install cython3 build-essential debhelper-compat
+                  sudo apt install dh-python python3-all-dev python3-build
+                  sudo apt install python3-cogapp python3-venv
+
+            - name: Build Debian package for Python bindings
+              run: |
+                cd bindings/python
+                make deb
+
+    ubuntu-24_04-libggwave-dev-deb:
+        runs-on: ubuntu-24.04
+        strategy:
+            matrix:
+                build: [Release]
+
+        steps:
+            - name: Clone
+              uses: actions/checkout@v1
+              with:
+                  submodules: recursive
+
+            - name: Dependencies
+              run: |
+                  sudo apt update
+                  sudo apt install build-essential
+
+            - name: Build Debian package for libggwave
+              run: |
+                cmake . -DGGWAVE_BUILD_EXAMPLES=OFF -DCMAKE_BUILD_TYPE=${{ matrix.build }}
+                make
+                cpack
+
+            - name: Inspect generated Debian package
+              run: |
+                dpkg --contents dist/libggwave-dev_*.deb
+                dpkg -I dist/libggwave-dev_*.deb
+                sha256sum dist/libggwave-dev_*.deb
+
+    ubuntu-24_04-target-deb:
+        runs-on: ubuntu-24.04
+        strategy:
+            matrix:
+                build: [Release]
+
+        steps:
+            - name: Clone
+              uses: actions/checkout@v1
+              with:
+                  submodules: recursive
+
+            - name: Dependencies
+              run: |
+                  sudo apt update
+                  sudo apt install cython3 build-essential debhelper-compat
+                  sudo apt install dh-python python3-all-dev python3-build
+                  sudo apt install python3-cogapp python3-venv
+
+            - name: Build Debian packages
+              run: |
+                cmake . -DGGWAVE_BUILD_EXAMPLES=OFF -DCMAKE_BUILD_TYPE=${{ matrix.build }}
+                make deb
+
+            - name: Inspect generated Debian packages
+              run: |
+                dpkg --contents dist/libggwave*.deb
+                dpkg -I dist/libggwave*.deb
+                dpkg --contents dist/python3*.deb
+                dpkg -I dist/python3*.deb
+                sha256sum dist/*.deb
+
+    ubuntu-24_04-gcc:
+        runs-on: ubuntu-24.04
 
         strategy:
             matrix:
@@ -17,10 +100,10 @@ jobs:
 
             - name: Dependencies
               run: |
-                  sudo apt-get update
-                  sudo apt-get install build-essential xorg-dev libglu1-mesa-dev
-                  sudo apt-get install cmake;
-                  sudo apt-get install libsdl2-dev;
+                  sudo apt update
+                  sudo apt install build-essential xorg-dev libglu1-mesa-dev
+                  sudo apt install cmake
+                  sudo apt install libsdl2-dev
 
             - name: Configure
               run: cmake . -DCMAKE_BUILD_TYPE=${{ matrix.build }}
@@ -31,12 +114,14 @@ jobs:
                 ctest --output-on-failure
                 ./bin/test-ggwave-cpp --full
 
-    ubuntu-18_04-python:
-        runs-on: ubuntu-18.04
+    ubuntu-24_04-python:
+        runs-on: ubuntu-24.04
 
         strategy:
+            fail-fast: false
             matrix:
-                python-version: [3.5, 3.6, 3.7, 3.8]
+                build: [Release]
+                python-version: [3.8.18, 3.9.20, 3.11.11, 3.12.9]
 
         steps:
             - name: Clone
@@ -51,20 +136,23 @@ jobs:
 
             - name: Dependencies
               run: |
-                  sudo apt-get update
-                  sudo apt-get install build-essential
-                  sudo apt-get install cmake;
+                  sudo apt update
+                  sudo apt install build-essential
+                  sudo apt install cmake
+                  python3 -m venv venv
+                  source venv/bin/activate && pip install setuptools cython cogapp
 
             - name: Configure
               run: cmake . -DGGWAVE_SUPPORT_PYTHON=ON -DGGWAVE_BUILD_EXAMPLES=OFF -DCMAKE_BUILD_TYPE=${{ matrix.build }}
 
             - name: Build
               run: |
+                source venv/bin/activate
                 make
                 ctest --output-on-failure
 
-    ubuntu-18_04-gcc-sanitized:
-        runs-on: ubuntu-18.04
+    ubuntu-24_04-gcc-sanitized:
+        runs-on: ubuntu-24.04
 
         strategy:
             matrix:
@@ -78,9 +166,9 @@ jobs:
 
             - name: Dependencies
               run: |
-                  sudo apt-get update
-                  sudo apt-get install build-essential
-                  sudo apt-get install cmake;
+                  sudo apt update
+                  sudo apt install build-essential
+                  sudo apt install cmake
 
             - name: Configure
               run: cmake . -DCMAKE_BUILD_TYPE=Debug -DGGWAVE_BUILD_EXAMPLES=OFF -DGGWAVE_SANITIZE_${{ matrix.sanitizer }}=ON
@@ -90,8 +178,8 @@ jobs:
                 make
                 ctest --output-on-failure
 
-    ubuntu-18_04-clang:
-        runs-on: ubuntu-18.04
+    ubuntu-24_04-clang:
+        runs-on: ubuntu-24.04
 
         strategy:
             matrix:
@@ -105,10 +193,10 @@ jobs:
 
             - name: Dependencies
               run: |
-                  sudo apt-get update
-                  sudo apt-get install build-essential xorg-dev libglu1-mesa-dev
-                  sudo apt-get install cmake;
-                  sudo apt-get install libsdl2-dev;
+                  sudo apt update
+                  sudo apt install build-essential xorg-dev libglu1-mesa-dev
+                  sudo apt install cmake
+                  sudo apt install libsdl2-dev
 
             - name: Configure
               run: cmake . -DCMAKE_BUILD_TYPE=${{ matrix.build }} -DCMAKE_CXX_COMPILER=clang++ -DCMAKE_C_COMPILER=clang
@@ -145,7 +233,7 @@ jobs:
                 ctest --output-on-failure
 
     emscripten:
-        runs-on: ubuntu-18.04
+        runs-on: ubuntu-24.04
 
         strategy:
             matrix:
@@ -176,28 +264,32 @@ jobs:
                 emcmake cmake . -DCMAKE_BUILD_TYPE=${{ matrix.build }}
                 make && ctest --output-on-failure
 
-#    windows-msys2:
-#        runs-on: windows-latest
-#        defaults:
-#            run:
-#                shell: msys2 {0}
-#        steps:
-#            - name: Clone
-#              uses: actions/checkout@v1
-#              with:
-#                  submodules: recursive
-#
-#            - name: Dependencies
-#              uses: msys2/setup-msys2@v2
-#              with:
-#                  msystem: MINGW64
-#                  update: true
-#                  install: cmake make mingw-w64-x86_64-dlfcn mingw-w64-x86_64-gcc mingw-w64-x86_64-SDL2
-#
-#            - name: Configure
-#              run: cmake . -DCMAKE_BUILD_TYPE=${{ matrix.build }}
-#
-#            - name: Build
-#              run: |
-#                  make
-#                  ctest --output-on-failure
+    windows-msys2:
+      runs-on: windows-latest
+      defaults:
+        run:
+          shell: msys2 {0}
+      strategy:
+          matrix:
+              build: [Release]
+      steps:
+        - name: Clone
+          uses: actions/checkout@v1
+          with:
+            submodules: recursive
+
+        - name: Dependencies
+          uses: msys2/setup-msys2@v2
+          with:
+            msystem: MINGW64
+            update: true
+            install: make mingw-w64-x86_64-cmake mingw-w64-x86_64-dlfcn mingw-w64-x86_64-gcc mingw-w64-x86_64-SDL2 mingw-w64-x86_64-cmake
+
+        - name: Configure
+          run: cmake . -DCMAKE_BUILD_TYPE=${{ matrix.build }} -G "Unix Makefiles"
+
+        - name: Build
+          run: |
+            ls -alh .
+            make
+            ctest --output-on-failure

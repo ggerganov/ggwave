@@ -1,0 +1,14 @@
+Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
+Upstream-Name: ggwave
+Upstream-Contact: Georgi Gerganov <ggerganov@gmail.com>
+Source: https://github.com/ggerganov/ggwave
+
+Files: *
+Copyright: Georgi Gerganov <ggerganov@gmail.com>
+License: MIT
+
+Files: debian/*
+Copyright: Georgi Gerganov <ggerganov@gmail.com>
+License: MIT
+
+License: MIT

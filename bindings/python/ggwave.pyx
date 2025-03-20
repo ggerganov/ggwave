@@ -1,3 +1,4 @@
+# cython: language_level=3str
 cimport cython
 
 from libc.stdio cimport stderr

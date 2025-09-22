@@ -1,0 +1,21 @@
+<resources>
+    <string name="app_name">EchoPass AAT</string>
+    <string name="challenge_hint">Введите challenge, показанный на экране</string>
+    <string name="play_token">Проиграть токен</string>
+    <string name="last_token_label">Последний токен (base64)</string>
+    <string name="main_steps">1. Получите challenge на сайте и убедитесь, что ноутбук слушает микрофон.
+2. Проверьте, что в приложении выбран верный профиль пользователя.
+3. Введите challenge, нажмите кнопку и поднесите телефон к микрофону.</string>
+    <string name="profile_default_title">Активный профиль: EchoPass Demo</string>
+    <string name="profile_default_scope">userId: demo-user · kid: 13371337 · scopeId: 1</string>
+    <string name="profile_manage_hint">Профиль определяет ключи подписи токена. При необходимости импортируйте новый код.</string>
+    <string name="profile_manage_button">Импортировать профиль</string>
+    <string name="profile_active">Активный профиль: %1$s</string>
+    <string name="profile_scope">userId: %1$s · kid: %2$d · scopeId: %3$d</string>
+    <string name="profile_dialog_title">Импорт профиля</string>
+    <string name="profile_dialog_hint">Вставьте provisioning-код из админ-панели сайта.</string>
+    <string name="profile_dialog_error">Не удалось распознать код. Убедитесь, что вставили строку полностью.</string>
+    <string name="profile_dialog_save">Сохранить</string>
+    <string name="profile_dialog_placeholder">Вставьте код вида eyJ1c2VySWQiOi...</string>
+    <string name="profile_updated">Профиль обновлен: %1$s</string>
+</resources>

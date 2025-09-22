@@ -1,0 +1,374 @@
+.app {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2rem;
+  padding: 2rem;
+  min-height: 100vh;
+  background: radial-gradient(circle at 20% 20%, rgba(51, 145, 255, 0.18), transparent 55%),
+    radial-gradient(circle at 80% 10%, rgba(56, 189, 248, 0.12), transparent 55%),
+    radial-gradient(circle at 50% 80%, rgba(14, 165, 233, 0.14), transparent 50%);
+}
+
+.app__header {
+  width: min(920px, 100%);
+  background: rgba(15, 23, 42, 0.78);
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  border-radius: 18px;
+  padding: 1.2rem 1.8rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.5rem;
+}
+
+.app__brand {
+  font-weight: 600;
+  color: #e2e8f0;
+  font-size: 1rem;
+}
+
+.app__nav {
+  display: flex;
+  gap: 0.6rem;
+}
+
+.app__nav-button {
+  border: none;
+  border-radius: 999px;
+  padding: 0.55rem 1.2rem;
+  font-size: 0.95rem;
+  background: rgba(59, 130, 246, 0.18);
+  color: #bfdbfe;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.app__nav-button:hover {
+  background: rgba(59, 130, 246, 0.28);
+}
+
+.app__nav-button--active {
+  background: linear-gradient(120deg, rgba(37, 99, 235, 0.9), rgba(59, 130, 246, 0.7));
+  color: #f8fafc;
+  box-shadow: 0 12px 28px -18px rgba(37, 99, 235, 0.8);
+}
+
+.app__card {
+  width: min(920px, 100%);
+  background: rgba(15, 23, 42, 0.7);
+  backdrop-filter: blur(24px);
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  border-radius: 24px;
+  padding: 2.5rem 3rem;
+  box-shadow: 0 30px 60px -25px rgba(15, 23, 42, 0.8);
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 2.5rem;
+}
+
+.app__card--admin {
+  padding: 2.5rem 2.2rem;
+  display: block;
+}
+
+.app__left {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.app__title {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.app__badge {
+  padding: 0.35rem 0.9rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  background: rgba(59, 130, 246, 0.2);
+  color: #bfdbfe;
+}
+
+.app__headline {
+  font-size: clamp(1.8rem, 2.6vw, 2.6rem);
+  font-weight: 700;
+  margin: 0;
+}
+
+.app__subtitle {
+  margin: 0;
+  font-size: 1rem;
+  color: rgba(226, 232, 240, 0.8);
+  line-height: 1.6;
+}
+
+.app__actions {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.app__button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  border: none;
+  border-radius: 14px;
+  padding: 0.95rem 1.2rem;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.2s ease;
+  background: linear-gradient(90deg, #2563eb 0%, #38bdf8 100%);
+  color: #f8fafc;
+  box-shadow: 0 18px 35px -18px rgba(37, 99, 235, 0.8);
+}
+
+.app__button:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+  box-shadow: none;
+}
+
+.app__button:not(:disabled):hover {
+  transform: translateY(-1px);
+  box-shadow: 0 20px 40px -20px rgba(56, 189, 248, 0.9);
+}
+
+.app__secondary {
+  background: rgba(59, 130, 246, 0.15);
+  color: #bfdbfe;
+  box-shadow: none;
+}
+
+.app__info {
+  background: rgba(15, 118, 110, 0.18);
+  border-radius: 16px;
+  padding: 1rem 1.2rem;
+  font-size: 0.9rem;
+  color: #ccfbf1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.app__challenge {
+  background: rgba(59, 130, 246, 0.16);
+  border-radius: 16px;
+  padding: 1.2rem 1.4rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+}
+
+.app__challenge-label {
+  font-size: 0.75rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: rgba(191, 219, 254, 0.7);
+}
+
+.app__challenge-value {
+  font-size: 1.4rem;
+  font-weight: 600;
+  color: #e0f2fe;
+}
+
+.app__challenge-sub {
+  font-size: 0.85rem;
+  color: rgba(224, 242, 254, 0.6);
+}
+
+.app__status {
+  border-radius: 16px;
+  padding: 1rem 1.4rem;
+  background: rgba(148, 163, 184, 0.16);
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.app__status strong {
+  font-size: 0.95rem;
+}
+
+.app__status span {
+  font-size: 0.85rem;
+  color: rgba(226, 232, 240, 0.8);
+}
+
+.app__session {
+  margin-top: auto;
+  font-size: 0.85rem;
+  color: rgba(148, 163, 184, 0.9);
+}
+
+.app__session strong {
+  color: #f8fafc;
+}
+
+.app__right {
+  background: rgba(15, 23, 42, 0.6);
+  border-radius: 20px;
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  padding: 1.8rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.app__checklist {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+}
+
+.app__checklist li {
+  display: flex;
+  gap: 0.75rem;
+  font-size: 0.95rem;
+  color: rgba(226, 232, 240, 0.85);
+}
+
+.app__checklist svg {
+  color: #34d399;
+  flex-shrink: 0;
+}
+
+.app__error {
+  background: rgba(248, 113, 113, 0.18);
+  border: 1px solid rgba(248, 113, 113, 0.4);
+  border-radius: 16px;
+  padding: 0.9rem 1.1rem;
+  color: #fee2e2;
+  font-size: 0.9rem;
+}
+
+.admin {
+  width: 100%;
+}
+
+.admin__card {
+  background: rgba(15, 23, 42, 0.65);
+  border-radius: 18px;
+  padding: 1.5rem 1.8rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  color: #e2e8f0;
+}
+
+.admin__form {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1rem;
+  align-items: end;
+}
+
+.admin__label {
+  font-size: 0.85rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  color: rgba(226, 232, 240, 0.85);
+}
+
+.admin__label input {
+  background: rgba(15, 23, 42, 0.85);
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  border-radius: 12px;
+  padding: 0.65rem 0.8rem;
+  color: #f8fafc;
+}
+
+.admin__notice {
+  background: rgba(14, 165, 233, 0.18);
+  border: 1px solid rgba(14, 165, 233, 0.35);
+  border-radius: 12px;
+  padding: 0.75rem 1rem;
+  font-size: 0.85rem;
+}
+
+.admin__table-wrapper {
+  overflow-x: auto;
+}
+
+.admin__table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+
+.admin__table th,
+.admin__table td {
+  border-bottom: 1px solid rgba(148, 163, 184, 0.2);
+  padding: 0.75rem;
+  text-align: left;
+}
+
+.admin__table th {
+  color: rgba(191, 219, 254, 0.8);
+  font-weight: 600;
+}
+
+.admin__table td code {
+  word-break: break-all;
+  background: rgba(15, 23, 42, 0.75);
+  padding: 0.35rem 0.5rem;
+  border-radius: 8px;
+  display: inline-block;
+}
+
+.admin__code {
+  max-width: 320px;
+}
+
+.admin__help {
+  background: rgba(30, 64, 175, 0.18);
+  border-radius: 14px;
+  padding: 1rem 1.2rem;
+}
+
+.admin__help h3 {
+  margin-top: 0;
+  font-size: 1rem;
+  color: #dbeafe;
+}
+
+.admin__help ol {
+  margin: 0;
+  padding-left: 1.2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.admin__help li {
+  color: rgba(226, 232, 240, 0.85);
+}
+
+@media (max-width: 768px) {
+  .app {
+    padding: 1.5rem 1.2rem;
+  }
+
+  .app__header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+  }
+
+  .app__card {
+    padding: 1.8rem 1.6rem;
+  }
+}

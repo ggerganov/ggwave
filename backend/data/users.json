@@ -1,0 +1,10 @@
+[
+  {
+    "userId": "demo-user",
+    "displayName": "EchoPass Demo",
+    "kid": 13371337,
+    "scopeType": 1,
+    "scopeId": 1,
+    "seedB64": "pdtgqZMTREOrutZssKp6ugPBI9KEhLHDbVhDz2AdXWI="
+  }
+]

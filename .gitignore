@@ -8,3 +8,11 @@ compile_commands.json
 .*.swp
 .ycm_extra_conf.py
 .DS_Store
+backend/node_modules
+backend/dist
+web/node_modules
+web/dist
+android/.gradle
+android/.idea
+android/local.properties
+android/.cxx

@@ -1,0 +1,30 @@
+.mic-meter {
+  position: relative;
+  height: 14px;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 999px;
+  overflow: hidden;
+  margin-top: 0.5rem;
+  transition: box-shadow 0.2s ease;
+}
+
+.mic-meter--active {
+  box-shadow: 0 0 0 2px rgba(0, 153, 255, 0.3);
+}
+
+.mic-meter__bar {
+  height: 100%;
+  background: linear-gradient(90deg, #33b1ff 0%, #0066ff 100%);
+  transition: width 0.1s linear;
+}
+
+.mic-meter__label {
+  position: absolute;
+  inset: 0;
+  font-size: 0.7rem;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}

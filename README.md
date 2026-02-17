@@ -6,6 +6,13 @@
 [![pypi](https://img.shields.io/pypi/v/ggwave.svg)](https://pypi.org/project/ggwave/)
 [![npm](https://img.shields.io/npm/v/ggwave.svg)](https://www.npmjs.com/package/ggwave/)
 
+## Installation
+
+You can install the package directly from GitHub:
+
+```bash
+pip install git+https://github.com/not-lain/ggwave.git@python#subdirectory=bindings/python
+```
 Tiny data-over-sound library.
 
 Click on the images below to hear what it sounds like:

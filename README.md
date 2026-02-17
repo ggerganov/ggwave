@@ -13,6 +13,14 @@ You can install the package directly from GitHub:
 ```bash
 pip install git+https://github.com/not-lain/ggwave.git@python#subdirectory=bindings/python
 ```
+or you can run it using uv
+```
+uv add "ggwave @ git+https://github.com/not-lain/ggwave.git@python#subdirectory=bindings/python"
+```
+to use this package with python you can run the following
+```python
+
+
 Tiny data-over-sound library.
 
 Click on the images below to hear what it sounds like:

@@ -6,6 +6,20 @@
 [![pypi](https://img.shields.io/pypi/v/ggwave.svg)](https://pypi.org/project/ggwave/)
 [![npm](https://img.shields.io/npm/v/ggwave.svg)](https://www.npmjs.com/package/ggwave/)
 
+## Installation
+
+You can install the package directly from GitHub:
+
+```bash
+pip install git+https://github.com/not-lain/ggwave.git@python#subdirectory=bindings/python
+```
+or you can run it using uv
+```
+uv add "ggwave @ git+https://github.com/not-lain/ggwave.git@python#subdirectory=bindings/python"
+```
+to use this package with python, check out the [Usage](#usage-1) section.
+
+
 Tiny data-over-sound library.
 
 Click on the images below to hear what it sounds like:
@@ -194,6 +208,61 @@ pip install ggwave
 ```
 
 More info: https://pypi.org/project/ggwave/
+
+#### Usage
+
+* Encode and transmit data with sound:
+
+```python
+import ggwave
+import pyaudio
+
+p = pyaudio.PyAudio()
+
+# generate audio waveform for string "hello python"
+waveform = ggwave.encode("hello python", protocolId = 1, volume = 20)
+
+print("Transmitting text 'hello python' ...")
+stream = p.open(format=pyaudio.paFloat32, channels=1, rate=48000, output=True, frames_per_buffer=4096)
+stream.write(waveform, len(waveform)//4)
+stream.stop_stream()
+stream.close()
+
+p.terminate()
+```
+
+* Capture and decode audio data:
+
+```python
+import ggwave
+import pyaudio
+
+p = pyaudio.PyAudio()
+
+stream = p.open(format=pyaudio.paFloat32, channels=1, rate=48000, input=True, frames_per_buffer=1024)
+
+print('Listening ... Press Ctrl+C to stop')
+instance = ggwave.init()
+
+try:
+    while True:
+        data = stream.read(1024, exception_on_overflow=False)
+        res = ggwave.decode(instance, data)
+        if (not res is None):
+            try:
+                print('Received text: ' + res.decode("utf-8"))
+            except:
+                pass
+except KeyboardInterrupt:
+    pass
+
+ggwave.free(instance)
+
+stream.stop_stream()
+stream.close()
+
+p.terminate()
+```
 
 ### Node.js
 

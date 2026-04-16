@@ -1,6 +1,8 @@
 ggwave.so
 README.rst
 ggwave.bycython.cpp
+ggwave.cpp
+*.pyd
 ggwave.cpython-*-x86_64-linux-gnu.so
 ggwave/
 ggwave.egg-info/

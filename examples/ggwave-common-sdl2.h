@@ -12,4 +12,5 @@ bool GGWave_init(const int playbackId, const int captureId, const int payloadLen
 std::shared_ptr<GGWave> GGWave_instance();
 void GGWave_reset(void * parameters);
 bool GGWave_mainLoop();
+bool GGWave_txPlaying();
 bool GGWave_deinit();

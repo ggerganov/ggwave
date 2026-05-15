@@ -9,21 +9,34 @@ long_description = ""
 # Otherwise, pre-generated c source file(s) are used.
 # User has to set environment variable GGWAVE_USE_CYTHON.
 # e.g.: GGWAVE_USE_CYTHON=1 python setup.py install
+here = os.path.abspath(os.path.dirname(__file__))
 USE_CYTHON = os.getenv('GGWAVE_USE_CYTHON', False)
-if USE_CYTHON:
-    from Cython.Build import build_ext
+
+# Try to find the pre-generated C++ file
+ggwave_module_src = os.path.join(here, "ggwave.bycython.cpp")
+if not os.path.exists(ggwave_module_src):
+    # Fallback to .pyx if the .cpp is missing
     ggwave_module_src = "ggwave.pyx"
-    cmdclass['build_ext'] = build_ext
-else:
-    ggwave_module_src = "ggwave.bycython.cpp"
+    USE_CYTHON = True
+
+if USE_CYTHON:
+    try:
+        from Cython.Build import build_ext
+        cmdclass['build_ext'] = build_ext
+    except ImportError:
+        if ggwave_module_src.endswith(".pyx"):
+            raise ImportError("Cython is required to build from .pyx source. Please install it: pip install cython")
 
 # Load README.rst into long description.
 # User can skip using README.rst as long description: GGWAVE_OMIT_README_RST=1 python setup.py install
 OMIT_README_RST = os.getenv('GGWAVE_OMIT_README_RST', False)
 if not OMIT_README_RST:
-    here = os.path.abspath(os.path.dirname(__file__))
-    with open(os.path.join(here, 'README.rst'), encoding='utf-8') as f:
-        long_description = f.read()
+    readme_path = os.path.join(here, 'README.rst')
+    if os.path.exists(readme_path):
+        with open(readme_path, encoding='utf-8') as f:
+            long_description = f.read()
+    else:
+        long_description = "Tiny data-over-sound library."
 
 setup(
     # Information

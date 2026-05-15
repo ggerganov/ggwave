@@ -281,6 +281,10 @@ bool GGWave_mainLoop() {
     return true;
 }
 
+bool GGWave_txPlaying() {
+    return g_devIdOut && (SDL_GetQueuedAudioSize(g_devIdOut) > 0);
+}
+
 bool GGWave_deinit() {
     if (g_devIdInp == 0 && g_devIdOut == 0) {
         return false;

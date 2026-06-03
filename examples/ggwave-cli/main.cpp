@@ -11,6 +11,11 @@
 #include <mutex>
 #include <thread>
 #include <iostream>
+#include <atomic>
+
+#if !defined(_WIN32)
+#include <unistd.h>
+#endif
 
 int main(int argc, char** argv) {
     printf("Usage: %s [-cN] [-pN] [-tN] [-lN]\n", argv[0]);
@@ -20,6 +25,10 @@ int main(int argc, char** argv) {
     printf("    -lN - fixed payload length of size N, N in [1, %d]\n", GGWave::kMaxLengthFixed);
     printf("    -d  - use Direct Sequence Spread (DSS)\n");
     printf("    -v  - print generated tones on resend\n");
+    printf("\n");
+    printf("Examples:\n");
+    printf("    %s                     (interactive mode)\n", argv[0]);
+    printf("    echo \"hello\" | %s      (one-off transmission)\n", argv[0]);
     printf("\n");
 
     const auto argm          = parseCmdArguments(argc, argv);
@@ -54,43 +63,65 @@ int main(int argc, char** argv) {
 
     printf("Selecting Tx protocol %d\n", txProtocolId);
 
+    const bool isInteractive = isatty(fileno(stdin));
+
     std::mutex mutex;
+    std::atomic<bool> isRunning(true);
     std::thread inputThread([&]() {
         std::string inputOld = "";
-        while (true) {
+        while (isRunning) {
             std::string input;
-            printf("Enter text: ");
-            fflush(stdout);
-            getline(std::cin, input);
+            if (isInteractive) {
+                printf("Enter text: ");
+                fflush(stdout);
+            }
+            if (!getline(std::cin, input)) {
+                isRunning = false;
+                break;
+            }
             if (input.empty()) {
-                printf("Re-sending ...\n");
-                input = inputOld;
+                if (isInteractive) {
+                    printf("Re-sending ...\n");
+                    input = inputOld;
 
-                if (printTones) {
-                    printf("Printing generated waveform tones (Hz):\n");
-                    const auto & protocol = protocols[txProtocolId];
-                    const auto tones = ggWave->txTones();
-                    for (int i = 0; i < (int) tones.size(); ++i) {
-                        if (tones[i] < 0) {
-                            printf(" - end tx\n");
-                            continue;
+                    if (printTones) {
+                        printf("Printing generated waveform tones (Hz):\n");
+                        const auto & protocol = protocols[txProtocolId];
+                        const auto tones = ggWave->txTones();
+                        for (int i = 0; i < (int) tones.size(); ++i) {
+                            if (tones[i] < 0) {
+                                printf(" - end tx\n");
+                                continue;
+                            }
+                            const auto freq_hz = (protocol.freqStart + tones[i])*ggWave->hzPerSample();
+                            printf(" - tone %3d: %f\n", i, freq_hz);
                         }
-                        const auto freq_hz = (protocol.freqStart + tones[i])*ggWave->hzPerSample();
-                        printf(" - tone %3d: %f\n", i, freq_hz);
                     }
+                } else {
+                    continue;
                 }
             } else {
+                if (!isInteractive) {
+                    // when piping, wait for the previous transmission to finish
+                    while (isRunning && (ggWave->txHasData() || GGWave_txPlaying())) {
+                        std::this_thread::sleep_for(std::chrono::milliseconds(10));
+                    }
+                }
                 printf("Sending ...\n");
             }
             {
                 std::lock_guard<std::mutex> lock(mutex);
                 ggWave->init(input.size(), input.data(), GGWave::TxProtocolId(txProtocolId), 10);
             }
+            // give the main thread a tiny bit of time to pick up the new data
+            if (!isInteractive) {
+                std::this_thread::sleep_for(std::chrono::milliseconds(1));
+            }
             inputOld = input;
         }
     });
 
-    while (true) {
+    while (isRunning || ggWave->txHasData() || GGWave_txPlaying()) {
         std::this_thread::sleep_for(std::chrono::milliseconds(1));
         {
             std::lock_guard<std::mutex> lock(mutex);
@@ -98,7 +129,9 @@ int main(int argc, char** argv) {
         }
     }
 
-    inputThread.join();
+    if (inputThread.joinable()) {
+        inputThread.join();
+    }
 
     GGWave_deinit();
 

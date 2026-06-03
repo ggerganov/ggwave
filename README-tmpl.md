@@ -135,47 +135,86 @@ Other projects using **ggwave** or one of its prototypes:
 
 ## Building
 
-### Dependencies for SDL-based examples
+### Prerequisites
 
-    [Ubuntu]
-    $ sudo apt install libsdl2-dev
-
-    [Mac OS with brew]
-    $ brew install sdl2
-
-    [MSYS2]
-    $ pacman -S git cmake make mingw-w64-x86_64-dlfcn mingw-w64-x86_64-gcc mingw-w64-x86_64-SDL2
-
-### Linux, Mac, Windows (MSYS2)
+To build all tools and bindings, ensure you have the necessary dependencies installed:
 
 ```bash
-# build
+# [Ubuntu/Debian]
+sudo apt install cmake make build-essential libsdl2-dev python3-dev python3-pip
+
+# [Python Tools]
+pip install cython cogapp --user
+```
+
+### Standard Build & Install (Linux, Mac, Windows MSYS2)
+
+The recommended way to build and install `ggwave` is using CMake. This will build the core library, CLI tools, and the Python bindings.
+
+```bash
+# 1. Clone the repository
 git clone https://github.com/ggerganov/ggwave --recursive
-cd ggwave && mkdir build && cd build
-cmake ..
+cd ggwave
+
+# 2. Configure (Enable Python bindings)
+cmake . -DGGWAVE_SUPPORT_PYTHON=ON
+
+# 3. Build everything
 make
 
-# running
-./bin/ggwave-cli
+# 4. Install to system path
+sudo make install
+```
+
+> [!IMPORTANT]
+> **Permissions Note:** Always run `make` as a normal user first. If you run `sudo make install` before the build is finished, it may attempt to compile the Python bindings as root, which will fail to find your local `cython` installation and may corrupt file permissions in the repository. If this happens, run `sudo chown $USER:$USER -R .` to restore ownership.
+
+This will install the following tools to `/usr/local/bin`:
+- `ggwave-cli`: Interactive or piped command line tool for sending/receiving data.
+- `ggwave-to-file`: Encode text into a WAV file.
+- `ggwave-from-file`: Decode text from a WAV file.
+- `waver`: GUI application for data exchange.
+
+**Example CLI usage:**
+```bash
+# Interactive mode
+ggwave-cli
+
+# One-off transmission via pipe (auto-exits when done)
+echo "All is done" | ggwave-cli
 ```
 
 #### Local Debian packages
 
 Build reproducible `libggwave-dev` and `python3-ggwave` Debian packages:
 ```bash
-# Fetch source
-git clone https://github.com/ggerganov/ggwave --recursive
-cd ggwave
-
-# Configure
 cmake . -DGGWAVE_BUILD_EXAMPLES=OFF -DCMAKE_BUILD_TYPE=Release
-
-# Build
 make deb
-
-# Install
 sudo dpkg -i dist/*.deb
 ```
+
+### Python
+
+You can install `ggwave` directly from PyPI or build it from source.
+
+#### From PyPI (Standard User / Termux)
+This is the easiest method for consumers. It works out of the box on most platforms:
+```bash
+pip install ggwave
+```
+
+More info: https://pypi.org/project/ggwave/
+
+#### From Source (Developer / Git Repo)
+When building from the Git repository, you must manually sync the core C++ sources and handle build-time dependencies. Use `--no-build-isolation` to ensure your local `cython` and `cogapp` installations are used:
+
+```bash
+cd bindings/python
+make ggwave          # Syncs core C++ headers and source files
+pip install . --user --no-build-isolation
+```
+
+**Note on Cog:** If you have the Replicate `cog` CLI installed, the build system will automatically prefer `python3 -m cogapp` to avoid name collisions.
 
 ### Emscripten
 
@@ -186,14 +225,6 @@ mkdir build && cd build
 emcmake cmake ..
 make
 ```
-
-### Python
-
-```bash
-pip install ggwave
-```
-
-More info: https://pypi.org/project/ggwave/
 
 ### Node.js
 

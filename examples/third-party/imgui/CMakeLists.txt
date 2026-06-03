@@ -44,9 +44,9 @@ if (GGWAVE_SUPPORT_SDL2)
 
         add_library(imgui-sdl2
             imgui/examples/libs/gl3w/GL/gl3w.c
-            imgui-extra/imgui_impl.cpp
-            imgui-extra/imgui_impl_sdl.cpp
-            imgui-extra/imgui_impl_opengl3.cpp
+            ${CMAKE_CURRENT_SOURCE_DIR}/imgui-extra/imgui_impl.cpp
+            ${CMAKE_CURRENT_SOURCE_DIR}/imgui-extra/imgui_impl_sdl.cpp
+            ${CMAKE_CURRENT_SOURCE_DIR}/imgui-extra/imgui_impl_opengl3.cpp
             )
 
         target_include_directories(imgui-sdl2 PUBLIC
@@ -56,7 +56,7 @@ if (GGWAVE_SUPPORT_SDL2)
 
         target_include_directories(imgui-sdl2 PRIVATE
             imgui
-            imgui-extra
+            ${CMAKE_CURRENT_SOURCE_DIR}/imgui-extra
             )
 
         target_link_libraries(imgui-sdl2 PUBLIC
@@ -72,14 +72,14 @@ if (GGWAVE_SUPPORT_SDL2)
             )
     elseif (EMSCRIPTEN)
         add_library(imgui-sdl2
-            imgui-extra/imgui_impl.cpp
-            imgui-extra/imgui_impl_sdl.cpp
-            imgui-extra/imgui_impl_opengl3.cpp
+            ${CMAKE_CURRENT_SOURCE_DIR}/imgui-extra/imgui_impl.cpp
+            ${CMAKE_CURRENT_SOURCE_DIR}/imgui-extra/imgui_impl_sdl.cpp
+            ${CMAKE_CURRENT_SOURCE_DIR}/imgui-extra/imgui_impl_opengl3.cpp
             )
 
         target_include_directories(imgui-sdl2 PRIVATE
             imgui
-            imgui-extra
+            ${CMAKE_CURRENT_SOURCE_DIR}/imgui-extra
             )
 
         target_link_libraries(imgui-sdl2 PUBLIC
@@ -91,9 +91,9 @@ if (GGWAVE_SUPPORT_SDL2)
 
         add_library(imgui-sdl2
             imgui/examples/libs/gl3w/GL/gl3w.c
-            imgui-extra/imgui_impl.cpp
-            imgui-extra/imgui_impl_sdl.cpp
-            imgui-extra/imgui_impl_opengl3.cpp
+            ${CMAKE_CURRENT_SOURCE_DIR}/imgui-extra/imgui_impl.cpp
+            ${CMAKE_CURRENT_SOURCE_DIR}/imgui-extra/imgui_impl_sdl.cpp
+            ${CMAKE_CURRENT_SOURCE_DIR}/imgui-extra/imgui_impl_opengl3.cpp
             )
 
         # force GL3W loader
@@ -108,7 +108,7 @@ if (GGWAVE_SUPPORT_SDL2)
 
         target_include_directories(imgui-sdl2 PRIVATE
             imgui
-            imgui-extra
+            ${CMAKE_CURRENT_SOURCE_DIR}/imgui-extra
             )
 
         target_link_libraries(imgui-sdl2 PUBLIC

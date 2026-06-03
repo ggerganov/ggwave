@@ -1,6 +1,16 @@
 cmake_minimum_required (VERSION 3.10)
 project(ggwave VERSION 0.4.3)
 
+# Initialize and update Git submodules
+message(STATUS "Synchronizing submodules...")
+execute_process(COMMAND git submodule update --init --recursive
+                WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+                RESULT_VARIABLE submodule_result)
+
+if(NOT submodule_result EQUAL 0)
+    message(FATAL_ERROR "Failed to initialize submodules")
+endif()
+
 set(GGWAVE_VERSION_PYTHON 0.4.3)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS "on")
@@ -16,7 +26,9 @@ if(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
     configure_file(${CMAKE_SOURCE_DIR}/README-tmpl.md                        ${CMAKE_SOURCE_DIR}/README.md @ONLY)
     configure_file(${CMAKE_SOURCE_DIR}/bindings/python/setup-tmpl.py         ${CMAKE_SOURCE_DIR}/bindings/python/setup.py @ONLY)
     configure_file(${CMAKE_SOURCE_DIR}/bindings/javascript/package-tmpl.json ${CMAKE_SOURCE_DIR}/bindings/javascript/package.json @ONLY)
-    configure_file(${CMAKE_SOURCE_DIR}/bindings/ios/Makefile-tmpl            ${CMAKE_SOURCE_DIR}/bindings/ios/Makefile @ONLY)
+    if (GGWAVE_SUPPORT_SWIFT)
+        configure_file(${CMAKE_SOURCE_DIR}/bindings/ios/Makefile-tmpl            ${CMAKE_SOURCE_DIR}/bindings/ios/Makefile @ONLY)
+    endif()
 else()
     set(GGWAVE_STANDALONE OFF)
 endif()

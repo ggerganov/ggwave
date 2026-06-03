@@ -1,0 +1,13 @@
+/usr/local/include/ggwave/ggwave.h
+/usr/local/lib/libggwave.so
+/usr/local/lib/libggwave-common.so
+/usr/local/lib/libggwave-common-sdl2.so
+/usr/local/lib/libimgui.so
+/usr/local/lib/libimgui-sdl2.so
+/usr/local/lib/libggsock.so
+/usr/local/bin/ggwave-to-file
+/usr/local/bin/ggwave-from-file
+/usr/local/bin/ggwave-cli
+/usr/local/bin/DroidSans.ttf
+/usr/local/bin/fontawesome-webfont.ttf
+/usr/local/bin/waver

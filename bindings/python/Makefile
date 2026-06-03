@@ -11,9 +11,9 @@ DEB_BUILD_DIR := $(DEST)$(PKG_NAME)-$(VERSION)
 DEB_VER := 0
 DEB := python3-$(PKG_NAME)_$(VERSION)-$(DEB_VER)_$(ARCH).deb
 SOURCE_DATE_EPOCH := $(shell git log -1 --pretty=%ct)
-SOURCE_PKG_CMD := python -m build --sdist
+SOURCE_PKG_CMD := python3 -m build --sdist
 DEB_BUILD_CMD := dpkg-buildpackage -rfakeroot -uc -us
-COGAPP ?= $(shell which cog || which cogapp)
+COGAPP ?= $(shell python3 -m cogapp --help > /dev/null 2>&1 && echo "python3 -m cogapp" || which cogapp || which cog)
 
 .PHONY:
 ggwave:

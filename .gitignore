@@ -1,5 +1,26 @@
-build
-build-*
+# Common build artifacts
+build/
+build-*/
+bin/
+Makefile
+cmake_install.cmake
+CMakeCache.txt
+CMakeFiles/
+CPackConfig.cmake
+CPackSourceConfig.cmake
+CTestTestfile.cmake
+_deps/
+*.so
+*.a
+*.dylib
+*.dll
+*.exe
+*.o
+*.obj
+*.pyc
+__pycache__/
+
+# Editor/Tools
 compile_commands.json
 .exrc
 .clangd
@@ -8,3 +29,6 @@ compile_commands.json
 .*.swp
 .ycm_extra_conf.py
 .DS_Store
+.ipynb_checkpoints/
+.vscode/
+.idea/
